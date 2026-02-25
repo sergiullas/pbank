@@ -12,11 +12,9 @@ const STORAGE_KEYS = {
 const createId = () => crypto.randomUUID();
 
 type FilterMode = "all" | "favorites";
-type LibraryView = "browse" | "detail";
 
 type StoreState = {
   libraryCollapsed: boolean;
-  libraryView: LibraryView;
   prompts: Prompt[];
   promptQuery: string;
   selectedPromptId: string | null;
@@ -29,8 +27,7 @@ type StoreState = {
   setLibraryCollapsed: (next: boolean) => void;
   toggleLibraryCollapsed: () => void;
   setPromptQuery: (q: string) => void;
-  openPromptDetail: (id: string) => void;
-  closePromptDetail: () => void;
+  selectPrompt: (id: string | null) => void;
   toggleFavorite: (id: string) => void;
   setFilterMode: (mode: FilterMode) => void;
   incrementUsage: (id: string) => void;
@@ -59,7 +56,6 @@ const initialUsageCounts = readUsageCounts();
 
 export const useStore = create<StoreState>((set, get) => ({
   libraryCollapsed: readLibraryCollapsed(),
-  libraryView: "browse",
   prompts: seedPrompts,
   promptQuery: "",
   selectedPromptId: seedPrompts[0]?.id ?? null,
@@ -83,9 +79,7 @@ export const useStore = create<StoreState>((set, get) => ({
 
   setPromptQuery: (q) => set({ promptQuery: q }),
 
-  openPromptDetail: (id) => set({ selectedPromptId: id, libraryView: "detail" }),
-
-  closePromptDetail: () => set({ libraryView: "browse" }),
+  selectPrompt: (id) => set({ selectedPromptId: id }),
 
   toggleFavorite: (id) => {
     const nextFavorites = { ...get().favorites };
@@ -130,8 +124,8 @@ export const useStore = create<StoreState>((set, get) => ({
   },
 
   getSelectedPrompt: () => {
-    const { selectedPromptId, prompts } = get();
-    return prompts.find((prompt) => prompt.id === selectedPromptId) ?? null;
+    const { selectedPromptId } = get();
+    return get().filteredPrompts().find((prompt) => prompt.id === selectedPromptId) ?? null;
   },
 
   setComposerText: (text) => set({ composerText: text }),

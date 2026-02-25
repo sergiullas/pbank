@@ -6,10 +6,18 @@ import { PromptListItem } from "./PromptListItem";
 export function PromptList() {
   const filteredPrompts = useStore((state) => state.filteredPrompts());
   const selectedPromptId = useStore((state) => state.selectedPromptId);
+  const favorites = useStore((state) => state.favorites);
   const selectPrompt = useStore((state) => state.selectPrompt);
+  const toggleFavorite = useStore((state) => state.toggleFavorite);
 
   useEffect(() => {
-    if (filteredPrompts.length === 0) return;
+    if (filteredPrompts.length === 0) {
+      if (selectedPromptId !== null) {
+        selectPrompt(null);
+      }
+      return;
+    }
+
     const existsInFiltered = filteredPrompts.some((prompt) => prompt.id === selectedPromptId);
     if (!existsInFiltered) {
       selectPrompt(filteredPrompts[0].id);
@@ -33,7 +41,9 @@ export function PromptList() {
           key={prompt.id}
           prompt={prompt}
           selected={selectedPromptId === prompt.id}
+          isFavorite={Boolean(favorites[prompt.id])}
           onSelect={selectPrompt}
+          onToggleFavorite={toggleFavorite}
         />
       ))}
     </List>

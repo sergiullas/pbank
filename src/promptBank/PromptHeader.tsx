@@ -1,19 +1,12 @@
 import { Box, Tab, Tabs, TextField, Typography } from "@mui/material";
-import { useMemo } from "react";
 import { useStore } from "../state/store";
 
 export function PromptHeader() {
-  const prompts = useStore((state) => state.prompts);
-  const favorites = useStore((state) => state.favorites);
   const filterMode = useStore((state) => state.filterMode);
+  const favoritesCount = useStore((state) => state.favoritesCount());
   const query = useStore((state) => state.promptQuery);
   const setPromptQuery = useStore((state) => state.setPromptQuery);
   const setFilterMode = useStore((state) => state.setFilterMode);
-
-  const favoritesCount = useMemo(
-    () => prompts.filter((prompt) => Boolean(favorites[prompt.id])).length,
-    [favorites, prompts],
-  );
 
   return (
     <Box px={2} py={1.5} borderBottom={1} borderColor="divider">

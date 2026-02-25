@@ -12,18 +12,6 @@ export function PromptList() {
   const selectPrompt = useStore((state) => state.selectPrompt);
   const toggleFavorite = useStore((state) => state.toggleFavorite);
 
-  const filteredPrompts = useMemo(() => {
-    const query = promptQuery.trim().toLowerCase();
-
-    return prompts.filter((prompt) => {
-      const matchesQuery =
-        !query ||
-        [prompt.title, prompt.content, ...prompt.tags].join(" ").toLowerCase().includes(query);
-      const matchesFilter = filterMode === "all" || Boolean(favorites[prompt.id]);
-      return matchesQuery && matchesFilter;
-    });
-  }, [favorites, filterMode, promptQuery, prompts]);
-
   useEffect(() => {
     if (filteredPrompts.length === 0) {
       if (selectedPromptId !== null) {

@@ -12,20 +12,6 @@ export function PromptDetail() {
   const insertIntoComposer = useStore((state) => state.insertIntoComposer);
   const incrementUsage = useStore((state) => state.incrementUsage);
 
-  const prompt = useMemo(() => {
-    const query = promptQuery.trim().toLowerCase();
-
-    const visiblePrompts = prompts.filter((item) => {
-      const matchesQuery =
-        !query ||
-        [item.title, item.content, ...item.tags].join(" ").toLowerCase().includes(query);
-      const matchesFilter = filterMode === "all" || Boolean(favorites[item.id]);
-      return matchesQuery && matchesFilter;
-    });
-
-    return visiblePrompts.find((item) => item.id === selectedPromptId) ?? null;
-  }, [favorites, filterMode, promptQuery, prompts, selectedPromptId]);
-
   if (!prompt) {
     return (
       <Box p={2}>

@@ -31,6 +31,9 @@ type StoreState = {
   toggleFavorite: (id: string) => void;
   setFilterMode: (mode: FilterMode) => void;
   incrementUsage: (id: string) => void;
+  filteredPrompts: () => Prompt[];
+  favoritesCount: () => number;
+  getSelectedPrompt: () => Prompt | null;
   setComposerText: (text: string) => void;
   insertIntoComposer: (text: string) => void;
   sendMessage: () => void;
@@ -93,13 +96,36 @@ export const useStore = create<StoreState>((set, get) => ({
   setFilterMode: (mode) => set({ filterMode: mode }),
 
   incrementUsage: (id) => {
-    const currentUsage = get().usageCounts;
     const nextUsage = {
-      ...currentUsage,
-      [id]: (currentUsage[id] ?? 0) + 1,
+      ...get().usageCounts,
+      [id]: (get().usageCounts[id] ?? 0) + 1,
     };
     writeJSON(STORAGE_KEYS.usageCounts, nextUsage);
     set({ usageCounts: nextUsage });
+  },
+
+  filteredPrompts: () => {
+    const { prompts, promptQuery, filterMode, favorites } = get();
+    const query = promptQuery.trim().toLowerCase();
+
+    return prompts.filter((prompt) => {
+      const matchesQuery =
+        !query ||
+        [prompt.title, prompt.content, ...prompt.tags].join(" ").toLowerCase().includes(query);
+      const matchesFilter = filterMode === "all" || Boolean(favorites[prompt.id]);
+
+      return matchesQuery && matchesFilter;
+    });
+  },
+
+  favoritesCount: () => {
+    const { prompts, favorites } = get();
+    return prompts.filter((prompt) => favorites[prompt.id]).length;
+  },
+
+  getSelectedPrompt: () => {
+    const { selectedPromptId } = get();
+    return get().filteredPrompts().find((prompt) => prompt.id === selectedPromptId) ?? null;
   },
 
   setComposerText: (text) => set({ composerText: text }),

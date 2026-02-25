@@ -22,6 +22,7 @@ export function PromptListItem({
     <ListItemButton selected={selected} onClick={() => onSelect(prompt.id)} alignItems="flex-start">
       <ListItemText
         primary={<Typography fontWeight={600}>{prompt.title}</Typography>}
+        secondaryTypographyProps={{ component: "div" }}
         secondary={
           <Stack spacing={0.75} mt={0.5}>
             <Typography variant="caption" color="text.secondary">

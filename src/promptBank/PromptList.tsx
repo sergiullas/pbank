@@ -1,10 +1,12 @@
 import { Box, List, Typography } from "@mui/material";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useStore } from "../state/store";
 import { PromptListItem } from "./PromptListItem";
 
 export function PromptList() {
-  const filteredPrompts = useStore((state) => state.filteredPrompts());
+  const prompts = useStore((state) => state.prompts);
+  const promptQuery = useStore((state) => state.promptQuery);
+  const filterMode = useStore((state) => state.filterMode);
   const selectedPromptId = useStore((state) => state.selectedPromptId);
   const favorites = useStore((state) => state.favorites);
   const selectPrompt = useStore((state) => state.selectPrompt);

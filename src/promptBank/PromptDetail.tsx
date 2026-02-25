@@ -1,9 +1,14 @@
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { Box, Button, Chip, IconButton, Stack, Typography } from "@mui/material";
+import { useMemo } from "react";
 import { useStore } from "../state/store";
 
 export function PromptDetail() {
-  const prompt = useStore((state) => state.getSelectedPrompt());
+  const prompts = useStore((state) => state.prompts);
+  const selectedPromptId = useStore((state) => state.selectedPromptId);
+  const promptQuery = useStore((state) => state.promptQuery);
+  const favorites = useStore((state) => state.favorites);
+  const filterMode = useStore((state) => state.filterMode);
   const insertIntoComposer = useStore((state) => state.insertIntoComposer);
   const incrementUsage = useStore((state) => state.incrementUsage);
 

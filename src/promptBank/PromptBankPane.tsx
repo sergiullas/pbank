@@ -1,18 +1,15 @@
-import { Box, Divider } from "@mui/material";
-import { PromptDetail } from "./PromptDetail";
-import { PromptHeader } from "./PromptHeader";
-import { PromptList } from "./PromptList";
+import { Box } from "@mui/material";
+import { useStore } from "../state/store";
+import { PromptBrowseView } from "./PromptBrowseView";
+import { PromptDetailView } from "./PromptDetailView";
 
 export function PromptBankPane() {
+  const libraryView = useStore((state) => state.libraryView);
+
   return (
     <Box width={380} display="flex" flexDirection="column" minHeight={0} borderLeft={1} borderColor="divider">
-      <PromptHeader />
-      <Box flex={1} minHeight={0} overflow="auto">
-        <PromptList />
-      </Box>
-      <Divider />
-      <Box maxHeight="45%" overflow="auto">
-        <PromptDetail />
+      <Box flex={1} minHeight={0}>
+        {libraryView === "browse" ? <PromptBrowseView /> : <PromptDetailView />}
       </Box>
     </Box>
   );

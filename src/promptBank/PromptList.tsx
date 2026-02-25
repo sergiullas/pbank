@@ -1,15 +1,37 @@
 import { Box, List, Typography } from "@mui/material";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useStore } from "../state/store";
 import { PromptListItem } from "./PromptListItem";
 
 export function PromptList() {
-  const filteredPrompts = useStore((state) => state.filteredPrompts());
+  const prompts = useStore((state) => state.prompts);
+  const promptQuery = useStore((state) => state.promptQuery);
+  const filterMode = useStore((state) => state.filterMode);
   const selectedPromptId = useStore((state) => state.selectedPromptId);
+  const favorites = useStore((state) => state.favorites);
   const selectPrompt = useStore((state) => state.selectPrompt);
+  const toggleFavorite = useStore((state) => state.toggleFavorite);
+
+  const filteredPrompts = useMemo(() => {
+    const query = promptQuery.trim().toLowerCase();
+
+    return prompts.filter((prompt) => {
+      const matchesQuery =
+        !query ||
+        [prompt.title, prompt.content, ...prompt.tags].join(" ").toLowerCase().includes(query);
+      const matchesFilter = filterMode === "all" || Boolean(favorites[prompt.id]);
+      return matchesQuery && matchesFilter;
+    });
+  }, [favorites, filterMode, promptQuery, prompts]);
 
   useEffect(() => {
-    if (filteredPrompts.length === 0) return;
+    if (filteredPrompts.length === 0) {
+      if (selectedPromptId !== null) {
+        selectPrompt(null);
+      }
+      return;
+    }
+
     const existsInFiltered = filteredPrompts.some((prompt) => prompt.id === selectedPromptId);
     if (!existsInFiltered) {
       selectPrompt(filteredPrompts[0].id);
@@ -33,7 +55,9 @@ export function PromptList() {
           key={prompt.id}
           prompt={prompt}
           selected={selectedPromptId === prompt.id}
+          isFavorite={Boolean(favorites[prompt.id])}
           onSelect={selectPrompt}
+          onToggleFavorite={toggleFavorite}
         />
       ))}
     </List>

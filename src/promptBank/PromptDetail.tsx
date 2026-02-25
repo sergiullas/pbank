@@ -1,10 +1,30 @@
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { Box, Button, Chip, IconButton, Stack, Typography } from "@mui/material";
+import { useMemo } from "react";
 import { useStore } from "../state/store";
 
 export function PromptDetail() {
-  const prompt = useStore((state) => state.getSelectedPrompt());
+  const prompts = useStore((state) => state.prompts);
+  const selectedPromptId = useStore((state) => state.selectedPromptId);
+  const promptQuery = useStore((state) => state.promptQuery);
+  const favorites = useStore((state) => state.favorites);
+  const filterMode = useStore((state) => state.filterMode);
   const insertIntoComposer = useStore((state) => state.insertIntoComposer);
+  const incrementUsage = useStore((state) => state.incrementUsage);
+
+  const prompt = useMemo(() => {
+    const query = promptQuery.trim().toLowerCase();
+
+    const visiblePrompts = prompts.filter((item) => {
+      const matchesQuery =
+        !query ||
+        [item.title, item.content, ...item.tags].join(" ").toLowerCase().includes(query);
+      const matchesFilter = filterMode === "all" || Boolean(favorites[item.id]);
+      return matchesQuery && matchesFilter;
+    });
+
+    return visiblePrompts.find((item) => item.id === selectedPromptId) ?? null;
+  }, [favorites, filterMode, promptQuery, prompts, selectedPromptId]);
 
   if (!prompt) {
     return (
@@ -52,7 +72,13 @@ export function PromptDetail() {
         </Typography>
       </Box>
 
-      <Button variant="contained" onClick={() => insertIntoComposer(prompt.content)}>
+      <Button
+        variant="contained"
+        onClick={() => {
+          insertIntoComposer(prompt.content);
+          incrementUsage(prompt.id);
+        }}
+      >
         Insert into Composer
       </Button>
     </Stack>

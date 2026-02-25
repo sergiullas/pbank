@@ -7,7 +7,7 @@ type PromptListItemProps = {
   prompt: Prompt;
   selected: boolean;
   isFavorite: boolean;
-  onSelect: (id: string) => void;
+  onSelect: (id: string | null) => void;
   onToggleFavorite: (id: string) => void;
 };
 
@@ -28,7 +28,7 @@ export function PromptListItem({
             <Typography variant="caption" color="text.secondary">
               {prompt.category ?? "General"}
             </Typography>
-            <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+            <Stack direction="row" spacing={0.5} flexWrap="wrap">
               {prompt.tags.slice(0, 2).map((tag) => (
                 <Chip size="small" key={tag} label={tag} />
               ))}

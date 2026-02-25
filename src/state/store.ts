@@ -1,34 +1,144 @@
 import { create } from "zustand";
 import { seedPrompts } from "../data/seedPrompts";
 import type { Message, Prompt } from "../types";
+import { readJSON, writeJSON } from "./persist";
+
+const STORAGE_KEYS = {
+  libraryCollapsed: "promptBank.libraryCollapsed",
+  favorites: "promptBank.favorites",
+  usageCounts: "promptBank.usageCounts",
+} as const;
 
 const createId = () => crypto.randomUUID();
 
+type FilterMode = "all" | "favorites";
+
 type StoreState = {
-  messages: Message[];
-  composerText: string;
-  composerFocusSignal: number;
+  libraryCollapsed: boolean;
   prompts: Prompt[];
   promptQuery: string;
   selectedPromptId: string | null;
-  setComposerText: (text: string) => void;
-  sendMessage: () => void;
-  insertIntoComposer: (text: string) => void;
+  favorites: Record<string, true>;
+  filterMode: FilterMode;
+  usageCounts: Record<string, number>;
+  messages: Message[];
+  composerText: string;
+  composerFocusSignal: number;
+  setLibraryCollapsed: (next: boolean) => void;
+  toggleLibraryCollapsed: () => void;
   setPromptQuery: (q: string) => void;
-  selectPrompt: (id: string) => void;
+  selectPrompt: (id: string | null) => void;
+  toggleFavorite: (id: string) => void;
+  setFilterMode: (mode: FilterMode) => void;
+  incrementUsage: (id: string) => void;
   filteredPrompts: () => Prompt[];
+  favoritesCount: () => number;
   getSelectedPrompt: () => Prompt | null;
+  setComposerText: (text: string) => void;
+  insertIntoComposer: (text: string) => void;
+  sendMessage: () => void;
 };
 
+const readFavorites = (): Record<string, true> => {
+  const stored = readJSON<string[]>(STORAGE_KEYS.favorites, []);
+  return stored.reduce<Record<string, true>>((acc, id) => {
+    acc[id] = true;
+    return acc;
+  }, {});
+};
+
+const readLibraryCollapsed = (): boolean => readJSON<boolean>(STORAGE_KEYS.libraryCollapsed, false);
+
+const readUsageCounts = (): Record<string, number> => readJSON<Record<string, number>>(STORAGE_KEYS.usageCounts, {});
+
+const initialFavorites = readFavorites();
+const initialUsageCounts = readUsageCounts();
+
 export const useStore = create<StoreState>((set, get) => ({
+  libraryCollapsed: readLibraryCollapsed(),
+  prompts: seedPrompts,
+  promptQuery: "",
+  selectedPromptId: seedPrompts[0]?.id ?? null,
+  favorites: initialFavorites,
+  filterMode: "all",
+  usageCounts: initialUsageCounts,
   messages: [],
   composerText: "",
   composerFocusSignal: 0,
-  prompts: seedPrompts.map((prompt) => ({ ...prompt, usageCount: prompt.usageCount ?? 0 })),
-  promptQuery: "",
-  selectedPromptId: seedPrompts[0]?.id ?? null,
+
+  setLibraryCollapsed: (next) => {
+    writeJSON(STORAGE_KEYS.libraryCollapsed, next);
+    set({ libraryCollapsed: next });
+  },
+
+  toggleLibraryCollapsed: () => {
+    const next = !get().libraryCollapsed;
+    writeJSON(STORAGE_KEYS.libraryCollapsed, next);
+    set({ libraryCollapsed: next });
+  },
+
+  setPromptQuery: (q) => set({ promptQuery: q }),
+
+  selectPrompt: (id) => set({ selectedPromptId: id }),
+
+  toggleFavorite: (id) => {
+    const nextFavorites = { ...get().favorites };
+    if (nextFavorites[id]) {
+      delete nextFavorites[id];
+    } else {
+      nextFavorites[id] = true;
+    }
+
+    writeJSON(STORAGE_KEYS.favorites, Object.keys(nextFavorites));
+    set({ favorites: nextFavorites });
+  },
+
+  setFilterMode: (mode) => set({ filterMode: mode }),
+
+  incrementUsage: (id) => {
+    const nextUsage = {
+      ...get().usageCounts,
+      [id]: (get().usageCounts[id] ?? 0) + 1,
+    };
+    writeJSON(STORAGE_KEYS.usageCounts, nextUsage);
+    set({ usageCounts: nextUsage });
+  },
+
+  filteredPrompts: () => {
+    const { prompts, promptQuery, filterMode, favorites } = get();
+    const query = promptQuery.trim().toLowerCase();
+
+    return prompts.filter((prompt) => {
+      const matchesQuery =
+        !query ||
+        [prompt.title, prompt.content, ...prompt.tags].join(" ").toLowerCase().includes(query);
+      const matchesFilter = filterMode === "all" || Boolean(favorites[prompt.id]);
+
+      return matchesQuery && matchesFilter;
+    });
+  },
+
+  favoritesCount: () => {
+    const { prompts, favorites } = get();
+    return prompts.filter((prompt) => favorites[prompt.id]).length;
+  },
+
+  getSelectedPrompt: () => {
+    const { selectedPromptId } = get();
+    return get().filteredPrompts().find((prompt) => prompt.id === selectedPromptId) ?? null;
+  },
 
   setComposerText: (text) => set({ composerText: text }),
+
+  insertIntoComposer: (text) => {
+    const current = get().composerText;
+    const merged = current.trim().length > 0 ? `${current}\n${text}` : text;
+
+    set((state) => ({
+      composerText: merged,
+      composerFocusSignal: state.composerFocusSignal + 1,
+    }));
+  },
 
   sendMessage: () => {
     const text = get().composerText.trim();
@@ -57,35 +167,5 @@ export const useStore = create<StoreState>((set, get) => ({
 
       set((state) => ({ messages: [...state.messages, assistantMessage] }));
     }, timeout);
-  },
-
-  insertIntoComposer: (text) => {
-    const current = get().composerText;
-    const merged = current.trim().length > 0 ? `${current}\n${text}` : text;
-
-    set((state) => ({
-      composerText: merged,
-      composerFocusSignal: state.composerFocusSignal + 1,
-    }));
-  },
-
-  setPromptQuery: (q) => set({ promptQuery: q }),
-
-  selectPrompt: (id) => set({ selectedPromptId: id }),
-
-  filteredPrompts: () => {
-    const { prompts, promptQuery } = get();
-    const query = promptQuery.trim().toLowerCase();
-    if (!query) return prompts;
-
-    return prompts.filter((prompt) => {
-      const haystack = [prompt.title, prompt.content, ...(prompt.tags ?? [])].join(" ").toLowerCase();
-      return haystack.includes(query);
-    });
-  },
-
-  getSelectedPrompt: () => {
-    const { selectedPromptId, prompts } = get();
-    return prompts.find((prompt) => prompt.id === selectedPromptId) ?? null;
   },
 }));

@@ -1,3 +1,5 @@
+import MenuOpenIcon from "@mui/icons-material/MenuOpen";
+import MenuIcon from "@mui/icons-material/Menu";
 import SendIcon from "@mui/icons-material/Send";
 import { Box, IconButton, TextField } from "@mui/material";
 import { useEffect, useRef } from "react";
@@ -6,7 +8,9 @@ import { useStore } from "../state/store";
 export function Composer() {
   const composerText = useStore((state) => state.composerText);
   const focusSignal = useStore((state) => state.composerFocusSignal);
+  const libraryCollapsed = useStore((state) => state.libraryCollapsed);
   const setComposerText = useStore((state) => state.setComposerText);
+  const toggleLibraryCollapsed = useStore((state) => state.toggleLibraryCollapsed);
   const sendMessage = useStore((state) => state.sendMessage);
   const textFieldRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -36,6 +40,9 @@ export function Composer() {
           }
         }}
       />
+      <IconButton color="primary" aria-label="Toggle prompt library" onClick={toggleLibraryCollapsed}>
+        {libraryCollapsed ? <MenuOpenIcon /> : <MenuIcon />}
+      </IconButton>
       <IconButton
         color="primary"
         aria-label="Send message"

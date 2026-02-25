@@ -5,6 +5,7 @@ import { useStore } from "../state/store";
 export function PromptDetail() {
   const prompt = useStore((state) => state.getSelectedPrompt());
   const insertIntoComposer = useStore((state) => state.insertIntoComposer);
+  const incrementUsage = useStore((state) => state.incrementUsage);
 
   if (!prompt) {
     return (
@@ -52,7 +53,13 @@ export function PromptDetail() {
         </Typography>
       </Box>
 
-      <Button variant="contained" onClick={() => insertIntoComposer(prompt.content)}>
+      <Button
+        variant="contained"
+        onClick={() => {
+          insertIntoComposer(prompt.content);
+          incrementUsage(prompt.id);
+        }}
+      >
         Insert into Composer
       </Button>
     </Stack>

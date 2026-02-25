@@ -14,8 +14,4 @@ export type Prompt = {
   description?: string;
   tags: string[];
   category?: string;
-  isFavorite?: boolean;
-  usageCount?: number;
-  createdAt?: string;
-  updatedAt?: string;
 };

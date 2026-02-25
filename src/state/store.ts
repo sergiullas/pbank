@@ -12,9 +12,11 @@ const STORAGE_KEYS = {
 const createId = () => crypto.randomUUID();
 
 type FilterMode = "all" | "favorites";
+type LibraryView = "browse" | "detail";
 
 type StoreState = {
   libraryCollapsed: boolean;
+  libraryView: LibraryView;
   prompts: Prompt[];
   promptQuery: string;
   selectedPromptId: string | null;
@@ -27,13 +29,11 @@ type StoreState = {
   setLibraryCollapsed: (next: boolean) => void;
   toggleLibraryCollapsed: () => void;
   setPromptQuery: (q: string) => void;
-  selectPrompt: (id: string | null) => void;
+  openPromptDetail: (id: string) => void;
+  closePromptDetail: () => void;
   toggleFavorite: (id: string) => void;
   setFilterMode: (mode: FilterMode) => void;
   incrementUsage: (id: string) => void;
-  filteredPrompts: () => Prompt[];
-  favoritesCount: () => number;
-  getSelectedPrompt: () => Prompt | null;
   setComposerText: (text: string) => void;
   insertIntoComposer: (text: string) => void;
   sendMessage: () => void;
@@ -56,6 +56,7 @@ const initialUsageCounts = readUsageCounts();
 
 export const useStore = create<StoreState>((set, get) => ({
   libraryCollapsed: readLibraryCollapsed(),
+  libraryView: "browse",
   prompts: seedPrompts,
   promptQuery: "",
   selectedPromptId: seedPrompts[0]?.id ?? null,
@@ -79,7 +80,9 @@ export const useStore = create<StoreState>((set, get) => ({
 
   setPromptQuery: (q) => set({ promptQuery: q }),
 
-  selectPrompt: (id) => set({ selectedPromptId: id }),
+  openPromptDetail: (id) => set({ selectedPromptId: id, libraryView: "detail" }),
+
+  closePromptDetail: () => set({ libraryView: "browse" }),
 
   toggleFavorite: (id) => {
     const nextFavorites = { ...get().favorites };
@@ -102,30 +105,6 @@ export const useStore = create<StoreState>((set, get) => ({
     };
     writeJSON(STORAGE_KEYS.usageCounts, nextUsage);
     set({ usageCounts: nextUsage });
-  },
-
-  filteredPrompts: () => {
-    const { prompts, promptQuery, filterMode, favorites } = get();
-    const query = promptQuery.trim().toLowerCase();
-
-    return prompts.filter((prompt) => {
-      const matchesQuery =
-        !query ||
-        [prompt.title, prompt.content, ...prompt.tags].join(" ").toLowerCase().includes(query);
-      const matchesFilter = filterMode === "all" || Boolean(favorites[prompt.id]);
-
-      return matchesQuery && matchesFilter;
-    });
-  },
-
-  favoritesCount: () => {
-    const { prompts, favorites } = get();
-    return prompts.filter((prompt) => favorites[prompt.id]).length;
-  },
-
-  getSelectedPrompt: () => {
-    const { selectedPromptId } = get();
-    return get().filteredPrompts().find((prompt) => prompt.id === selectedPromptId) ?? null;
   },
 
   setComposerText: (text) => set({ composerText: text }),

@@ -1,31 +1,114 @@
-import { Box, List, Tab, Tabs, TextField, Typography } from "@mui/material";
+import { Box, FormControl, InputLabel, List, MenuItem, Select, Tab, Tabs, TextField, Typography } from "@mui/material";
 import { useMemo } from "react";
-import { useStore } from "../state/store";
+import { type SortMode, useStore } from "../state/store";
+import type { Prompt } from "../types";
 import { PromptListItem } from "./PromptListItem";
+
+const SORT_LABELS: Record<SortMode, string> = {
+  popular: "Most Popular",
+  trending: "Trending",
+  latest: "Latest",
+};
+
+const parseCreatedAt = (createdAt: string): number => {
+  const parsed = Date.parse(createdAt);
+  return Number.isNaN(parsed) ? 0 : parsed;
+};
+
+const getRelevanceScore = (prompt: Prompt, query: string): number => {
+  const normalizedQuery = query.toLowerCase();
+  if (!normalizedQuery) return 0;
+
+  let score = 0;
+  if (prompt.title.toLowerCase().includes(normalizedQuery)) score += 3;
+  if (prompt.tags.some((tag) => tag.toLowerCase().includes(normalizedQuery))) score += 2;
+  if (prompt.description?.toLowerCase().includes(normalizedQuery)) score += 1;
+  if (prompt.content.toLowerCase().includes(normalizedQuery)) score += 1;
+
+  return score;
+};
+
+const sortPrompts = (prompts: Prompt[], sortMode: SortMode): Prompt[] => {
+  return [...prompts].sort((a, b) => {
+    const aLikes = a.likes;
+    const bLikes = b.likes;
+    const aCreated = parseCreatedAt(a.createdAt);
+    const bCreated = parseCreatedAt(b.createdAt);
+
+    if (sortMode === "popular") {
+      return bLikes - aLikes || bCreated - aCreated;
+    }
+
+    if (sortMode === "latest") {
+      return bCreated - aCreated || bLikes - aLikes;
+    }
+
+    const now = Date.now();
+    const aDays = Math.max(0, Math.floor((now - aCreated) / 86_400_000));
+    const bDays = Math.max(0, Math.floor((now - bCreated) / 86_400_000));
+    const aTrendingScore = aLikes / (aDays + 1);
+    const bTrendingScore = bLikes / (bDays + 1);
+
+    return bTrendingScore - aTrendingScore || bLikes - aLikes;
+  });
+};
+
+const sortByRelevance = (prompts: Prompt[], query: string): Prompt[] => {
+  return [...prompts]
+    .map((prompt) => ({
+      prompt,
+      relevanceScore: getRelevanceScore(prompt, query),
+      createdAtMs: parseCreatedAt(prompt.createdAt),
+    }))
+    .filter((item) => item.relevanceScore > 0)
+    .sort((a, b) => {
+      return (
+        b.relevanceScore - a.relevanceScore ||
+        b.prompt.likes - a.prompt.likes ||
+        b.createdAtMs - a.createdAtMs
+      );
+    })
+    .map((item) => item.prompt);
+};
 
 export function PromptBrowseView() {
   const prompts = useStore((state) => state.prompts);
   const selectedPromptId = useStore((state) => state.selectedPromptId);
   const favorites = useStore((state) => state.favorites);
   const filterMode = useStore((state) => state.filterMode);
+  const sortMode = useStore((state) => state.sortMode);
   const query = useStore((state) => state.promptQuery);
   const setPromptQuery = useStore((state) => state.setPromptQuery);
   const setFilterMode = useStore((state) => state.setFilterMode);
+  const setSortMode = useStore((state) => state.setSortMode);
   const openPromptDetail = useStore((state) => state.openPromptDetail);
   const toggleFavorite = useStore((state) => state.toggleFavorite);
 
-  const filteredPrompts = useMemo(() => {
+  const isSearching = query.trim().length > 0;
+
+  const visiblePrompts = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return prompts.filter((prompt) => {
-      const matchesQuery =
-        !normalizedQuery ||
-        [prompt.title, prompt.content, ...prompt.tags].join(" ").toLowerCase().includes(normalizedQuery);
+    const filtered = prompts.filter((prompt) => {
       const matchesFilter = filterMode === "all" || Boolean(favorites[prompt.id]);
+      if (!matchesFilter) return false;
 
-      return matchesQuery && matchesFilter;
+      if (!normalizedQuery) return true;
+
+      return (
+        prompt.title.toLowerCase().includes(normalizedQuery) ||
+        prompt.content.toLowerCase().includes(normalizedQuery) ||
+        prompt.tags.some((tag) => tag.toLowerCase().includes(normalizedQuery)) ||
+        Boolean(prompt.description?.toLowerCase().includes(normalizedQuery))
+      );
     });
-  }, [prompts, query, filterMode, favorites]);
+
+    if (isSearching) {
+      return sortByRelevance(filtered, normalizedQuery);
+    }
+
+    return sortPrompts(filtered, sortMode);
+  }, [prompts, query, filterMode, favorites, isSearching, sortMode]);
 
   const favoritesCount = useMemo(
     () => prompts.filter((prompt) => Boolean(favorites[prompt.id])).length,
@@ -49,17 +132,40 @@ export function PromptBrowseView() {
           <Tab value="favorites" label={`Favorites (${favoritesCount})`} sx={{ minHeight: 36 }} />
         </Tabs>
 
-        <TextField
-          fullWidth
-          size="small"
-          placeholder="Search prompts…"
-          value={query}
-          onChange={(e) => setPromptQuery(e.target.value)}
-        />
+        <Box display="flex" gap={1} alignItems="center">
+          <TextField
+            fullWidth
+            size="small"
+            placeholder="Search prompts…"
+            value={query}
+            onChange={(e) => setPromptQuery(e.target.value)}
+          />
+
+          <FormControl size="small" sx={{ minWidth: 160, width: 160 }}>
+            <InputLabel id="prompt-sort-label">Sort</InputLabel>
+            <Select
+              labelId="prompt-sort-label"
+              label="Sort"
+              value={isSearching ? "relevance" : sortMode}
+              disabled={isSearching}
+              onChange={(event) => setSortMode(event.target.value as SortMode)}
+            >
+              {isSearching ? (
+                <MenuItem value="relevance">Relevance</MenuItem>
+              ) : (
+                [
+                  <MenuItem key="popular" value="popular">{SORT_LABELS.popular}</MenuItem>,
+                  <MenuItem key="trending" value="trending">{SORT_LABELS.trending}</MenuItem>,
+                  <MenuItem key="latest" value="latest">{SORT_LABELS.latest}</MenuItem>,
+                ]
+              )}
+            </Select>
+          </FormControl>
+        </Box>
       </Box>
 
       <Box flex={1} minHeight={0} overflow="auto">
-        {filteredPrompts.length === 0 ? (
+        {visiblePrompts.length === 0 ? (
           <Box p={2}>
             <Typography variant="body2" color="text.secondary">
               No prompts found.
@@ -67,7 +173,7 @@ export function PromptBrowseView() {
           </Box>
         ) : (
           <List disablePadding>
-            {filteredPrompts.map((prompt) => (
+            {visiblePrompts.map((prompt) => (
               <PromptListItem
                 key={prompt.id}
                 prompt={prompt}

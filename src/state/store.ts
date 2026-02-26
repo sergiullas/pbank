@@ -13,6 +13,7 @@ const createId = () => crypto.randomUUID();
 
 type FilterMode = "all" | "favorites";
 type LibraryView = "browse" | "detail";
+export type SortMode = "latest" | "trending" | "mostPopular";
 
 type StoreState = {
   libraryCollapsed: boolean;
@@ -22,6 +23,7 @@ type StoreState = {
   selectedPromptId: string | null;
   favorites: Record<string, true>;
   filterMode: FilterMode;
+  sortMode: SortMode;
   usageCounts: Record<string, number>;
   messages: Message[];
   composerText: string;
@@ -33,6 +35,7 @@ type StoreState = {
   closePromptDetail: () => void;
   toggleFavorite: (id: string) => void;
   setFilterMode: (mode: FilterMode) => void;
+  setSortMode: (mode: SortMode) => void;
   incrementUsage: (id: string) => void;
   setComposerText: (text: string) => void;
   insertIntoComposer: (text: string) => void;
@@ -62,6 +65,7 @@ export const useStore = create<StoreState>((set, get) => ({
   selectedPromptId: seedPrompts[0]?.id ?? null,
   favorites: initialFavorites,
   filterMode: "all",
+  sortMode: "latest",
   usageCounts: initialUsageCounts,
   messages: [],
   composerText: "",
@@ -97,6 +101,8 @@ export const useStore = create<StoreState>((set, get) => ({
   },
 
   setFilterMode: (mode) => set({ filterMode: mode }),
+
+  setSortMode: (mode) => set({ sortMode: mode }),
 
   incrementUsage: (id) => {
     const nextUsage = {

@@ -8,7 +8,7 @@ export function AppShell() {
   const libraryCollapsed = useStore((state) => state.libraryCollapsed);
 
   return (
-    <Box height="100vh" display="flex" flexDirection="column">
+    <Box height="100vh" display="flex" flexDirection="column" >
       <TopBar />
       <Box display="flex" flex={1} minHeight={0}>
         <ChatPane />

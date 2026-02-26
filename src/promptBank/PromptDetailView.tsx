@@ -89,7 +89,7 @@ export function PromptDetailView() {
         borderColor="divider"
         bgcolor="background.paper"
       >
-        <Stack spacing={1}>
+        <Stack spacing={1}  direction="row" >
           <Button
             variant="contained"
             fullWidth
@@ -98,9 +98,9 @@ export function PromptDetailView() {
               incrementUsage(prompt.id);
             }}
           >
-            Insert into Composer
+            ← Insert Prompt
           </Button>
-          <Button variant="outlined" fullWidth onClick={handleCopy}>
+          <Button variant="outlined"  onClick={handleCopy}>
             Copy
           </Button>
         </Stack>

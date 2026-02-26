@@ -15,9 +15,9 @@ export function MessageList() {
     return (
       <Box flex={1} display="flex" alignItems="center" justifyContent="center" px={4}>
         <Stack spacing={1} textAlign="center">
-          <Typography color="text.secondary">Start typing, or explore a template on the right.</Typography>
+          <Typography color="text.secondary">Type a question or explore our prompt library for inspiration.</Typography>
           <Typography variant="body2" color="text.disabled">
-            Templates can be inserted into your message at any time.
+            Prompts from the library can be inserted into your chat at any time.
           </Typography>
         </Stack>
       </Box>
@@ -25,7 +25,12 @@ export function MessageList() {
   }
 
   return (
-    <Box flex={1} overflow="auto" px={2} py={2}>
+    <Box flex={1} overflow="auto" px={2} py={2} 
+    sx={{
+      width: "70%",            // 80% of viewport width
+      margin: "0 auto",         // center horizontally
+    }}
+    >
       <Stack spacing={1.5}>
         {messages.map((message) => (
           <Box key={message.id} display="flex" justifyContent={message.role === "user" ? "flex-end" : "flex-start"}>

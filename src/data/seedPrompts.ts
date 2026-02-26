@@ -9,7 +9,7 @@ export const seedPrompts: Prompt[] = [
     tags: ["summary", "bullets", "takeaways"],
     content:
       "Summarize the following content. Provide:\n1) 5 bullet highlights\n2) 3 key takeaways\n3) 2 open questions for follow-up\n\nContent:\n[PASTE CONTENT]",
-    updated: "7 Days",
+    createdAt: "2026-02-19T12:00:00.000Z",
     owner: "Natasha Romanoff (Black Widow)",
     media: false,
     likes: 3456,
@@ -22,7 +22,7 @@ export const seedPrompts: Prompt[] = [
     tags: ["email", "communication", "tone"],
     content:
       "Draft an email with:\n- Subject line\n- Greeting\n- Body in a [TONE] tone\n- Clear call-to-action\n\nAudience: [AUDIENCE]\nGoal: [GOAL]\nDetails: [DETAILS]",
-    updated: "30 Days",
+    createdAt: "2026-01-27T12:00:00.000Z",
     owner: "Tony Stark (Iron Man)",
     media: false,
     likes: 1234,
@@ -35,7 +35,7 @@ export const seedPrompts: Prompt[] = [
     tags: ["strategy", "decision", "planning"],
     content:
       "Use this framework:\n- Goal\n- Constraints\n- Options (with trade-offs)\n- Recommendation\n- Next 3 actions\n\nContext:\n[CONTEXT]",
-    updated: "24 Hours",
+    createdAt: "2026-02-25T12:00:00.000Z",
     owner: "Steve Rogers (Captain America)",
     media: false,
     likes: 4567,
@@ -48,7 +48,7 @@ export const seedPrompts: Prompt[] = [
     tags: ["pros", "cons", "weighted", "decision"],
     content:
       "Evaluate options using weighted criteria.\n\nOptions: [OPTIONS]\nCriteria + weights: [CRITERIA]\n\nOutput:\n1) Score table\n2) Pros/cons by option\n3) Final recommendation with rationale",
-    updated: "Any Time",
+    createdAt: "2025-11-01T12:00:00.000Z",
     owner: "Bruce Banner (Hulk)",
     media: false,
     likes: 2345,
@@ -61,7 +61,7 @@ export const seedPrompts: Prompt[] = [
     tags: ["meeting", "notes", "actions"],
     content:
       "Convert transcript into concise meeting notes:\n- Agenda\n- Decisions made\n- Action items with owners and due dates\n- Risks/blockers\n\nTranscript:\n[TRANSCRIPT]",
-    updated: "7 Days",
+    createdAt: "2026-02-19T12:00:00.000Z",
     owner: "Clint Barton (Hawkeye)",
     media: false,
     likes: 3123,
@@ -74,7 +74,7 @@ export const seedPrompts: Prompt[] = [
     tags: ["rewrite", "clarity", "editing"],
     content:
       "Rewrite the text for clarity.\nRequirements:\n- Target reading level: [LEVEL]\n- Remove jargon\n- Shorten by [PERCENT]%\n- Keep original meaning\n\nText:\n[TEXT]",
-    updated: "24 Hours",
+    createdAt: "2026-02-25T12:00:00.000Z",
     owner: "Wanda Maximoff (Scarlet Witch)",
     media: false,
     likes: 1890,
@@ -87,7 +87,7 @@ export const seedPrompts: Prompt[] = [
     tags: ["5 whys", "root cause", "problem"],
     content:
       "Perform a 5 Whys root cause analysis for:\n[PROBLEM]\n\nOutput:\n- Why #1 to #5\n- Root cause statement\n- Corrective actions\n- Preventive actions",
-    updated: "30 Days",
+    createdAt: "2026-01-27T12:00:00.000Z",
     owner: "Vision",
     media: false,
     likes: 4100,
@@ -100,7 +100,7 @@ export const seedPrompts: Prompt[] = [
     tags: ["product", "requirements", "prd"],
     content:
       "Draft a PRD with sections:\n- Problem\n- Users\n- Scope\n- Non-goals\n- Success metrics\n- Risks\n\nContext:\n[CONTEXT]",
-    updated: "Any Time",
+    createdAt: "2025-11-01T12:00:00.000Z",
     owner: "Sam Wilson (Falcon)",
     media: false,
     likes: 2750,
@@ -113,7 +113,7 @@ export const seedPrompts: Prompt[] = [
     tags: ["research", "users", "interviews"],
     content:
       "Create a user research plan with:\n- Objectives\n- Methods\n- Participant criteria\n- Discussion guide\n- Timeline\n- Analysis approach\n\nProduct area:\n[PRODUCT AREA]",
-    updated: "7 Days",
+    createdAt: "2026-02-19T12:00:00.000Z",
     owner: "James Rhodes (War Machine)",
     media: false,
     likes: 3800,
@@ -126,7 +126,7 @@ export const seedPrompts: Prompt[] = [
     tags: ["ux", "heuristics", "accessibility"],
     content:
       "Critique this interface using:\n- Usability heuristics\n- Accessibility checks\n- Content clarity\n\nProvide:\n1) Findings\n2) Severity\n3) Suggested fixes\n\nInterface details:\n[DETAILS]",
-    updated: "24 Hours",
+    createdAt: "2026-02-25T12:00:00.000Z",
     owner: "Scott Lang (Ant-Man)",
     media: true,
     likes: 1500,
@@ -139,7 +139,7 @@ export const seedPrompts: Prompt[] = [
     tags: ["feature", "brief", "stakeholders"],
     content:
       "Write a one-page feature brief including:\n- Problem statement\n- User value\n- Proposed solution\n- Dependencies\n- Launch risks\n\nInputs:\n[INPUTS]",
-    updated: "30 Days",
+    createdAt: "2026-01-27T12:00:00.000Z",
     owner: "Carol Danvers (Captain Marvel)",
     media: false,
     likes: 4900,
@@ -152,7 +152,7 @@ export const seedPrompts: Prompt[] = [
     tags: ["competition", "benchmark", "market"],
     content:
       "Analyze competitors for:\n- Core offerings\n- Strengths/weaknesses\n- Pricing model\n- Differentiation opportunities\n\nTarget segment:\n[SEGMENT]",
-    updated: "Any Time",
+    createdAt: "2025-11-01T12:00:00.000Z",
     owner: "Guardians of the Galaxy",
     media: false,
     likes: 2999,

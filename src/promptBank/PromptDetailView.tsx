@@ -4,11 +4,9 @@ import {
   Button,
   Chip,
   Divider,
-  FormControl,
   IconButton,
-  InputLabel,
+  Menu,
   MenuItem,
-  Select,
   Stack,
   Typography,
 } from "@mui/material";
@@ -19,25 +17,31 @@ import { useStore } from "../state/store";
 
 const byVersionDesc = (a: PromptVersion, b: PromptVersion) => b.version - a.version;
 
+type VersionSelection = {
+  promptId: string | null;
+  version: number | null;
+};
+
 export function PromptDetailView() {
   const prompts = useStore((state) => state.prompts);
   const selectedPromptId = useStore((state) => state.selectedPromptId);
   const closePromptDetail = useStore((state) => state.closePromptDetail);
   const insertIntoComposer = useStore((state) => state.insertIntoComposer);
   const incrementUsage = useStore((state) => state.incrementUsage);
-  const [selectedVersionNumber, setSelectedVersionNumber] = useState<number | null>(null);
+  const [selection, setSelection] = useState<VersionSelection>({ promptId: null, version: null });
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   const prompt = useMemo(
     () => prompts.find((candidate) => candidate.id === selectedPromptId) ?? null,
     [prompts, selectedPromptId],
   );
 
-
   const activeVersion = useMemo(() => {
     if (!prompt) return null;
 
     if (prompt.versions?.length) {
       const latestVersionNumber = Math.max(...prompt.versions.map((version) => version.version));
+      const selectedVersionNumber = selection.promptId === prompt.id ? selection.version : null;
       const resolvedVersionNumber = selectedVersionNumber ?? latestVersionNumber;
 
       return (
@@ -55,7 +59,7 @@ export function PromptDetailView() {
       desiredOutcome: prompt.desiredOutcome,
       content: prompt.content,
     };
-  }, [prompt, selectedVersionNumber]);
+  }, [prompt, selection]);
 
   if (!prompt || !activeVersion) {
     return (
@@ -71,6 +75,8 @@ export function PromptDetailView() {
   const latestVersionNumber = prompt.versions?.length
     ? Math.max(...prompt.versions.map((version) => version.version))
     : activeVersion.version;
+  const isLatestVersion = activeVersion.version === latestVersionNumber;
+  const menuOpen = Boolean(anchorEl);
 
   return (
     <Box display="flex" flexDirection="column" height="100%" minHeight={0}>
@@ -94,29 +100,60 @@ export function PromptDetailView() {
       <Box flex={1} minHeight={0} overflow="auto" p={2}>
         <Stack spacing={2}>
           <Box>
-            <Typography variant="caption" color="text.secondary">
+            <Typography variant="caption" color="text.secondary" component="span">
               by {prompt.owner}
             </Typography>
+            {prompt.versions?.length ? (
+              <>
+                <Typography variant="caption" color="text.secondary" component="span">
+                  {" · "}
+                </Typography>
+                <Button
+                  variant="text"
+                  size="small"
+                  disableRipple
+                  disableElevation
+                  aria-label="Select prompt version"
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen ? "true" : undefined}
+                  onClick={(event) => setAnchorEl(event.currentTarget)}
+                  sx={{
+                    textTransform: "none",
+                    minWidth: 0,
+                    p: 0,
+                    fontSize: "inherit",
+                    lineHeight: 1.2,
+                    color: "text.secondary",
+                    verticalAlign: "baseline",
+                    "&:hover": { textDecoration: "underline", bgcolor: "transparent", color: "text.primary" },
+                  }}
+                >
+                  v{activeVersion.version}
+                  {isLatestVersion ? " (Latest)" : ""}
+                </Button>
+                <Menu
+                  anchorEl={anchorEl}
+                  open={menuOpen}
+                  onClose={() => setAnchorEl(null)}
+                  MenuListProps={{ "aria-label": "Prompt versions" }}
+                >
+                  {sortedVersions.map((version) => (
+                    <MenuItem
+                      key={version.id}
+                      selected={version.version === activeVersion.version}
+                      onClick={() => {
+                        setSelection({ promptId: prompt.id, version: version.version });
+                        setAnchorEl(null);
+                      }}
+                    >
+                      v{version.version}
+                      {version.version === latestVersionNumber ? " (Latest)" : ""}
+                    </MenuItem>
+                  ))}
+                </Menu>
+              </>
+            ) : null}
           </Box>
-
-          {prompt.versions?.length ? (
-            <FormControl size="small" sx={{ maxWidth: 220 }}>
-              <InputLabel id="version-select-label">Version</InputLabel>
-              <Select
-                labelId="version-select-label"
-                label="Version"
-                value={activeVersion.version}
-                onChange={(event) => setSelectedVersionNumber(Number(event.target.value))}
-              >
-                {sortedVersions.map((version) => (
-                  <MenuItem key={version.id} value={version.version}>
-                    v{version.version}
-                    {version.version === latestVersionNumber ? " (Latest)" : ""}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          ) : null}
 
           {activeVersion.description && (
             <Typography variant="body2" color="text.secondary">

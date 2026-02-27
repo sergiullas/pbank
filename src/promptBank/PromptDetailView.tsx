@@ -1,6 +1,6 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { Box, Button, Chip, IconButton, Stack, Typography } from "@mui/material";
+import { Box, Button, Chip, Divider, IconButton, Stack, Typography } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import { useMemo } from "react";
 import { useStore } from "../state/store";
 
@@ -26,58 +26,73 @@ export function PromptDetailView() {
     );
   }
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(prompt.content);
-  };
-
   return (
     <Box display="flex" flexDirection="column" height="100%" minHeight={0}>
       <Stack
         direction="row"
         alignItems="center"
-        justifyContent="space-between"
         gap={1}
         px={1}
         py={1}
         borderBottom={1}
         borderColor="divider"
       >
-        <Stack direction="row" alignItems="center" minWidth={0}>
-          <IconButton aria-label="Back to prompt list" onClick={closePromptDetail}>
-            <ArrowBackIcon />
-          </IconButton>
-          <Typography variant="subtitle1" fontWeight={600} noWrap>
-            {prompt.title}
-          </Typography>
-        </Stack>
-        <IconButton aria-label="Copy prompt" onClick={handleCopy}>
-          <ContentCopyIcon fontSize="small" />
+        <IconButton aria-label="Back to prompt list" onClick={closePromptDetail}>
+          <ArrowBackIcon />
         </IconButton>
+        <Typography variant="subtitle1" fontWeight={600} noWrap>
+          {prompt.title}
+        </Typography>
       </Stack>
 
       <Box flex={1} minHeight={0} overflow="auto" p={2}>
-        <Stack spacing={1.5}>
-          <Typography variant="caption" color="text.secondary">
-            {prompt.category ?? "General"}
-          </Typography>
-
-          <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-            {prompt.tags.map((tag) => (
-              <Chip key={tag} label={tag} size="small" />
-            ))}
-          </Stack>
-
+        <Stack spacing={2}>
           {prompt.description && (
             <Typography variant="body2" color="text.secondary">
               {prompt.description}
             </Typography>
           )}
 
-          <Box p={1.5} bgcolor="grey.100" borderRadius={2}>
-            <Typography variant="body2" whiteSpace="pre-wrap">
-              {prompt.content}
+          <Stack spacing={1}>
+            <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: 1 }}>
+              Categories
             </Typography>
-          </Box>
+            <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+              {prompt.tags.map((tag) => (
+                <Chip key={tag} label={tag} size="small" />
+              ))}
+            </Stack>
+          </Stack>
+
+          <Divider sx={{ my: 0.5 }} />
+
+          {prompt.desiredOutcome && (
+            <Stack spacing={1}>
+              <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: 1 }}>
+                Desired Outcome
+              </Typography>
+              <Box
+                p={2}
+                borderRadius={2}
+                sx={{ bgcolor: (theme) => alpha(theme.palette.success.main, 0.1) }}
+              >
+                <Typography variant="body2" color="text.primary">
+                  {prompt.desiredOutcome}
+                </Typography>
+              </Box>
+            </Stack>
+          )}
+
+          <Stack spacing={1}>
+            <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: 1 }}>
+              Prompt Template
+            </Typography>
+            <Box p={2} bgcolor="grey.100" borderRadius={2}>
+              <Typography variant="body2" whiteSpace="pre-wrap">
+                {prompt.content}
+              </Typography>
+            </Box>
+          </Stack>
         </Stack>
       </Box>
 
@@ -89,21 +104,16 @@ export function PromptDetailView() {
         borderColor="divider"
         bgcolor="background.paper"
       >
-        <Stack spacing={1}  direction="row" >
-          <Button
-            variant="contained"
-            fullWidth
-            onClick={() => {
-              insertIntoComposer(prompt.content);
-              incrementUsage(prompt.id);
-            }}
-          >
-            ← Insert Prompt
-          </Button>
-          <Button variant="outlined"  onClick={handleCopy}>
-            Copy
-          </Button>
-        </Stack>
+        <Button
+          variant="contained"
+          fullWidth
+          onClick={() => {
+            insertIntoComposer(prompt.content);
+            incrementUsage(prompt.id);
+          }}
+        >
+          ← INSERT PROMPT
+        </Button>
       </Box>
     </Box>
   );

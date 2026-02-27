@@ -5,6 +5,7 @@ export const seedPrompts: Prompt[] = [
     id: "structured-summary",
     title: "Structured Summary",
     description: "Summarize with bullets, key takeaways, and open questions.",
+    desiredOutcome: "Capture the essential points quickly so stakeholders can align on what matters, what is decided, and what still needs follow-up.",
     category: "Summarization",
     tags: ["summary", "bullets", "takeaways"],
     content:
@@ -18,6 +19,7 @@ export const seedPrompts: Prompt[] = [
     id: "email-draft",
     title: "Email Draft",
     description: "Draft a polished email tailored to audience and tone.",
+    desiredOutcome: "Produce an email that is immediately sendable, with clear intent, the right tone, and a concrete next step for the recipient.",
     category: "Email",
     tags: ["email", "communication", "tone"],
     content:
@@ -31,6 +33,7 @@ export const seedPrompts: Prompt[] = [
     id: "strategy-framework",
     title: "Strategy Framework",
     description: "Outline a strategy using a structured framework.",
+    desiredOutcome: "Arrive at a defendable recommendation with explicit trade-offs and a practical first-action plan.",
     category: "Planning",
     tags: ["strategy", "decision", "planning"],
     content:
@@ -44,6 +47,7 @@ export const seedPrompts: Prompt[] = [
     id: "pros-cons-decision",
     title: "Pros/Cons Decision",
     description: "Evaluate options using weighted criteria for decision making.",
+    desiredOutcome: "Select the strongest option transparently by comparing alternatives against weighted criteria and clear rationale.",
     category: "Analysis",
     tags: ["pros", "cons", "weighted", "decision"],
     content:
@@ -57,6 +61,7 @@ export const seedPrompts: Prompt[] = [
     id: "meeting-notes",
     title: "Meeting Notes",
     description: "Convert meeting transcripts into concise notes with action items.",
+    desiredOutcome: "Turn raw discussion into actionable notes that clarify decisions, owners, timelines, and unresolved blockers.",
     category: "Writing",
     tags: ["meeting", "notes", "actions"],
     content:
@@ -70,6 +75,7 @@ export const seedPrompts: Prompt[] = [
     id: "rewrite-clarity",
     title: "Rewrite for Clarity",
     description: "Rewrite text to improve clarity, adjust reading level, and reduce length.",
+    desiredOutcome: "Deliver a shorter, clearer version of the source text that preserves meaning and is easier for the target audience to read.",
     category: "Writing",
     tags: ["rewrite", "clarity", "editing"],
     content:
@@ -83,6 +89,7 @@ export const seedPrompts: Prompt[] = [
     id: "root-cause-analysis",
     title: "Root Cause Analysis",
     description: "Perform a '5 Whys' analysis to identify the root cause of a problem.",
+    desiredOutcome: "Identify the true underlying cause of the problem and define corrective and preventive actions that reduce recurrence.",
     category: "Analysis",
     tags: ["5 whys", "root cause", "problem"],
     content:

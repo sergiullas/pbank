@@ -1,8 +1,23 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import { Box, Button, Chip, Divider, IconButton, Stack, Typography } from "@mui/material";
+import {
+  Box,
+  Button,
+  Chip,
+  Divider,
+  FormControl,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import type { PromptVersion } from "../types";
 import { useStore } from "../state/store";
+
+const byVersionDesc = (a: PromptVersion, b: PromptVersion) => b.version - a.version;
 
 export function PromptDetailView() {
   const prompts = useStore((state) => state.prompts);
@@ -10,13 +25,39 @@ export function PromptDetailView() {
   const closePromptDetail = useStore((state) => state.closePromptDetail);
   const insertIntoComposer = useStore((state) => state.insertIntoComposer);
   const incrementUsage = useStore((state) => state.incrementUsage);
+  const [selectedVersionNumber, setSelectedVersionNumber] = useState<number | null>(null);
 
   const prompt = useMemo(
     () => prompts.find((candidate) => candidate.id === selectedPromptId) ?? null,
     [prompts, selectedPromptId],
   );
 
-  if (!prompt) {
+
+  const activeVersion = useMemo(() => {
+    if (!prompt) return null;
+
+    if (prompt.versions?.length) {
+      const latestVersionNumber = Math.max(...prompt.versions.map((version) => version.version));
+      const resolvedVersionNumber = selectedVersionNumber ?? latestVersionNumber;
+
+      return (
+        prompt.versions.find((version) => version.version === resolvedVersionNumber) ??
+        prompt.versions.find((version) => version.version === latestVersionNumber) ??
+        null
+      );
+    }
+
+    return {
+      id: `${prompt.id}-v1`,
+      version: 1,
+      createdAt: prompt.createdAt,
+      description: prompt.description,
+      desiredOutcome: prompt.desiredOutcome,
+      content: prompt.content,
+    };
+  }, [prompt, selectedVersionNumber]);
+
+  if (!prompt || !activeVersion) {
     return (
       <Box p={2}>
         <Typography variant="body2" color="text.secondary">
@@ -25,6 +66,11 @@ export function PromptDetailView() {
       </Box>
     );
   }
+
+  const sortedVersions = prompt.versions ? [...prompt.versions].sort(byVersionDesc) : [];
+  const latestVersionNumber = prompt.versions?.length
+    ? Math.max(...prompt.versions.map((version) => version.version))
+    : activeVersion.version;
 
   return (
     <Box display="flex" flexDirection="column" height="100%" minHeight={0}>
@@ -47,9 +93,34 @@ export function PromptDetailView() {
 
       <Box flex={1} minHeight={0} overflow="auto" p={2}>
         <Stack spacing={2}>
-          {prompt.description && (
+          <Box>
+            <Typography variant="caption" color="text.secondary">
+              by {prompt.owner}
+            </Typography>
+          </Box>
+
+          {prompt.versions?.length ? (
+            <FormControl size="small" sx={{ maxWidth: 220 }}>
+              <InputLabel id="version-select-label">Version</InputLabel>
+              <Select
+                labelId="version-select-label"
+                label="Version"
+                value={activeVersion.version}
+                onChange={(event) => setSelectedVersionNumber(Number(event.target.value))}
+              >
+                {sortedVersions.map((version) => (
+                  <MenuItem key={version.id} value={version.version}>
+                    v{version.version}
+                    {version.version === latestVersionNumber ? " (Latest)" : ""}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          ) : null}
+
+          {activeVersion.description && (
             <Typography variant="body2" color="text.secondary">
-              {prompt.description}
+              {activeVersion.description}
             </Typography>
           )}
 
@@ -66,7 +137,7 @@ export function PromptDetailView() {
 
           <Divider sx={{ my: 0.5 }} />
 
-          {prompt.desiredOutcome && (
+          {activeVersion.desiredOutcome && (
             <Stack spacing={1}>
               <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: 1 }}>
                 Desired Outcome
@@ -77,7 +148,7 @@ export function PromptDetailView() {
                 sx={{ bgcolor: (theme) => alpha(theme.palette.success.main, 0.1) }}
               >
                 <Typography variant="body2" color="text.primary">
-                  {prompt.desiredOutcome}
+                  {activeVersion.desiredOutcome}
                 </Typography>
               </Box>
             </Stack>
@@ -89,7 +160,7 @@ export function PromptDetailView() {
             </Typography>
             <Box p={2} bgcolor="grey.100" borderRadius={2}>
               <Typography variant="body2" whiteSpace="pre-wrap">
-                {prompt.content}
+                {activeVersion.content}
               </Typography>
             </Box>
           </Stack>
@@ -108,7 +179,7 @@ export function PromptDetailView() {
           variant="contained"
           fullWidth
           onClick={() => {
-            insertIntoComposer(prompt.content);
+            insertIntoComposer(activeVersion.content);
             incrementUsage(prompt.id);
           }}
         >

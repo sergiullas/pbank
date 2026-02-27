@@ -77,12 +77,15 @@ export function PromptBrowseView() {
   const favorites = useStore((state) => state.favorites);
   const filterMode = useStore((state) => state.filterMode);
   const sortMode = useStore((state) => state.sortMode);
+  const usageCounts = useStore((state) => state.usageCounts);
   const query = useStore((state) => state.promptQuery);
   const setPromptQuery = useStore((state) => state.setPromptQuery);
   const setFilterMode = useStore((state) => state.setFilterMode);
   const setSortMode = useStore((state) => state.setSortMode);
   const openPromptDetail = useStore((state) => state.openPromptDetail);
   const toggleFavorite = useStore((state) => state.toggleFavorite);
+  const insertIntoComposer = useStore((state) => state.insertIntoComposer);
+  const incrementUsage = useStore((state) => state.incrementUsage);
 
   const isSearching = query.trim().length > 0;
 
@@ -103,12 +106,23 @@ export function PromptBrowseView() {
       );
     });
 
+    if (filterMode === "favorites") {
+      return [...filtered].sort((a, b) => {
+        const usageDiff = (usageCounts[b.id] ?? 0) - (usageCounts[a.id] ?? 0);
+        if (usageDiff !== 0) return usageDiff;
+        return b.likes - a.likes || parseCreatedAt(b.createdAt) - parseCreatedAt(a.createdAt);
+      });
+    }
+
     if (isSearching) {
       return sortByRelevance(filtered, normalizedQuery);
     }
 
     return sortPrompts(filtered, sortMode);
-  }, [prompts, query, filterMode, favorites, isSearching, sortMode]);
+  }, [prompts, query, filterMode, favorites, isSearching, sortMode, usageCounts]);
+
+  const selectValue = filterMode === "favorites" ? "mostUsed" : isSearching ? "relevance" : sortMode;
+  const sortDisabled = filterMode === "favorites" || isSearching;
 
   const favoritesCount = useMemo(
     () => prompts.filter((prompt) => Boolean(favorites[prompt.id])).length,
@@ -146,11 +160,18 @@ export function PromptBrowseView() {
             <Select
               labelId="prompt-sort-label"
               label="Sort"
-              value={isSearching ? "relevance" : sortMode}
-              disabled={isSearching}
-              onChange={(event) => setSortMode(event.target.value as SortMode)}
+              value={selectValue}
+              disabled={sortDisabled}
+              onChange={(event) => {
+                const next = event.target.value;
+                if (next === "popular" || next === "trending" || next === "latest") {
+                  setSortMode(next);
+                }
+              }}
             >
-              {isSearching ? (
+              {filterMode === "favorites" ? (
+                <MenuItem value="mostUsed">Most Used</MenuItem>
+              ) : isSearching ? (
                 <MenuItem value="relevance">Relevance</MenuItem>
               ) : (
                 [
@@ -179,8 +200,13 @@ export function PromptBrowseView() {
                 prompt={prompt}
                 selected={selectedPromptId === prompt.id}
                 isFavorite={Boolean(favorites[prompt.id])}
+                isFavoritesView={filterMode === "favorites"}
                 onSelect={openPromptDetail}
                 onToggleFavorite={toggleFavorite}
+                onInsert={(content, id) => {
+                  insertIntoComposer(content);
+                  incrementUsage(id);
+                }}
               />
             ))}
           </List>

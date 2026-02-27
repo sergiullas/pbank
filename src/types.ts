@@ -12,6 +12,7 @@ export type Prompt = {
   title: string;
   content: string;
   description?: string;
+  desiredOutcome?: string;
   tags: string[];
   category?: string;
   likes: number;

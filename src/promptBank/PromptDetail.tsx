@@ -1,5 +1,4 @@
-import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import { Box, Button, Chip, IconButton, Stack, Typography } from "@mui/material";
+import { Box, Button, Chip, Stack, Typography } from "@mui/material";
 import { useMemo } from "react";
 import { useStore } from "../state/store";
 
@@ -40,9 +39,6 @@ export function PromptDetail() {
     );
   }
 
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(prompt.content);
-  };
 
   return (
     <Stack spacing={1.5} p={2}>
@@ -55,9 +51,6 @@ export function PromptDetail() {
             </Typography>
           )}
         </Box>
-        <IconButton aria-label="Copy prompt" onClick={handleCopy}>
-          <ContentCopyIcon fontSize="small" />
-        </IconButton>
       </Stack>
 
       <Typography variant="caption" color="text.secondary">

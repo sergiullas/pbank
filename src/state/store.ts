@@ -62,7 +62,7 @@ export const useStore = create<StoreState>((set, get) => ({
   libraryView: "browse",
   prompts: seedPrompts,
   promptQuery: "",
-  selectedPromptId: seedPrompts[0]?.id ?? null,
+  selectedPromptId: null,
   favorites: initialFavorites,
   filterMode: "all",
   sortMode: "popular",

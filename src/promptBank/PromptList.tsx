@@ -11,6 +11,8 @@ export function PromptList() {
   const favorites = useStore((state) => state.favorites);
   const openPromptDetail = useStore((state) => state.openPromptDetail);
   const toggleFavorite = useStore((state) => state.toggleFavorite);
+  const insertIntoComposer = useStore((state) => state.insertIntoComposer);
+  const incrementUsage = useStore((state) => state.incrementUsage);
 
   const filteredPrompts = useMemo(() => {
     const query = promptQuery.trim().toLowerCase();
@@ -46,8 +48,13 @@ export function PromptList() {
           prompt={prompt}
           selected={selectedPromptId === prompt.id}
           isFavorite={Boolean(favorites[prompt.id])}
+          isFavoritesView={false}
           onSelect={openPromptDetail}
           onToggleFavorite={toggleFavorite}
+          onInsert={(content, id) => {
+            insertIntoComposer(content);
+            incrementUsage(id);
+          }}
         />
       ))}
     </List>

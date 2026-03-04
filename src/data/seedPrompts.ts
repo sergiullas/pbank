@@ -9,7 +9,55 @@ export const seedPrompts: Prompt[] = [
     category: "Summarization",
     tags: ["summary", "bullets", "takeaways"],
     content:
-      "Summarize the following content. Provide:\n1) 5 bullet highlights\n2) 3 key takeaways\n3) 2 open questions for follow-up\n\nContent:\n[PASTE CONTENT]",
+      `Summarize the following content. Provide:
+1) 5 bullet highlights
+2) 3 key takeaways
+3) 2 open questions for follow-up
+
+Content:
+[PASTE CONTENT]`,
+    versions: [
+      {
+        id: "structured-summary-v1",
+        version: 1,
+        createdAt: "2026-02-19T12:00:00.000Z",
+        description: "Summarize the source material into concise highlights.",
+        desiredOutcome: "Get a quick understanding of key points from the provided content.",
+        content: `Summarize the following content into 5 bullet highlights.
+
+Content:
+[PASTE CONTENT]`,
+      },
+      {
+        id: "structured-summary-v2",
+        version: 2,
+        createdAt: "2026-03-02T12:00:00.000Z",
+        description: "Summarize with highlights and clear takeaways.",
+        desiredOutcome: "Provide a digest that helps stakeholders understand what matters most and what to do next.",
+        content:
+          `Summarize the following content. Provide:
+1) 5 bullet highlights
+2) 3 key takeaways
+
+Content:
+[PASTE CONTENT]`,
+      },
+      {
+        id: "structured-summary-v3",
+        version: 3,
+        createdAt: "2026-03-14T12:00:00.000Z",
+        description: "Summarize with bullets, key takeaways, and open questions.",
+        desiredOutcome: "Capture the essential points quickly so stakeholders can align on what matters, what is decided, and what still needs follow-up.",
+        content:
+          `Summarize the following content. Provide:
+1) 5 bullet highlights
+2) 3 key takeaways
+3) 2 open questions for follow-up
+
+Content:
+[PASTE CONTENT]`,
+      },
+    ],
     createdAt: "2026-02-19T12:00:00.000Z",
     owner: "Natasha Romanoff (Black Widow)",
     media: false,
@@ -142,10 +190,68 @@ export const seedPrompts: Prompt[] = [
     id: "feature-brief",
     title: "Feature Brief",
     description: "Write a one-page brief for a feature, including problem statement, user value, and solution.",
+    desiredOutcome: "Produce a stakeholder-ready brief that clearly explains the problem, value, scope, and launch considerations.",
     category: "Writing",
     tags: ["feature", "brief", "stakeholders"],
     content:
-      "Write a one-page feature brief including:\n- Problem statement\n- User value\n- Proposed solution\n- Dependencies\n- Launch risks\n\nInputs:\n[INPUTS]",
+      `Write a one-page feature brief including:
+- Problem statement
+- User value
+- Proposed solution
+- Dependencies
+- Launch risks
+
+Inputs:
+[INPUTS]`,
+    versions: [
+      {
+        id: "feature-brief-v1",
+        version: 1,
+        createdAt: "2026-01-27T12:00:00.000Z",
+        description: "Draft a short feature brief with problem and solution.",
+        desiredOutcome: "Create a basic brief that introduces the feature and rationale.",
+        content:
+          `Draft a feature brief with:
+- Problem statement
+- Proposed solution
+
+Inputs:
+[INPUTS]`,
+      },
+      {
+        id: "feature-brief-v2",
+        version: 2,
+        createdAt: "2026-02-15T12:00:00.000Z",
+        description: "Write a feature brief with user value and dependencies.",
+        desiredOutcome: "Help cross-functional teams understand user impact and implementation needs.",
+        content:
+          `Write a one-page feature brief including:
+- Problem statement
+- User value
+- Proposed solution
+- Dependencies
+
+Inputs:
+[INPUTS]`,
+      },
+      {
+        id: "feature-brief-v3",
+        version: 3,
+        createdAt: "2026-03-10T12:00:00.000Z",
+        description: "Write a one-page brief for a feature, including problem statement, user value, and solution.",
+        desiredOutcome: "Produce a stakeholder-ready brief that clearly explains the problem, value, scope, and launch considerations.",
+        content:
+          `Write a one-page feature brief including:
+- Problem statement
+- User value
+- Proposed solution
+- Dependencies
+- Launch risks
+
+Inputs:
+[INPUTS]`,
+      },
+    ],
     createdAt: "2026-01-27T12:00:00.000Z",
     owner: "Carol Danvers (Captain Marvel)",
     media: false,

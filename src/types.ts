@@ -7,16 +7,27 @@ export type Message = {
   createdAt: string;
 };
 
+export type PromptVersion = {
+  id: string;
+  version: number;
+  createdAt: string;
+  description?: string;
+  desiredOutcome?: string;
+  content: string;
+  changelog?: string[];
+};
+
 export type Prompt = {
   id: string;
   title: string;
-  content: string;
   description?: string;
   desiredOutcome?: string;
+  category: string;
   tags: string[];
-  category?: string;
+  content: string;
   likes: number;
-  createdAt: string; // ISO
-  owner?: string;
-  media?: boolean;
+  createdAt: string;
+  owner: string;
+  media: boolean;
+  versions?: PromptVersion[];
 };

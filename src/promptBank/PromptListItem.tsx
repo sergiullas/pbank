@@ -88,6 +88,9 @@ export function PromptListItem({
             }}
           >
             <Typography fontWeight={600} pr={4}>{prompt.title}</Typography>
+            <Typography variant="caption" color="text.secondary" mt={0.25}>
+              by {prompt.owner}
+            </Typography>
             <Stack spacing={1.5} mt={1}>
               <Typography variant="body2" color="text.secondary">
                 {prompt.description}
@@ -130,7 +133,14 @@ export function PromptListItem({
       }}
     >
       <ListItemText
-        primary={<Typography fontWeight={600}>{prompt.title}</Typography>}
+        primary={
+          <Box>
+            <Typography fontWeight={600}>{prompt.title}</Typography>
+            <Typography variant="caption" color="text.secondary">
+              by {prompt.owner}
+            </Typography>
+          </Box>
+        }
         secondaryTypographyProps={{ component: "div" }}
         secondary={
           <Stack spacing={1.5} mt={1}>

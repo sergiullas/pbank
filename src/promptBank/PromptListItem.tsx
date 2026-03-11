@@ -10,6 +10,8 @@ type PromptListItemProps = {
   selected: boolean;
   isFavorite: boolean;
   isFavoritesView: boolean;
+  versionLabel?: string;
+  insertContent?: string;
   onSelect: (id: string) => void;
   onToggleFavorite: (id: string) => void;
   onInsert: (content: string, id: string) => void;
@@ -30,6 +32,8 @@ export function PromptListItem({
   selected,
   isFavorite,
   isFavoritesView,
+  versionLabel,
+  insertContent,
   onSelect,
   onToggleFavorite,
   onInsert,
@@ -59,7 +63,7 @@ export function PromptListItem({
           <IconButton
             edge="end"
             sx={{ position: "absolute", top: 6, right: 8, zIndex: 1 }}
-            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+            aria-label={`Favorite prompt ${prompt.title}`}
             onClick={(e) => {
               e.stopPropagation();
               onToggleFavorite(prompt.id);
@@ -89,7 +93,7 @@ export function PromptListItem({
           >
             <Typography fontWeight={600} pr={4}>{prompt.title}</Typography>
             <Typography variant="caption" color="text.secondary" mt={0.25}>
-              by {prompt.owner}
+              by {prompt.owner} · {versionLabel ?? "Latest"}
             </Typography>
             <Stack spacing={1.5} mt={1}>
               <Typography variant="body2" color="text.secondary">
@@ -111,7 +115,7 @@ export function PromptListItem({
               aria-label={`Insert ${prompt.title} prompt`}
               onClick={(event) => {
                 event.stopPropagation();
-                onInsert(prompt.content, prompt.id);
+                onInsert(insertContent ?? prompt.content, prompt.id);
               }}
             >
               Insert Prompt
@@ -137,7 +141,7 @@ export function PromptListItem({
           <Box>
             <Typography fontWeight={600}>{prompt.title}</Typography>
             <Typography variant="caption" color="text.secondary">
-              by {prompt.owner}
+              by {prompt.owner} · v{prompt.versions?.length ? Math.max(...prompt.versions.map((version) => version.version)) : 1}
             </Typography>
           </Box>
         }
@@ -167,7 +171,7 @@ export function PromptListItem({
       />
       <IconButton
         edge="end"
-        aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+        aria-label={`Favorite prompt ${prompt.title}`}
         onClick={(e) => {
           e.stopPropagation();
           onToggleFavorite(prompt.id);

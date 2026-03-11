@@ -6,7 +6,7 @@ export function PromptDetail() {
   const prompts = useStore((state) => state.prompts);
   const selectedPromptId = useStore((state) => state.selectedPromptId);
   const promptQuery = useStore((state) => state.promptQuery);
-  const favorites = useStore((state) => state.favorites);
+  const isPromptFavorited = useStore((state) => state.isPromptFavorited);
   const filterMode = useStore((state) => state.filterMode);
   const insertIntoComposer = useStore((state) => state.insertIntoComposer);
   const incrementUsage = useStore((state) => state.incrementUsage);
@@ -21,13 +21,13 @@ export function PromptDetail() {
           .join(" ")
           .toLowerCase()
           .includes(query);
-      const matchesFilter = filterMode === "all" || Boolean(favorites[candidate.id]);
+      const matchesFilter = filterMode === "all" || isPromptFavorited(candidate.id);
 
       return matchesQuery && matchesFilter;
     });
 
     return filteredPrompts.find((candidate) => candidate.id === selectedPromptId) ?? null;
-  }, [prompts, selectedPromptId, promptQuery, favorites, filterMode]);
+  }, [prompts, selectedPromptId, promptQuery, isPromptFavorited, filterMode]);
 
   if (!prompt) {
     return (

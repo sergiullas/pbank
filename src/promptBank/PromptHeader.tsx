@@ -3,7 +3,6 @@ import { useMemo } from "react";
 import { useStore } from "../state/store";
 
 export function PromptHeader() {
-  const prompts = useStore((state) => state.prompts);
   const favorites = useStore((state) => state.favorites);
   const filterMode = useStore((state) => state.filterMode);
   const query = useStore((state) => state.promptQuery);
@@ -11,8 +10,8 @@ export function PromptHeader() {
   const setFilterMode = useStore((state) => state.setFilterMode);
 
   const favoritesCount = useMemo(
-    () => prompts.filter((prompt) => Boolean(favorites[prompt.id])).length,
-    [prompts, favorites],
+    () => favorites.length,
+    [favorites],
   );
 
   return (

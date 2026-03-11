@@ -31,3 +31,11 @@ export type Prompt = {
   media: boolean;
   versions?: PromptVersion[];
 };
+
+
+export type FavoriteItem = {
+  id: string;
+  promptId: string;
+  version?: number;
+  createdAt: string;
+};

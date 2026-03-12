@@ -29,6 +29,7 @@ export function PromptDetailView() {
   const insertIntoComposer = useStore((state) => state.insertIntoComposer);
   const incrementUsage = useStore((state) => state.incrementUsage);
   const favorites = useStore((state) => state.favorites);
+  const togglePromptFavorite = useStore((state) => state.togglePromptFavorite);
   const toggleVersionFavorite = useStore((state) => state.toggleVersionFavorite);
   const [selectedVersionNumber, setSelectedVersionNumber] = useState<number | null>(detailInitialVersionNumber);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -65,9 +66,9 @@ export function PromptDetailView() {
   const latestVersionNumber = getLatestVersion(prompt).version;
   const isLatestVersion = activeVersion.version === latestVersionNumber;
   const menuOpen = Boolean(anchorEl);
-  const activeVersionFavorited = favorites.some(
-    (fav) => fav.promptId === prompt.id && fav.version === activeVersion.version,
-  );
+  const activeVersionFavorited = isLatestVersion
+    ? favorites.some((fav) => fav.promptId === prompt.id && fav.version == null)
+    : favorites.some((fav) => fav.promptId === prompt.id && fav.version === activeVersion.version);
 
   return (
     <Box display="flex" flexDirection="column" height="100%" minHeight={0}>
@@ -152,7 +153,10 @@ export function PromptDetailView() {
                 <IconButton
                   size="small"
                   aria-label={`Favorite version v${activeVersion.version} of ${prompt.title}`}
-                  onClick={() => toggleVersionFavorite(prompt.id, activeVersion.version)}
+                  onClick={() => isLatestVersion
+                    ? togglePromptFavorite(prompt.id)
+                    : toggleVersionFavorite(prompt.id, activeVersion.version)
+                  }
                 >
                   {activeVersionFavorited ? <StarIcon fontSize="small" color="warning" /> : <StarBorderIcon fontSize="small" />}
                 </IconButton>

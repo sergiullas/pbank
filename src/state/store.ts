@@ -29,6 +29,7 @@ type StoreState = {
   messages: Message[];
   composerText: string;
   composerFocusSignal: number;
+  hasAttachedFile: boolean;
   setLibraryCollapsed: (next: boolean) => void;
   toggleLibraryCollapsed: () => void;
   setPromptQuery: (q: string) => void;
@@ -43,6 +44,7 @@ type StoreState = {
   incrementUsage: (id: string) => void;
   setComposerText: (text: string) => void;
   insertIntoComposer: (text: string) => void;
+  setHasAttachedFile: (value: boolean) => void;
   sendMessage: () => void;
 };
 
@@ -87,6 +89,7 @@ export const useStore = create<StoreState>((set, get) => ({
   messages: [],
   composerText: "",
   composerFocusSignal: 0,
+  hasAttachedFile: false,
 
   setLibraryCollapsed: (next) => {
     writeJSON(STORAGE_KEYS.libraryCollapsed, next);
@@ -157,6 +160,8 @@ export const useStore = create<StoreState>((set, get) => ({
       composerFocusSignal: state.composerFocusSignal + 1,
     }));
   },
+
+  setHasAttachedFile: (value) => set({ hasAttachedFile: value }),
 
   sendMessage: () => {
     const text = get().composerText.trim();

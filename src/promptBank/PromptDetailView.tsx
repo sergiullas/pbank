@@ -10,14 +10,18 @@ import {
   Menu,
   MenuItem,
   Stack,
+  Checkbox,
+  FormControlLabel,
+  TextField,
   Tooltip,
   Typography,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { PromptVersion } from "../types";
 import { useStore } from "../state/store";
 import { getLatestVersion } from "./versioning";
+import { extractTemplateVariables, substituteTemplateVariables } from "./templateVariables";
 
 const byVersionDesc = (a: PromptVersion, b: PromptVersion) => b.version - a.version;
 
@@ -31,8 +35,11 @@ export function PromptDetailView() {
   const favorites = useStore((state) => state.favorites);
   const togglePromptFavorite = useStore((state) => state.togglePromptFavorite);
   const toggleVersionFavorite = useStore((state) => state.toggleVersionFavorite);
+  const hasAttachedFile = useStore((state) => state.hasAttachedFile);
   const [selectedVersionNumber, setSelectedVersionNumber] = useState<number | null>(detailInitialVersionNumber);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [variableValues, setVariableValues] = useState<Record<string, string>>({});
+  const [useAttachedFileForContext, setUseAttachedFileForContext] = useState(false);
 
   const prompt = useMemo(
     () => prompts.find((candidate) => candidate.id === selectedPromptId) ?? null,
@@ -51,6 +58,18 @@ export function PromptDetailView() {
 
     return getLatestVersion(prompt);
   }, [prompt, selectedVersionNumber]);
+
+
+  const templateVariables = useMemo(
+    () => (activeVersion ? extractTemplateVariables(activeVersion.content) : []),
+    [activeVersion],
+  );
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setVariableValues({});
+    setUseAttachedFileForContext(false);
+  }, [prompt?.id, activeVersion?.id]);
 
   if (!prompt || !activeVersion) {
     return (
@@ -210,6 +229,79 @@ export function PromptDetailView() {
               </Typography>
             </Box>
           </Stack>
+
+          {templateVariables.length > 0 && (
+            <Stack spacing={1.5}>
+              <Typography variant="subtitle2" color="text.secondary">
+                Prompt Inputs
+              </Typography>
+              {templateVariables.map((variable) => {
+                if (variable.isContext) {
+                  const contextValue = variableValues[variable.token] ?? "";
+
+                  return (
+                    <Stack key={variable.token} spacing={1}>
+                      <FormControlLabel
+                        control={(
+                          <Checkbox
+                            checked={useAttachedFileForContext}
+                            onChange={(event) => setUseAttachedFileForContext(event.target.checked)}
+                            disabled={!hasAttachedFile}
+                            inputProps={{ "aria-label": "Use attached file as context" }}
+                          />
+                        )}
+                        label="Use attached file as context"
+                      />
+                      {!hasAttachedFile && (
+                        <Typography variant="caption" color="text.secondary">
+                          No file attached
+                        </Typography>
+                      )}
+                      {!useAttachedFileForContext && (
+                        <TextField
+                          label="Context"
+                          value={contextValue}
+                          onChange={(event) =>
+                            setVariableValues((prev) => ({
+                              ...prev,
+                              [variable.token]: event.target.value,
+                            }))
+                          }
+                          multiline
+                          minRows={4}
+                          fullWidth
+                          size="small"
+                        />
+                      )}
+                    </Stack>
+                  );
+                }
+
+                const label = variable.token
+                  .toLowerCase()
+                  .split(" ")
+                  .filter(Boolean)
+                  .map((word) => word[0].toUpperCase() + word.slice(1))
+                  .join(" ");
+
+                return (
+                  <TextField
+                    key={variable.token}
+                    label={label || variable.token}
+                    value={variableValues[variable.token] ?? ""}
+                    onChange={(event) =>
+                      setVariableValues((prev) => ({
+                        ...prev,
+                        [variable.token]: event.target.value,
+                      }))
+                    }
+                    fullWidth
+                    size="small"
+                  />
+                );
+              })}
+            </Stack>
+          )}
         </Stack>
       </Box>
 
@@ -225,7 +317,12 @@ export function PromptDetailView() {
           variant="contained"
           fullWidth
           onClick={() => {
-            insertIntoComposer(activeVersion.content);
+            const finalPrompt = substituteTemplateVariables(activeVersion.content, variableValues, {
+              useAttachedFileForContext,
+              attachedFilePlaceholder: "[Attached file context]",
+            });
+
+            insertIntoComposer(finalPrompt);
             incrementUsage(prompt.id);
           }}
         >

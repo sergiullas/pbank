@@ -11,7 +11,7 @@ const STORAGE_KEYS = {
 
 const createId = () => crypto.randomUUID();
 
-type FilterMode = "all" | "favorites";
+type FilterMode = "all" | "favorites" | "featured";
 type LibraryView = "browse" | "detail";
 export type SortMode = "popular" | "trending" | "latest";
 

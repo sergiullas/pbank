@@ -21,7 +21,7 @@ export function PromptDetail() {
           .join(" ")
           .toLowerCase()
           .includes(query);
-      const matchesFilter = filterMode === "all" || isPromptFavorited(candidate.id);
+      const matchesFilter = filterMode === "all" || (filterMode === "favorites" && isPromptFavorited(candidate.id));
 
       return matchesQuery && matchesFilter;
     });

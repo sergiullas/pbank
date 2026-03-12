@@ -24,7 +24,7 @@ export function PromptList() {
           .join(" ")
           .toLowerCase()
           .includes(query);
-      const matchesFilter = filterMode === "all" || isPromptFavorited(prompt.id);
+      const matchesFilter = filterMode === "all" || (filterMode === "favorites" && isPromptFavorited(prompt.id));
 
       return matchesQuery && matchesFilter;
     });

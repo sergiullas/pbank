@@ -2,7 +2,6 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import StarIcon from "@mui/icons-material/Star";
 import { Box, Button, Chip, IconButton, ListItem, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import type { Prompt } from "../types";
 
 type PromptListItemProps = {
@@ -16,6 +15,8 @@ type PromptListItemProps = {
   onToggleFavorite: (id: string) => void;
   onInsert: (content: string, id: string) => void;
 };
+
+const truncateCountDisplay = (value: number): number => Math.floor(value / 10);
 
 const formatCreatedLabel = (createdAt: string): string => {
   const parsed = Date.parse(createdAt);
@@ -157,9 +158,9 @@ export function PromptListItem({
               ))}
             </Stack>
             <Stack direction="row" spacing={0.5} flexWrap="wrap" alignItems="center" useFlexGap mt={1}>
-              <ThumbUpIcon sx={{ fontSize: "1rem" }} />
+              <StarIcon sx={{ fontSize: "1rem" }} />
               <Typography variant="caption" color="text.secondary" mt={0.5}>
-                {prompt.likes} |
+                {truncateCountDisplay(prompt.likes)} |
               </Typography>
               <AccessTimeIcon sx={{ fontSize: "1rem" }} />
               <Typography variant="caption" color="text.secondary" mt={0.5}>

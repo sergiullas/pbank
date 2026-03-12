@@ -77,6 +77,8 @@ type FavoriteListItem = {
   prompt: Prompt;
 };
 
+const truncateCountDisplay = (value: number): number => Math.floor(value / 10);
+
 const promptMatchesQuery = (prompt: Prompt, normalizedQuery: string): boolean => {
   if (!normalizedQuery) return true;
 
@@ -111,7 +113,9 @@ export function PromptBrowseView() {
     const normalizedQuery = query.trim().toLowerCase();
 
     const filtered = prompts.filter((prompt) => {
-      const matchesFilter = filterMode === "all" || isPromptFavorited(prompt.id);
+      const matchesFilter =
+        filterMode === "all" ||
+        (filterMode === "favorites" && isPromptFavorited(prompt.id));
       if (!matchesFilter) return false;
 
       return promptMatchesQuery(prompt, normalizedQuery);
@@ -152,9 +156,11 @@ export function PromptBrowseView() {
   }, [favorites, prompts, query, usageCounts]);
 
   const selectValue = filterMode === "favorites" ? "mostUsed" : isSearching ? "relevance" : sortMode;
-  const sortDisabled = filterMode === "favorites" || isSearching;
+  const sortDisabled = filterMode === "favorites" || filterMode === "featured" || isSearching;
 
-  const favoritesCount = favorites.length;
+  const allCount = truncateCountDisplay(prompts.length);
+  const favoritesCount = truncateCountDisplay(favorites.length);
+  const featuredCount = 0;
 
   return (
     <Box display="flex" flexDirection="column" height="100%" minHeight={0}>
@@ -165,12 +171,13 @@ export function PromptBrowseView() {
 
         <Tabs
           value={filterMode}
-          onChange={(_, value: "all" | "favorites") => setFilterMode(value)}
+          onChange={(_, value: "all" | "favorites" | "featured") => setFilterMode(value)}
           aria-label="Prompt filter"
           sx={{ minHeight: 36, mb: 1.5 }}
         >
-          <Tab value="all" label="All" sx={{ minHeight: 36 }} />
+          <Tab value="all" label={`All (${allCount})`} sx={{ minHeight: 36 }} />
           <Tab value="favorites" label={`Favorites (${favoritesCount})`} sx={{ minHeight: 36 }} />
+          <Tab value="featured" label={`Featured (${featuredCount})`} sx={{ minHeight: 36 }} />
         </Tabs>
 
         <Box display="flex" gap={1} alignItems="center">
@@ -213,7 +220,13 @@ export function PromptBrowseView() {
       </Box>
 
       <Box flex={1} minHeight={0} overflow="auto">
-        {filterMode === "favorites" ? (
+        {filterMode === "featured" ? (
+          <Box p={2}>
+            <Typography variant="body2" color="text.secondary">
+              Featured prompts are coming soon.
+            </Typography>
+          </Box>
+        ) : filterMode === "favorites" ? (
           favoriteItems.length === 0 ? (
             <Box p={2}>
               <Typography variant="body2" color="text.secondary">

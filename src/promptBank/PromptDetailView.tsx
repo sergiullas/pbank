@@ -28,7 +28,7 @@ export function PromptDetailView() {
   const closePromptDetail = useStore((state) => state.closePromptDetail);
   const insertIntoComposer = useStore((state) => state.insertIntoComposer);
   const incrementUsage = useStore((state) => state.incrementUsage);
-  const isVersionFavorited = useStore((state) => state.isVersionFavorited);
+  const favorites = useStore((state) => state.favorites);
   const toggleVersionFavorite = useStore((state) => state.toggleVersionFavorite);
   const [selectedVersionNumber, setSelectedVersionNumber] = useState<number | null>(detailInitialVersionNumber);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -65,7 +65,7 @@ export function PromptDetailView() {
   const latestVersionNumber = getLatestVersion(prompt).version;
   const isLatestVersion = activeVersion.version === latestVersionNumber;
   const menuOpen = Boolean(anchorEl);
-  const activeVersionFavorited = isVersionFavorited(prompt.id, activeVersion.version);
+  const activeVersionFavorited = favorites.some((f) => f.promptId === prompt.id && f.version === activeVersion.version);
 
   return (
     <Box display="flex" flexDirection="column" height="100%" minHeight={0}>

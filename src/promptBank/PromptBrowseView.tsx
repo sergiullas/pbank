@@ -77,8 +77,6 @@ type FavoriteListItem = {
   prompt: Prompt;
 };
 
-const truncateCountDisplay = (value: number): number => Math.floor(value / 10);
-
 const promptMatchesQuery = (prompt: Prompt, normalizedQuery: string): boolean => {
   if (!normalizedQuery) return true;
 
@@ -158,8 +156,7 @@ export function PromptBrowseView() {
   const selectValue = filterMode === "favorites" ? "mostUsed" : isSearching ? "relevance" : sortMode;
   const sortDisabled = filterMode === "favorites" || filterMode === "featured" || isSearching;
 
-  const allCount = truncateCountDisplay(prompts.length);
-  const favoritesCount = truncateCountDisplay(favorites.length);
+  const favoritesCount = favorites.length;
   const featuredCount = 0;
 
   return (
@@ -175,7 +172,7 @@ export function PromptBrowseView() {
           aria-label="Prompt filter"
           sx={{ minHeight: 36, mb: 1.5 }}
         >
-          <Tab value="all" label={`All (${allCount})`} sx={{ minHeight: 36 }} />
+          <Tab value="all" label="All" sx={{ minHeight: 36 }} />
           <Tab value="favorites" label={`Favorites (${favoritesCount})`} sx={{ minHeight: 36 }} />
           <Tab value="featured" label={`Featured (${featuredCount})`} sx={{ minHeight: 36 }} />
         </Tabs>

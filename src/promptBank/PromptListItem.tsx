@@ -2,7 +2,6 @@ import StarBorderIcon from "@mui/icons-material/StarBorder";
 import StarIcon from "@mui/icons-material/Star";
 import { Box, Button, Chip, IconButton, ListItem, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import ThumbUpIcon from "@mui/icons-material/ThumbUp";
 import type { Prompt } from "../types";
 
 type PromptListItemProps = {
@@ -10,10 +9,14 @@ type PromptListItemProps = {
   selected: boolean;
   isFavorite: boolean;
   isFavoritesView: boolean;
+  versionLabel?: string;
+  insertContent?: string;
   onSelect: (id: string) => void;
   onToggleFavorite: (id: string) => void;
   onInsert: (content: string, id: string) => void;
 };
+
+const truncateCountDisplay = (value: number): number => Math.floor(value / 10);
 
 const formatCreatedLabel = (createdAt: string): string => {
   const parsed = Date.parse(createdAt);
@@ -30,6 +33,8 @@ export function PromptListItem({
   selected,
   isFavorite,
   isFavoritesView,
+  versionLabel,
+  insertContent,
   onSelect,
   onToggleFavorite,
   onInsert,
@@ -59,7 +64,7 @@ export function PromptListItem({
           <IconButton
             edge="end"
             sx={{ position: "absolute", top: 6, right: 8, zIndex: 1 }}
-            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+            aria-label={`Favorite prompt ${prompt.title}`}
             onClick={(e) => {
               e.stopPropagation();
               onToggleFavorite(prompt.id);
@@ -89,7 +94,7 @@ export function PromptListItem({
           >
             <Typography fontWeight={600} pr={4}>{prompt.title}</Typography>
             <Typography variant="caption" color="text.secondary" mt={0.25}>
-              by {prompt.owner}
+              by {prompt.owner} · {versionLabel ?? "Latest"}
             </Typography>
             <Stack spacing={1.5} mt={1}>
               <Typography variant="body2" color="text.secondary">
@@ -111,7 +116,7 @@ export function PromptListItem({
               aria-label={`Insert ${prompt.title} prompt`}
               onClick={(event) => {
                 event.stopPropagation();
-                onInsert(prompt.content, prompt.id);
+                onInsert(insertContent ?? prompt.content, prompt.id);
               }}
             >
               Insert Prompt
@@ -137,7 +142,7 @@ export function PromptListItem({
           <Box>
             <Typography fontWeight={600}>{prompt.title}</Typography>
             <Typography variant="caption" color="text.secondary">
-              by {prompt.owner}
+              by {prompt.owner} · v{prompt.versions?.length ? Math.max(...prompt.versions.map((version) => version.version)) : 1}
             </Typography>
           </Box>
         }
@@ -153,9 +158,9 @@ export function PromptListItem({
               ))}
             </Stack>
             <Stack direction="row" spacing={0.5} flexWrap="wrap" alignItems="center" useFlexGap mt={1}>
-              <ThumbUpIcon sx={{ fontSize: "1rem" }} />
+              <StarIcon sx={{ fontSize: "1rem" }} />
               <Typography variant="caption" color="text.secondary" mt={0.5}>
-                {prompt.likes} |
+                {truncateCountDisplay(prompt.likes)} |
               </Typography>
               <AccessTimeIcon sx={{ fontSize: "1rem" }} />
               <Typography variant="caption" color="text.secondary" mt={0.5}>
@@ -167,7 +172,7 @@ export function PromptListItem({
       />
       <IconButton
         edge="end"
-        aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+        aria-label={`Favorite prompt ${prompt.title}`}
         onClick={(e) => {
           e.stopPropagation();
           onToggleFavorite(prompt.id);

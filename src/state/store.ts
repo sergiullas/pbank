@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { seedPrompts } from "../data/seedPrompts";
-import type { Message, Prompt } from "../types";
+import type { FavoriteItem, Message, Prompt } from "../types";
 import { readJSON, writeJSON } from "./persist";
 
 const STORAGE_KEYS = {
@@ -11,7 +11,7 @@ const STORAGE_KEYS = {
 
 const createId = () => crypto.randomUUID();
 
-type FilterMode = "all" | "favorites";
+type FilterMode = "all" | "favorites" | "featured";
 type LibraryView = "browse" | "detail";
 export type SortMode = "popular" | "trending" | "latest";
 
@@ -21,7 +21,8 @@ type StoreState = {
   prompts: Prompt[];
   promptQuery: string;
   selectedPromptId: string | null;
-  favorites: Record<string, true>;
+  detailInitialVersionNumber: number | null;
+  favorites: FavoriteItem[];
   filterMode: FilterMode;
   sortMode: SortMode;
   usageCounts: Record<string, number>;
@@ -31,9 +32,12 @@ type StoreState = {
   setLibraryCollapsed: (next: boolean) => void;
   toggleLibraryCollapsed: () => void;
   setPromptQuery: (q: string) => void;
-  openPromptDetail: (id: string) => void;
+  openPromptDetail: (id: string, initialVersionNumber?: number) => void;
   closePromptDetail: () => void;
-  toggleFavorite: (id: string) => void;
+  isPromptFavorited: (promptId: string) => boolean;
+  isVersionFavorited: (promptId: string, version: number) => boolean;
+  togglePromptFavorite: (promptId: string) => void;
+  toggleVersionFavorite: (promptId: string, version: number) => void;
   setFilterMode: (mode: FilterMode) => void;
   setSortMode: (mode: SortMode) => void;
   incrementUsage: (id: string) => void;
@@ -42,12 +46,24 @@ type StoreState = {
   sendMessage: () => void;
 };
 
-const readFavorites = (): Record<string, true> => {
-  const stored = readJSON<string[]>(STORAGE_KEYS.favorites, []);
-  return stored.reduce<Record<string, true>>((acc, id) => {
-    acc[id] = true;
-    return acc;
-  }, {});
+const normalizeFavorite = (favorite: FavoriteItem): FavoriteItem => ({
+  ...favorite,
+  id: favorite.version == null ? `${favorite.promptId}:latest` : `${favorite.promptId}:v${favorite.version}`,
+  createdAt: favorite.createdAt ?? new Date().toISOString(),
+});
+
+const readFavorites = (): FavoriteItem[] => {
+  const stored = readJSON<FavoriteItem[] | string[]>(STORAGE_KEYS.favorites, []);
+
+  if (!Array.isArray(stored)) return [];
+  if (stored.length === 0) return [];
+
+  if (typeof stored[0] === "string") {
+    const now = new Date().toISOString();
+    return (stored as string[]).map((promptId) => ({ id: `${promptId}:latest`, promptId, createdAt: now }));
+  }
+
+  return (stored as FavoriteItem[]).map((favorite) => normalizeFavorite(favorite));
 };
 
 const readLibraryCollapsed = (): boolean => readJSON<boolean>(STORAGE_KEYS.libraryCollapsed, false);
@@ -63,6 +79,7 @@ export const useStore = create<StoreState>((set, get) => ({
   prompts: seedPrompts,
   promptQuery: "",
   selectedPromptId: null,
+  detailInitialVersionNumber: null,
   favorites: initialFavorites,
   filterMode: "all",
   sortMode: "popular",
@@ -84,19 +101,35 @@ export const useStore = create<StoreState>((set, get) => ({
 
   setPromptQuery: (q) => set({ promptQuery: q }),
 
-  openPromptDetail: (id) => set({ selectedPromptId: id, libraryView: "detail" }),
+  openPromptDetail: (id, initialVersionNumber) =>
+    set({ selectedPromptId: id, libraryView: "detail", detailInitialVersionNumber: initialVersionNumber ?? null }),
 
-  closePromptDetail: () => set({ libraryView: "browse" }),
+  closePromptDetail: () => set({ libraryView: "browse", detailInitialVersionNumber: null }),
 
-  toggleFavorite: (id) => {
-    const nextFavorites = { ...get().favorites };
-    if (nextFavorites[id]) {
-      delete nextFavorites[id];
-    } else {
-      nextFavorites[id] = true;
-    }
+  isPromptFavorited: (promptId) => get().favorites.some((favorite) => favorite.promptId === promptId && favorite.version == null),
 
-    writeJSON(STORAGE_KEYS.favorites, Object.keys(nextFavorites));
+  isVersionFavorited: (promptId, version) =>
+    get().favorites.some((favorite) => favorite.promptId === promptId && favorite.version === version),
+
+  togglePromptFavorite: (promptId) => {
+    const promptFavoriteId = `${promptId}:latest`;
+    const exists = get().favorites.some((favorite) => favorite.id === promptFavoriteId);
+    const nextFavorites = exists
+      ? get().favorites.filter((favorite) => favorite.id !== promptFavoriteId)
+      : [...get().favorites, { id: promptFavoriteId, promptId, createdAt: new Date().toISOString() }];
+
+    writeJSON(STORAGE_KEYS.favorites, nextFavorites);
+    set({ favorites: nextFavorites });
+  },
+
+  toggleVersionFavorite: (promptId, version) => {
+    const versionFavoriteId = `${promptId}:v${version}`;
+    const exists = get().favorites.some((favorite) => favorite.id === versionFavoriteId);
+    const nextFavorites = exists
+      ? get().favorites.filter((favorite) => favorite.id !== versionFavoriteId)
+      : [...get().favorites, { id: versionFavoriteId, promptId, version, createdAt: new Date().toISOString() }];
+
+    writeJSON(STORAGE_KEYS.favorites, nextFavorites);
     set({ favorites: nextFavorites });
   },
 

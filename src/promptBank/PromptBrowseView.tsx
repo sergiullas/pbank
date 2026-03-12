@@ -1,8 +1,9 @@
 import { Box, FormControl, InputLabel, List, MenuItem, Select, Tab, Tabs, TextField, Typography } from "@mui/material";
 import { useMemo } from "react";
 import { type SortMode, useStore } from "../state/store";
-import type { Prompt } from "../types";
+import type { FavoriteItem, Prompt } from "../types";
 import { PromptListItem } from "./PromptListItem";
+import { getLatestVersion, resolveFavoritePromptVersion } from "./versioning";
 
 const SORT_LABELS: Record<SortMode, string> = {
   popular: "Most Popular",
@@ -71,6 +72,22 @@ const sortByRelevance = (prompts: Prompt[], query: string): Prompt[] => {
     .map((item) => item.prompt);
 };
 
+type FavoriteListItem = {
+  favorite: FavoriteItem;
+  prompt: Prompt;
+};
+
+const promptMatchesQuery = (prompt: Prompt, normalizedQuery: string): boolean => {
+  if (!normalizedQuery) return true;
+
+  return (
+    prompt.title.toLowerCase().includes(normalizedQuery) ||
+    prompt.content.toLowerCase().includes(normalizedQuery) ||
+    prompt.tags.some((tag) => tag.toLowerCase().includes(normalizedQuery)) ||
+    Boolean(prompt.description?.toLowerCase().includes(normalizedQuery))
+  );
+};
+
 export function PromptBrowseView() {
   const prompts = useStore((state) => state.prompts);
   const selectedPromptId = useStore((state) => state.selectedPromptId);
@@ -83,7 +100,8 @@ export function PromptBrowseView() {
   const setFilterMode = useStore((state) => state.setFilterMode);
   const setSortMode = useStore((state) => state.setSortMode);
   const openPromptDetail = useStore((state) => state.openPromptDetail);
-  const toggleFavorite = useStore((state) => state.toggleFavorite);
+  const togglePromptFavorite = useStore((state) => state.togglePromptFavorite);
+  const isPromptFavorited = useStore((state) => state.isPromptFavorited);
   const insertIntoComposer = useStore((state) => state.insertIntoComposer);
   const incrementUsage = useStore((state) => state.incrementUsage);
 
@@ -93,17 +111,12 @@ export function PromptBrowseView() {
     const normalizedQuery = query.trim().toLowerCase();
 
     const filtered = prompts.filter((prompt) => {
-      const matchesFilter = filterMode === "all" || Boolean(favorites[prompt.id]);
+      const matchesFilter =
+        filterMode === "all" ||
+        (filterMode === "favorites" && isPromptFavorited(prompt.id));
       if (!matchesFilter) return false;
 
-      if (!normalizedQuery) return true;
-
-      return (
-        prompt.title.toLowerCase().includes(normalizedQuery) ||
-        prompt.content.toLowerCase().includes(normalizedQuery) ||
-        prompt.tags.some((tag) => tag.toLowerCase().includes(normalizedQuery)) ||
-        Boolean(prompt.description?.toLowerCase().includes(normalizedQuery))
-      );
+      return promptMatchesQuery(prompt, normalizedQuery);
     });
 
     if (filterMode === "favorites") {
@@ -119,15 +132,32 @@ export function PromptBrowseView() {
     }
 
     return sortPrompts(filtered, sortMode);
-  }, [prompts, query, filterMode, favorites, isSearching, sortMode, usageCounts]);
+  }, [prompts, query, filterMode, isPromptFavorited, isSearching, sortMode, usageCounts]);
+
+  const favoriteItems = useMemo<FavoriteListItem[]>(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    const rows: FavoriteListItem[] = favorites
+      .map((favorite) => {
+        const prompt = prompts.find((candidate) => candidate.id === favorite.promptId);
+        return prompt ? { favorite, prompt } : null;
+      })
+      .filter((value): value is FavoriteListItem => Boolean(value));
+
+    const searched = rows.filter(({ prompt }) => promptMatchesQuery(prompt, normalizedQuery));
+
+    return [...searched].sort((a, b) => {
+      const usageDiff = (usageCounts[b.prompt.id] ?? 0) - (usageCounts[a.prompt.id] ?? 0);
+      if (usageDiff !== 0) return usageDiff;
+      return parseCreatedAt(b.favorite.createdAt) - parseCreatedAt(a.favorite.createdAt);
+    });
+  }, [favorites, prompts, query, usageCounts]);
 
   const selectValue = filterMode === "favorites" ? "mostUsed" : isSearching ? "relevance" : sortMode;
-  const sortDisabled = filterMode === "favorites" || isSearching;
+  const sortDisabled = filterMode === "favorites" || filterMode === "featured" || isSearching;
 
-  const favoritesCount = useMemo(
-    () => prompts.filter((prompt) => Boolean(favorites[prompt.id])).length,
-    [prompts, favorites],
-  );
+  const favoritesCount = favorites.length;
+  const featuredCount = 0;
 
   return (
     <Box display="flex" flexDirection="column" height="100%" minHeight={0}>
@@ -138,12 +168,13 @@ export function PromptBrowseView() {
 
         <Tabs
           value={filterMode}
-          onChange={(_, value: "all" | "favorites") => setFilterMode(value)}
+          onChange={(_, value: "all" | "favorites" | "featured") => setFilterMode(value)}
           aria-label="Prompt filter"
           sx={{ minHeight: 36, mb: 1.5 }}
         >
           <Tab value="all" label="All" sx={{ minHeight: 36 }} />
           <Tab value="favorites" label={`Favorites (${favoritesCount})`} sx={{ minHeight: 36 }} />
+          <Tab value="featured" label={`Featured (${featuredCount})`} sx={{ minHeight: 36 }} />
         </Tabs>
 
         <Box display="flex" gap={1} alignItems="center">
@@ -186,7 +217,45 @@ export function PromptBrowseView() {
       </Box>
 
       <Box flex={1} minHeight={0} overflow="auto">
-        {visiblePrompts.length === 0 ? (
+        {filterMode === "featured" ? (
+          <Box p={2}>
+            <Typography variant="body2" color="text.secondary">
+              Featured prompts are coming soon.
+            </Typography>
+          </Box>
+        ) : filterMode === "favorites" ? (
+          favoriteItems.length === 0 ? (
+            <Box p={2}>
+              <Typography variant="body2" color="text.secondary">
+                No prompts found.
+              </Typography>
+            </Box>
+          ) : (
+            <List disablePadding>
+              {favoriteItems.map(({ favorite, prompt }) => {
+                const resolvedVersion = resolveFavoritePromptVersion(prompt, favorite);
+                const versionLabel = favorite.version == null ? "Latest" : `v${resolvedVersion.version}`;
+                return (
+                  <PromptListItem
+                    key={favorite.id}
+                    prompt={prompt}
+                    selected={selectedPromptId === prompt.id}
+                    isFavorite={isPromptFavorited(prompt.id)}
+                    isFavoritesView
+                    versionLabel={versionLabel}
+                    insertContent={resolvedVersion.content}
+                    onSelect={() => openPromptDetail(prompt.id, favorite.version)}
+                    onToggleFavorite={togglePromptFavorite}
+                    onInsert={(content, id) => {
+                      insertIntoComposer(content);
+                      incrementUsage(id);
+                    }}
+                  />
+                );
+              })}
+            </List>
+          )
+        ) : visiblePrompts.length === 0 ? (
           <Box p={2}>
             <Typography variant="body2" color="text.secondary">
               No prompts found.
@@ -194,21 +263,26 @@ export function PromptBrowseView() {
           </Box>
         ) : (
           <List disablePadding>
-            {visiblePrompts.map((prompt) => (
-              <PromptListItem
-                key={prompt.id}
-                prompt={prompt}
-                selected={selectedPromptId === prompt.id}
-                isFavorite={Boolean(favorites[prompt.id])}
-                isFavoritesView={filterMode === "favorites"}
-                onSelect={openPromptDetail}
-                onToggleFavorite={toggleFavorite}
-                onInsert={(content, id) => {
-                  insertIntoComposer(content);
-                  incrementUsage(id);
-                }}
-              />
-            ))}
+            {visiblePrompts.map((prompt) => {
+              const latestVersion = getLatestVersion(prompt);
+              return (
+                <PromptListItem
+                  key={prompt.id}
+                  prompt={prompt}
+                  selected={selectedPromptId === prompt.id}
+                  isFavorite={isPromptFavorited(prompt.id)}
+                  isFavoritesView={false}
+                  versionLabel={`v${latestVersion.version}`}
+                  insertContent={latestVersion.content}
+                  onSelect={openPromptDetail}
+                  onToggleFavorite={togglePromptFavorite}
+                  onInsert={(content, id) => {
+                    insertIntoComposer(content);
+                    incrementUsage(id);
+                  }}
+                />
+              );
+            })}
           </List>
         )}
       </Box>

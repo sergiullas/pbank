@@ -101,6 +101,7 @@ export function PromptBrowseView() {
   const setSortMode = useStore((state) => state.setSortMode);
   const openPromptDetail = useStore((state) => state.openPromptDetail);
   const togglePromptFavorite = useStore((state) => state.togglePromptFavorite);
+  const toggleVersionFavorite = useStore((state) => state.toggleVersionFavorite);
   const isPromptFavorited = useStore((state) => state.isPromptFavorited);
   const insertIntoComposer = useStore((state) => state.insertIntoComposer);
   const incrementUsage = useStore((state) => state.incrementUsage);
@@ -240,12 +241,18 @@ export function PromptBrowseView() {
                     key={favorite.id}
                     prompt={prompt}
                     selected={selectedPromptId === prompt.id}
-                    isFavorite={isPromptFavorited(prompt.id)}
+                    isFavorite
                     isFavoritesView
                     versionLabel={versionLabel}
                     insertContent={resolvedVersion.content}
                     onSelect={() => openPromptDetail(prompt.id, favorite.version)}
-                    onToggleFavorite={togglePromptFavorite}
+                    onToggleFavorite={() => {
+                      if (favorite.version == null) {
+                        togglePromptFavorite(prompt.id);
+                      } else {
+                        toggleVersionFavorite(prompt.id, favorite.version);
+                      }
+                    }}
                     onInsert={(content, id) => {
                       insertIntoComposer(content);
                       incrementUsage(id);

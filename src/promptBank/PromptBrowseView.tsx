@@ -77,6 +77,17 @@ type FavoriteListItem = {
   prompt: Prompt;
 };
 
+const promptMatchesQuery = (prompt: Prompt, normalizedQuery: string): boolean => {
+  if (!normalizedQuery) return true;
+
+  return (
+    prompt.title.toLowerCase().includes(normalizedQuery) ||
+    prompt.content.toLowerCase().includes(normalizedQuery) ||
+    prompt.tags.some((tag) => tag.toLowerCase().includes(normalizedQuery)) ||
+    Boolean(prompt.description?.toLowerCase().includes(normalizedQuery))
+  );
+};
+
 export function PromptBrowseView() {
   const prompts = useStore((state) => state.prompts);
   const selectedPromptId = useStore((state) => state.selectedPromptId);
@@ -103,14 +114,7 @@ export function PromptBrowseView() {
       const matchesFilter = filterMode === "all" || isPromptFavorited(prompt.id);
       if (!matchesFilter) return false;
 
-      if (!normalizedQuery) return true;
-
-      return (
-        prompt.title.toLowerCase().includes(normalizedQuery) ||
-        prompt.content.toLowerCase().includes(normalizedQuery) ||
-        prompt.tags.some((tag) => tag.toLowerCase().includes(normalizedQuery)) ||
-        Boolean(prompt.description?.toLowerCase().includes(normalizedQuery))
-      );
+      return promptMatchesQuery(prompt, normalizedQuery);
     });
 
     if (filterMode === "favorites") {
@@ -138,14 +142,7 @@ export function PromptBrowseView() {
       })
       .filter((value): value is FavoriteListItem => Boolean(value));
 
-    const searched = normalizedQuery
-      ? rows.filter(({ prompt }) => (
-        prompt.title.toLowerCase().includes(normalizedQuery) ||
-        prompt.content.toLowerCase().includes(normalizedQuery) ||
-        prompt.tags.some((tag) => tag.toLowerCase().includes(normalizedQuery)) ||
-        Boolean(prompt.description?.toLowerCase().includes(normalizedQuery))
-      ))
-      : rows;
+    const searched = rows.filter(({ prompt }) => promptMatchesQuery(prompt, normalizedQuery));
 
     return [...searched].sort((a, b) => {
       const usageDiff = (usageCounts[b.prompt.id] ?? 0) - (usageCounts[a.prompt.id] ?? 0);
@@ -266,6 +263,7 @@ export function PromptBrowseView() {
                   isFavorite={isPromptFavorited(prompt.id)}
                   isFavoritesView={false}
                   versionLabel={`v${latestVersion.version}`}
+                  insertContent={latestVersion.content}
                   onSelect={openPromptDetail}
                   onToggleFavorite={togglePromptFavorite}
                   onInsert={(content, id) => {

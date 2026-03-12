@@ -4,7 +4,9 @@ export type PromptVersionLike = PromptVersion;
 
 export function getLatestVersion(prompt: Prompt): PromptVersionLike {
   if (prompt.versions?.length) {
-    return [...prompt.versions].sort((a, b) => b.version - a.version)[0];
+    return prompt.versions.reduce((latest, current) =>
+      current.version > latest.version ? current : latest,
+    );
   }
 
   return {

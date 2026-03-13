@@ -8,7 +8,7 @@ import { useEffect, useRef } from "react";
 import { useStore } from "../state/store";
 
 interface ComposerProps {
-  onPromptLibraryToggle: () => void;
+  onPromptLibraryToggle: (triggerElement?: HTMLElement | null) => void;
 }
 
 export function Composer({ onPromptLibraryToggle }: ComposerProps) {
@@ -58,7 +58,7 @@ export function Composer({ onPromptLibraryToggle }: ComposerProps) {
           <ToggleButton
             value="check"
             selected={!libraryCollapsed}
-            onChange={onPromptLibraryToggle}
+            onChange={(event) => onPromptLibraryToggle(event.currentTarget)}
             color="primary"
             size="small"
           >

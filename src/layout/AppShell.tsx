@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Box, useMediaQuery, useTheme } from "@mui/material";
 import { ChatPane } from "../chat/ChatPane";
 import { PromptBankPane } from "../promptBank/PromptBankPane";
@@ -12,13 +12,16 @@ export function AppShell() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
+  const mobilePromptTriggerRef = useRef<HTMLElement | null>(null);
 
-  const handlePromptLibraryToggle = useCallback(() => {
+  const handlePromptLibraryToggle = useCallback((triggerElement?: HTMLElement | null) => {
     if (isMobile) {
+      if (triggerElement) mobilePromptTriggerRef.current = triggerElement;
       setIsMobilePanelOpen(true);
-    } else {
-      toggleLibraryCollapsed();
+      return;
     }
+
+    toggleLibraryCollapsed();
   }, [isMobile, toggleLibraryCollapsed]);
 
   return (
@@ -31,7 +34,10 @@ export function AppShell() {
       {isMobile && (
         <MobileSecondaryDrawer
           open={isMobilePanelOpen}
-          onClose={() => setIsMobilePanelOpen(false)}
+          onClose={() => {
+            setIsMobilePanelOpen(false);
+            mobilePromptTriggerRef.current?.focus();
+          }}
         />
       )}
     </Box>

@@ -7,14 +7,19 @@ import {
   Button,
   Chip,
   Divider,
+  FormControl,
   FormControlLabel,
   IconButton,
+  InputLabel,
   List,
   ListItemButton,
   ListItemText,
   Menu,
   MenuItem,
+  Select,
   Stack,
+  Tab,
+  Tabs,
   TextField,
   Checkbox,
   Tooltip,
@@ -22,11 +27,11 @@ import {
   Drawer,
   useTheme,
 } from "@mui/material";
-import { useMemo, useState } from "react";
 import { alpha } from "@mui/material/styles";
-import type { Prompt, PromptVersion } from "../types";
-import { useStore } from "../state/store";
-import { getLatestVersion } from "../promptBank/versioning";
+import { useMemo, useState } from "react";
+import type { FavoriteItem, Prompt, PromptVersion } from "../types";
+import { type SortMode, useStore } from "../state/store";
+import { getLatestVersion, resolveFavoritePromptVersion } from "../promptBank/versioning";
 import { extractTemplateVariables, substituteTemplateVariables } from "../promptBank/templateVariables";
 
 interface MobileSecondaryDrawerProps {
@@ -35,6 +40,17 @@ interface MobileSecondaryDrawerProps {
 }
 
 type MobilePromptView = "list" | "detail";
+
+type FavoriteListItem = {
+  favorite: FavoriteItem;
+  prompt: Prompt;
+};
+
+const SORT_LABELS: Record<SortMode, string> = {
+  popular: "Most Popular",
+  trending: "Trending",
+  latest: "Latest",
+};
 
 const parseCreatedAt = (createdAt: string): number => {
   const parsed = Date.parse(createdAt);
@@ -54,6 +70,31 @@ const getRelevanceScore = (prompt: Prompt, query: string): number => {
   return score;
 };
 
+const sortPrompts = (prompts: Prompt[], sortMode: SortMode): Prompt[] => {
+  return [...prompts].sort((a, b) => {
+    const aLikes = a.likes;
+    const bLikes = b.likes;
+    const aCreated = parseCreatedAt(a.createdAt);
+    const bCreated = parseCreatedAt(b.createdAt);
+
+    if (sortMode === "popular") {
+      return bLikes - aLikes || bCreated - aCreated;
+    }
+
+    if (sortMode === "latest") {
+      return bCreated - aCreated || bLikes - aLikes;
+    }
+
+    const now = Date.now();
+    const aDays = Math.max(0, Math.floor((now - aCreated) / 86_400_000));
+    const bDays = Math.max(0, Math.floor((now - bCreated) / 86_400_000));
+    const aTrendingScore = aLikes / (aDays + 1);
+    const bTrendingScore = bLikes / (bDays + 1);
+
+    return bTrendingScore - aTrendingScore || bLikes - aLikes;
+  });
+};
+
 const sortByRelevance = (prompts: Prompt[], query: string): Prompt[] => {
   return [...prompts]
     .map((prompt) => ({
@@ -68,10 +109,6 @@ const sortByRelevance = (prompts: Prompt[], query: string): Prompt[] => {
       || b.createdAtMs - a.createdAtMs
     ))
     .map((item) => item.prompt);
-};
-
-const sortPromptsForMobile = (prompts: Prompt[]): Prompt[] => {
-  return [...prompts].sort((a, b) => b.likes - a.likes || parseCreatedAt(b.createdAt) - parseCreatedAt(a.createdAt));
 };
 
 const promptMatchesQuery = (prompt: Prompt, normalizedQuery: string): boolean => {
@@ -91,10 +128,16 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
   const theme = useTheme();
   const prompts = useStore((state) => state.prompts);
   const favorites = useStore((state) => state.favorites);
+  const filterMode = useStore((state) => state.filterMode);
+  const sortMode = useStore((state) => state.sortMode);
+  const usageCounts = useStore((state) => state.usageCounts);
   const promptQuery = useStore((state) => state.promptQuery);
   const setPromptQuery = useStore((state) => state.setPromptQuery);
+  const setFilterMode = useStore((state) => state.setFilterMode);
+  const setSortMode = useStore((state) => state.setSortMode);
   const togglePromptFavorite = useStore((state) => state.togglePromptFavorite);
   const toggleVersionFavorite = useStore((state) => state.toggleVersionFavorite);
+  const isPromptFavorited = useStore((state) => state.isPromptFavorited);
   const insertIntoComposer = useStore((state) => state.insertIntoComposer);
   const incrementUsage = useStore((state) => state.incrementUsage);
 
@@ -112,7 +155,6 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
     setVariableValues({});
     setUseAttachedFileForContext(false);
   };
-
 
   const selectedPrompt = useMemo(
     () => prompts.find((prompt) => prompt.id === selectedPromptId) ?? null,
@@ -136,13 +178,57 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
     [activeVersion],
   );
 
+  const isSearching = promptQuery.trim().length > 0;
+
   const visiblePrompts = useMemo(() => {
     const normalizedQuery = promptQuery.trim().toLowerCase();
-    const filtered = prompts.filter((prompt) => promptMatchesQuery(prompt, normalizedQuery));
 
-    if (normalizedQuery) return sortByRelevance(filtered, normalizedQuery);
-    return sortPromptsForMobile(filtered);
-  }, [prompts, promptQuery]);
+    const filtered = prompts.filter((prompt) => {
+      const matchesFilter = filterMode === "all" || (filterMode === "favorites" && isPromptFavorited(prompt.id));
+      if (!matchesFilter) return false;
+
+      return promptMatchesQuery(prompt, normalizedQuery);
+    });
+
+    if (filterMode === "favorites") {
+      return [...filtered].sort((a, b) => {
+        const usageDiff = (usageCounts[b.id] ?? 0) - (usageCounts[a.id] ?? 0);
+        if (usageDiff !== 0) return usageDiff;
+        return b.likes - a.likes || parseCreatedAt(b.createdAt) - parseCreatedAt(a.createdAt);
+      });
+    }
+
+    if (isSearching) {
+      return sortByRelevance(filtered, normalizedQuery);
+    }
+
+    return sortPrompts(filtered, sortMode);
+  }, [prompts, promptQuery, filterMode, isPromptFavorited, isSearching, sortMode, usageCounts]);
+
+  const favoriteItems = useMemo<FavoriteListItem[]>(() => {
+    const normalizedQuery = promptQuery.trim().toLowerCase();
+
+    const rows: FavoriteListItem[] = favorites
+      .map((favorite) => {
+        const prompt = prompts.find((candidate) => candidate.id === favorite.promptId);
+        return prompt ? { favorite, prompt } : null;
+      })
+      .filter((value): value is FavoriteListItem => Boolean(value));
+
+    const searched = rows.filter(({ prompt }) => promptMatchesQuery(prompt, normalizedQuery));
+
+    return [...searched].sort((a, b) => {
+      const usageDiff = (usageCounts[b.prompt.id] ?? 0) - (usageCounts[a.prompt.id] ?? 0);
+      if (usageDiff !== 0) return usageDiff;
+      return parseCreatedAt(b.favorite.createdAt) - parseCreatedAt(a.favorite.createdAt);
+    });
+  }, [favorites, prompts, promptQuery, usageCounts]);
+
+  const listCount = filterMode === "featured"
+    ? 0
+    : filterMode === "favorites"
+      ? favoriteItems.length
+      : visiblePrompts.length;
 
   const latestVersionNumber = selectedPrompt ? getLatestVersion(selectedPrompt).version : null;
   const isLatestVersion = latestVersionNumber != null && activeVersion?.version === latestVersionNumber;
@@ -151,6 +237,9 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
       ? favorites.some((favorite) => favorite.promptId === selectedPrompt.id && favorite.version == null)
       : favorites.some((favorite) => favorite.promptId === selectedPrompt.id && favorite.version === activeVersion.version))
     : false;
+
+  const selectValue = filterMode === "favorites" ? "mostUsed" : isSearching ? "relevance" : sortMode;
+  const sortDisabled = filterMode === "favorites" || filterMode === "featured" || isSearching;
 
   const closeDrawer = () => {
     resetDetailState();
@@ -169,6 +258,65 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
     insertIntoComposer(finalPrompt, { requiresAttachment: useAttachedFileForContext });
     incrementUsage(selectedPrompt.id);
     closeDrawer();
+  };
+
+  const renderPromptRow = (
+    prompt: Prompt,
+    options?: { favorite?: FavoriteItem; versionLabel?: string; description?: string },
+  ) => {
+    const promptFavorited = options?.favorite
+      ? true
+      : favorites.some((favorite) => favorite.promptId === prompt.id && favorite.version == null);
+
+    return (
+      <ListItemButton
+        key={options?.favorite?.id ?? prompt.id}
+        alignItems="flex-start"
+        onClick={() => {
+          setSelectedPromptId(prompt.id);
+          setSelectedVersionNumber(options?.favorite?.version ?? null);
+          setVariableValues({});
+          setUseAttachedFileForContext(false);
+          setMobileView("detail");
+        }}
+        sx={{ borderBottom: "1px solid", borderColor: "divider", py: 1.5 }}
+      >
+        <ListItemText
+          primary={(
+            <Box display="flex" alignItems="flex-start" justifyContent="space-between" gap={1}>
+              <Typography fontWeight={600}>{prompt.title}</Typography>
+              <Tooltip title={promptFavorited ? "Remove from favorites" : "Add to favorites"}>
+                <IconButton
+                  edge="end"
+                  size="small"
+                  aria-label={promptFavorited ? "Remove from favorites" : "Add to favorites"}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    if (options?.favorite?.version == null) {
+                      togglePromptFavorite(prompt.id);
+                    } else {
+                      toggleVersionFavorite(prompt.id, options.favorite.version);
+                    }
+                  }}
+                >
+                  {promptFavorited ? <StarIcon fontSize="small" color="warning" /> : <StarBorderIcon fontSize="small" />}
+                </IconButton>
+              </Tooltip>
+            </Box>
+          )}
+          secondary={(
+            <Stack spacing={0.75} mt={0.75}>
+              <Typography variant="body2" color="text.secondary">
+                {options?.description ?? prompt.description ?? "No description available."}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                by {prompt.owner} · {options?.versionLabel ?? `v${getLatestVersion(prompt).version}`}
+              </Typography>
+            </Stack>
+          )}
+        />
+      </ListItemButton>
+    );
   };
 
   return (
@@ -199,7 +347,7 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
           bgcolor="background.paper"
           position="sticky"
           top={0}
-          zIndex={1}
+          zIndex={2}
         >
           {mobileView === "detail" ? (
             <IconButton
@@ -232,74 +380,96 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
         {mobileView === "list" ? (
           <>
             <Box p={2} borderBottom={1} borderColor="divider" bgcolor="background.paper" position="sticky" top={49} zIndex={1}>
-              <TextField
-                fullWidth
-                size="small"
-                label="Search prompts"
-                placeholder="Search prompts"
-                value={promptQuery}
-                onChange={(event) => setPromptQuery(event.target.value)}
-                autoFocus
-              />
+              <Stack spacing={1.5}>
+                <Tabs
+                  value={filterMode}
+                  onChange={(_, value: "all" | "favorites" | "featured") => setFilterMode(value)}
+                  aria-label="Prompt filter"
+                  variant="fullWidth"
+                  sx={{ minHeight: 34 }}
+                >
+                  <Tab value="all" label="All" sx={{ minHeight: 34, px: 1 }} />
+                  <Tab value="favorites" label={`Favorites (${favorites.length})`} sx={{ minHeight: 34, px: 1 }} />
+                  <Tab value="featured" label="Featured" sx={{ minHeight: 34, px: 1 }} />
+                </Tabs>
+
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Search prompts"
+                  placeholder="Search prompts"
+                  value={promptQuery}
+                  onChange={(event) => setPromptQuery(event.target.value)}
+                  autoFocus
+                />
+
+                <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+                  <FormControl size="small" sx={{ minWidth: 150 }}>
+                    <InputLabel id="mobile-prompt-sort-label">Sort</InputLabel>
+                    <Select
+                      labelId="mobile-prompt-sort-label"
+                      label="Sort"
+                      value={selectValue}
+                      disabled={sortDisabled}
+                      onChange={(event) => {
+                        const next = event.target.value;
+                        if (next === "popular" || next === "trending" || next === "latest") {
+                          setSortMode(next);
+                        }
+                      }}
+                    >
+                      {filterMode === "favorites" ? (
+                        <MenuItem value="mostUsed">Most Used</MenuItem>
+                      ) : isSearching ? (
+                        <MenuItem value="relevance">Relevance</MenuItem>
+                      ) : (
+                        [
+                          <MenuItem key="popular" value="popular">{SORT_LABELS.popular}</MenuItem>,
+                          <MenuItem key="trending" value="trending">{SORT_LABELS.trending}</MenuItem>,
+                          <MenuItem key="latest" value="latest">{SORT_LABELS.latest}</MenuItem>,
+                        ]
+                      )}
+                    </Select>
+                  </FormControl>
+
+                  <Typography variant="caption" color="text.secondary" aria-live="polite">
+                    {listCount} {listCount === 1 ? "result" : "results"}
+                  </Typography>
+                </Stack>
+              </Stack>
             </Box>
 
             <Box flex={1} minHeight={0} overflow="auto" aria-label="Prompt list">
-              {visiblePrompts.length === 0 ? (
+              {filterMode === "featured" ? (
+                <Box p={2}>
+                  <Typography variant="body2" color="text.secondary">Featured prompts are coming soon.</Typography>
+                </Box>
+              ) : filterMode === "favorites" ? (
+                favoriteItems.length === 0 ? (
+                  <Box p={2}>
+                    <Typography variant="body2" color="text.secondary">No prompts found.</Typography>
+                  </Box>
+                ) : (
+                  <List disablePadding>
+                    {favoriteItems.map(({ favorite, prompt }) => {
+                      const resolvedVersion = resolveFavoritePromptVersion(prompt, favorite);
+                      const versionLabel = favorite.version == null ? "Latest" : `v${resolvedVersion.version}`;
+
+                      return renderPromptRow(prompt, {
+                        favorite,
+                        versionLabel,
+                        description: resolvedVersion.description ?? prompt.description,
+                      });
+                    })}
+                  </List>
+                )
+              ) : visiblePrompts.length === 0 ? (
                 <Box p={2}>
                   <Typography variant="body2" color="text.secondary">No prompts found.</Typography>
                 </Box>
               ) : (
                 <List disablePadding>
-                  {visiblePrompts.map((prompt) => {
-                    const latestVersion = getLatestVersion(prompt);
-                    const promptFavorited = favorites.some((favorite) => favorite.promptId === prompt.id && favorite.version == null);
-
-                    return (
-                      <ListItemButton
-                        key={prompt.id}
-                        alignItems="flex-start"
-                        onClick={() => {
-                          setSelectedPromptId(prompt.id);
-                          setSelectedVersionNumber(null);
-                          setVariableValues({});
-                          setUseAttachedFileForContext(false);
-                          setMobileView("detail");
-                        }}
-                        sx={{ borderBottom: "1px solid", borderColor: "divider", py: 1.5 }}
-                      >
-                        <ListItemText
-                          primary={(
-                            <Box display="flex" alignItems="flex-start" justifyContent="space-between" gap={1}>
-                              <Typography fontWeight={600}>{prompt.title}</Typography>
-                              <Tooltip title={promptFavorited ? "Remove from favorites" : "Add to favorites"}>
-                                <IconButton
-                                  edge="end"
-                                  size="small"
-                                  aria-label={promptFavorited ? "Remove from favorites" : "Add to favorites"}
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    togglePromptFavorite(prompt.id);
-                                  }}
-                                >
-                                  {promptFavorited ? <StarIcon fontSize="small" color="warning" /> : <StarBorderIcon fontSize="small" />}
-                                </IconButton>
-                              </Tooltip>
-                            </Box>
-                          )}
-                          secondary={(
-                            <Stack spacing={0.75} mt={0.75}>
-                              <Typography variant="body2" color="text.secondary">
-                                {prompt.description ?? "No description available."}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                by {prompt.owner} · v{latestVersion.version}
-                              </Typography>
-                            </Stack>
-                          )}
-                        />
-                      </ListItemButton>
-                    );
-                  })}
+                  {visiblePrompts.map((prompt) => renderPromptRow(prompt))}
                 </List>
               )}
             </Box>

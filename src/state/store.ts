@@ -29,6 +29,9 @@ type StoreState = {
   messages: Message[];
   composerText: string;
   composerFocusSignal: number;
+  hasAttachedFile: boolean;
+  requiresAttachment: boolean;
+  composerError: string | null;
   setLibraryCollapsed: (next: boolean) => void;
   toggleLibraryCollapsed: () => void;
   setPromptQuery: (q: string) => void;
@@ -42,7 +45,11 @@ type StoreState = {
   setSortMode: (mode: SortMode) => void;
   incrementUsage: (id: string) => void;
   setComposerText: (text: string) => void;
-  insertIntoComposer: (text: string) => void;
+  insertIntoComposer: (text: string, options?: { requiresAttachment?: boolean }) => void;
+  setHasAttachedFile: (value: boolean) => void;
+  setRequiresAttachment: (value: boolean) => void;
+  clearAttachmentRequirement: () => void;
+  clearComposerError: () => void;
   sendMessage: () => void;
 };
 
@@ -87,6 +94,9 @@ export const useStore = create<StoreState>((set, get) => ({
   messages: [],
   composerText: "",
   composerFocusSignal: 0,
+  hasAttachedFile: false,
+  requiresAttachment: false,
+  composerError: null,
 
   setLibraryCollapsed: (next) => {
     writeJSON(STORAGE_KEYS.libraryCollapsed, next);
@@ -146,21 +156,40 @@ export const useStore = create<StoreState>((set, get) => ({
     set({ usageCounts: nextUsage });
   },
 
-  setComposerText: (text) => set({ composerText: text }),
+  setComposerText: (text) => set({
+    composerText: text,
+    requiresAttachment: text.trim().length === 0 ? false : get().requiresAttachment,
+    composerError: null,
+  }),
 
-  insertIntoComposer: (text) => {
+  insertIntoComposer: (text, options) => {
     const current = get().composerText;
     const merged = current.trim().length > 0 ? `${current}\n${text}` : text;
 
     set((state) => ({
       composerText: merged,
       composerFocusSignal: state.composerFocusSignal + 1,
+      requiresAttachment: options?.requiresAttachment ?? false,
+      composerError: null,
     }));
   },
+
+  setHasAttachedFile: (value) => set({ hasAttachedFile: value, composerError: value ? null : get().composerError }),
+
+  setRequiresAttachment: (value) => set({ requiresAttachment: value }),
+
+  clearAttachmentRequirement: () => set({ requiresAttachment: false }),
+
+  clearComposerError: () => set({ composerError: null }),
 
   sendMessage: () => {
     const text = get().composerText.trim();
     if (!text) return;
+
+    if (get().requiresAttachment && !get().hasAttachedFile) {
+      set({ composerError: "Attach a file before sending this prompt." });
+      return;
+    }
 
     const userMessage: Message = {
       id: createId(),
@@ -172,6 +201,8 @@ export const useStore = create<StoreState>((set, get) => ({
     set((state) => ({
       messages: [...state.messages, userMessage],
       composerText: "",
+      requiresAttachment: false,
+      composerError: null,
     }));
 
     const timeout = 300 + Math.floor(Math.random() * 301);

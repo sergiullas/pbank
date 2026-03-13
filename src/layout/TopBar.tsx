@@ -1,13 +1,12 @@
-import { AppBar, IconButton, Toolbar, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { AppBar, IconButton, Toolbar, Typography } from "@mui/material";
 import ViewSidebarOutlinedIcon from "@mui/icons-material/ViewSidebarOutlined";
 
 interface TopBarProps {
+  isMobile: boolean;
   onOpenMobilePanel?: () => void;
 }
 
-export function TopBar({ onOpenMobilePanel }: TopBarProps) {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+export function TopBar({ isMobile, onOpenMobilePanel }: TopBarProps) {
 
   return (
     <AppBar position="static" color="default" elevation={0} sx={{ borderBottom: 1, borderColor: "divider" }}>

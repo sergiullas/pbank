@@ -4,7 +4,7 @@ import { Composer } from "./Composer";
 import { MessageList } from "./MessageList";
 
 interface ChatPaneProps {
-  onPromptLibraryToggle: () => void;
+  onPromptLibraryToggle: (triggerElement?: HTMLElement | null) => void;
 }
 
 export function ChatPane({ onPromptLibraryToggle }: ChatPaneProps) {

@@ -258,6 +258,10 @@ export function PromptDetailView() {
                       {!useAttachedFileForContext && (
                         <TextField
                           label="Context"
+                          multiline
+                          minRows={4}
+                          maxRows={10}
+                          fullWidth
                           value={contextValue}
                           onChange={(event) =>
                             setVariableValues((prev) => ({
@@ -265,10 +269,6 @@ export function PromptDetailView() {
                               [variable.token]: event.target.value,
                             }))
                           }
-                          multiline
-                          minRows={4}
-                          fullWidth
-                          size="small"
                         />
                       )}
                     </Stack>

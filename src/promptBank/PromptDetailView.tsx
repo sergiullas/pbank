@@ -35,7 +35,6 @@ export function PromptDetailView() {
   const favorites = useStore((state) => state.favorites);
   const togglePromptFavorite = useStore((state) => state.togglePromptFavorite);
   const toggleVersionFavorite = useStore((state) => state.toggleVersionFavorite);
-  const hasAttachedFile = useStore((state) => state.hasAttachedFile);
   const [selectedVersionNumber, setSelectedVersionNumber] = useState<number | null>(detailInitialVersionNumber);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
@@ -246,15 +245,14 @@ export function PromptDetailView() {
                           <Checkbox
                             checked={useAttachedFileForContext}
                             onChange={(event) => setUseAttachedFileForContext(event.target.checked)}
-                            disabled={!hasAttachedFile}
                             inputProps={{ "aria-label": "Use attached file as context" }}
                           />
                         )}
                         label="Use attached file as context"
                       />
-                      {!hasAttachedFile && (
-                        <Typography variant="caption" color="text.secondary">
-                          No file attached
+                      {useAttachedFileForContext && (
+                        <Typography variant="caption" color="warning.main">
+                          An attached file will be required when sending this prompt.
                         </Typography>
                       )}
                       {!useAttachedFileForContext && (
@@ -322,7 +320,7 @@ export function PromptDetailView() {
               attachedFilePlaceholder: "[Attached file context]",
             });
 
-            insertIntoComposer(finalPrompt);
+            insertIntoComposer(finalPrompt, { requiresAttachment: useAttachedFileForContext });
             incrementUsage(prompt.id);
           }}
         >

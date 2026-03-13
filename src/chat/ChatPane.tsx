@@ -3,7 +3,11 @@ import { useStore } from "../state/store";
 import { Composer } from "./Composer";
 import { MessageList } from "./MessageList";
 
-export function ChatPane() {
+interface ChatPaneProps {
+  onPromptLibraryToggle: () => void;
+}
+
+export function ChatPane({ onPromptLibraryToggle }: ChatPaneProps) {
   const libraryCollapsed = useStore((state) => state.libraryCollapsed);
 
   return (
@@ -19,7 +23,7 @@ export function ChatPane() {
         <Typography variant="h6">New Chat</Typography>
       </Box>
       <MessageList />
-      <Composer />
+      <Composer onPromptLibraryToggle={onPromptLibraryToggle} />
     </Box>
   );
 }

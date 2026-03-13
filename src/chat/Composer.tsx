@@ -7,12 +7,15 @@ import { Alert, Box, IconButton, Stack, TextField } from "@mui/material";
 import { useEffect, useRef } from "react";
 import { useStore } from "../state/store";
 
-export function Composer() {
+interface ComposerProps {
+  onPromptLibraryToggle: () => void;
+}
+
+export function Composer({ onPromptLibraryToggle }: ComposerProps) {
   const composerText = useStore((state) => state.composerText);
   const focusSignal = useStore((state) => state.composerFocusSignal);
   const libraryCollapsed = useStore((state) => state.libraryCollapsed);
   const setComposerText = useStore((state) => state.setComposerText);
-  const toggleLibraryCollapsed = useStore((state) => state.toggleLibraryCollapsed);
   const sendMessage = useStore((state) => state.sendMessage);
   const requiresAttachment = useStore((state) => state.requiresAttachment);
   const hasAttachedFile = useStore((state) => state.hasAttachedFile);
@@ -55,7 +58,7 @@ export function Composer() {
           <ToggleButton
             value="check"
             selected={!libraryCollapsed}
-            onChange={toggleLibraryCollapsed}
+            onChange={onPromptLibraryToggle}
             color="primary"
             size="small"
           >

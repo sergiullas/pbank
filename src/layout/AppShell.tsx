@@ -8,15 +8,24 @@ import { MobileSecondaryDrawer } from "../mobile/MobileSecondaryDrawer";
 
 export function AppShell() {
   const libraryCollapsed = useStore((state) => state.libraryCollapsed);
+  const toggleLibraryCollapsed = useStore((state) => state.toggleLibraryCollapsed);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
 
+  const handlePromptLibraryToggle = useCallback(() => {
+    if (isMobile) {
+      setIsMobilePanelOpen(true);
+    } else {
+      toggleLibraryCollapsed();
+    }
+  }, [isMobile, toggleLibraryCollapsed]);
+
   return (
     <Box height="100vh" display="flex" flexDirection="column">
-      <TopBar onOpenMobilePanel={() => setIsMobilePanelOpen(true)} />
+      <TopBar />
       <Box display="flex" flex={1} minHeight={0}>
-        <ChatPane />
+        <ChatPane onPromptLibraryToggle={handlePromptLibraryToggle} />
         {!isMobile && !libraryCollapsed && <PromptBankPane />}
       </Box>
       {isMobile && (

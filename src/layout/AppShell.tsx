@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Box, useMediaQuery, useTheme } from "@mui/material";
 import { ChatPane } from "../chat/ChatPane";
 import { PromptBankPane } from "../promptBank/PromptBankPane";

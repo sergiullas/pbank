@@ -14,7 +14,7 @@ export function AppShell() {
 
   return (
     <Box height="100vh" display="flex" flexDirection="column">
-      <TopBar onOpenMobilePanel={() => setIsMobilePanelOpen(true)} />
+      <TopBar isMobile={isMobile} onOpenMobilePanel={() => setIsMobilePanelOpen(true)} />
       <Box display="flex" flex={1} minHeight={0}>
         <ChatPane />
         {!isMobile && !libraryCollapsed && <PromptBankPane />}

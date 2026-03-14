@@ -33,11 +33,10 @@ export function Composer({ onPromptLibraryToggle }: ComposerProps) {
 
   const showAttachmentWarning = requiresAttachment && !hasAttachedFile;
   const warningMessage = composerError ?? "Attach a file before sending this prompt.";
-
   const sendDisabled = composerText.trim().length === 0;
 
   return (
-    <Stack p={2} spacing={1} sx={{ width: isMobile ? "100%" : "72%", margin: "0 auto" }}>
+    <Stack p={2} spacing={1} sx={{ width: "100%", margin: "0 auto" }}>
       {showAttachmentWarning && <Alert severity="warning">{warningMessage}</Alert>}
 
       {isMobile ? (
@@ -117,12 +116,19 @@ export function Composer({ onPromptLibraryToggle }: ComposerProps) {
       ) : (
         <Box
           sx={{
+            width: "min(642px, 100%)",
+            minHeight: 120,
+            boxSizing: "border-box",
             border: 1,
             borderColor: "divider",
             borderRadius: 2,
-            px: 1.5,
-            py: 1.25,
+            p: 1.5,
+            mx: "auto",
             bgcolor: "background.paper",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            gap: 1,
           }}
         >
           <TextField
@@ -145,13 +151,13 @@ export function Composer({ onPromptLibraryToggle }: ComposerProps) {
             InputProps={{ disableUnderline: true }}
           />
 
-          <Box display="flex" alignItems="center" justifyContent="space-between" mt={1}>
+          <Box display="flex" alignItems="center" justifyContent="space-between" minHeight={32}>
             <IconButton
               aria-label={hasAttachedFile ? "Remove attachment" : "Attach file"}
               onClick={() => setHasAttachedFile(!hasAttachedFile)}
               sx={{
-                width: 32,
-                height: 32,
+                width: 28,
+                height: 28,
                 border: 1,
                 borderColor: hasAttachedFile ? "primary.main" : "divider",
                 color: hasAttachedFile ? "primary.main" : "text.secondary",
@@ -166,7 +172,13 @@ export function Composer({ onPromptLibraryToggle }: ComposerProps) {
                 variant={!libraryCollapsed ? "contained" : "text"}
                 startIcon={<ReviewsIcon fontSize="small" />}
                 aria-label="Open prompt library"
-                sx={{ textTransform: "none", borderRadius: 999 }}
+                sx={{
+                  textTransform: "none",
+                  borderRadius: 999,
+                  minHeight: 28,
+                  px: 1.25,
+                  fontSize: 14,
+                }}
               >
                 Prompt Library
               </Button>
@@ -175,8 +187,8 @@ export function Composer({ onPromptLibraryToggle }: ComposerProps) {
                 onClick={sendMessage}
                 disabled={sendDisabled}
                 sx={{
-                  width: 40,
-                  height: 40,
+                  width: 34,
+                  height: 34,
                   bgcolor: sendDisabled ? "action.disabledBackground" : "primary.main",
                   color: sendDisabled ? "action.disabled" : "primary.contrastText",
                   "&:hover": {

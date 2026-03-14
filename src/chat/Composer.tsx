@@ -58,10 +58,12 @@ export function Composer({ onPromptLibraryToggle }: ComposerProps) {
           borderColor: "divider",
           borderRadius: isMobile ? 3 : 2,
           px: 1.5,
-          py: isMobile ? 1 : 1.25,
+          pt: isMobile ? 1 : 1.25,
+          pb: isMobile ? 0.75 : 1,
           bgcolor: "background.paper",
         }}
       >
+        {/* Input row: attach button + textarea */}
         <Box display="flex" alignItems="flex-end" gap={isMobile ? 0.75 : 1}>
           <IconButton
             aria-label={hasAttachedFile ? "Remove attachment" : "Attach file"}
@@ -95,8 +97,24 @@ export function Composer({ onPromptLibraryToggle }: ComposerProps) {
             }}
             inputProps={{ "aria-label": "Message input" }}
             InputProps={{ disableUnderline: true }}
+            sx={{ py: "4px" }}
           />
+        </Box>
 
+        {/* Subtle divider separating input from actions */}
+        <Box
+          aria-hidden="true"
+          sx={{
+            height: "1px",
+            bgcolor: "divider",
+            opacity: 0.6,
+            mx: -1.5,
+            my: "6px",
+          }}
+        />
+
+        {/* Actions row: prompt library + send */}
+        <Box display="flex" alignItems="center" justifyContent="space-between" pt="2px">
           {isMobile ? (
             <IconButton
               aria-label="Open prompt library"

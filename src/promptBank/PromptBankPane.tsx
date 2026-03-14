@@ -9,7 +9,7 @@ export function PromptBankPane() {
   const detailInitialVersionNumber = useStore((state) => state.detailInitialVersionNumber);
 
   return (
-    <Box width={380} display="flex" flexDirection="column" minHeight={0} borderLeft={1} borderColor="divider">
+    <Box width={380} minWidth={340} maxWidth={420} display="flex" flexDirection="column" minHeight={0} borderLeft={1} borderColor="divider">
       <Box flex={1} minHeight={0}>
         {libraryView === "browse" ? <PromptBrowseView /> : <PromptDetailView key={`${selectedPromptId ?? "none"}:${detailInitialVersionNumber ?? "latest"}`} />}
       </Box>

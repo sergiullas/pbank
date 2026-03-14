@@ -159,14 +159,27 @@ export function PromptBrowseView() {
 
   const favoritesCount = favorites.length;
   const featuredCount = 0;
+  const listCount = filterMode === "featured"
+    ? 0
+    : filterMode === "favorites"
+      ? favoriteItems.length
+      : visiblePrompts.length;
+
+  const resultSummary = (() => {
+    if (filterMode === "favorites") {
+      return `${listCount} ${listCount === 1 ? "favorite" : "favorites"}`;
+    }
+
+    if (isSearching) {
+      return `${listCount} ${listCount === 1 ? "result" : "results"}`;
+    }
+
+    return `${listCount} ${listCount === 1 ? "prompt" : "prompts"}`;
+  })();
 
   return (
     <Box display="flex" flexDirection="column" height="100%" minHeight={0}>
       <Box px={2} py={1.5} borderBottom={1} borderColor="divider">
-        <Typography variant="h6" mb={1}>
-          Prompt Library
-        </Typography>
-
         <Tabs
           value={filterMode}
           onChange={(_, value: "all" | "favorites" | "featured") => setFilterMode(value)}
@@ -215,6 +228,10 @@ export function PromptBrowseView() {
             </Select>
           </FormControl>
         </Box>
+
+        <Typography variant="caption" color="text.secondary" aria-live="polite" sx={{ mt: 1, display: "block" }}>
+          {resultSummary}
+        </Typography>
       </Box>
 
       <Box flex={1} minHeight={0} overflow="auto">

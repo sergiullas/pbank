@@ -77,7 +77,7 @@ const readFavorites = (): FavoriteItem[] => {
   return (stored as FavoriteItem[]).map((favorite) => normalizeFavorite(favorite));
 };
 
-const readLibraryCollapsed = (): boolean => readJSON<boolean>(STORAGE_KEYS.libraryCollapsed, false);
+const readLibraryCollapsed = (): boolean => readJSON<boolean>(STORAGE_KEYS.libraryCollapsed, true);
 
 const readLeftShellMode = (): LeftShellMode => readJSON<LeftShellMode>(STORAGE_KEYS.leftShellMode, "expanded");
 

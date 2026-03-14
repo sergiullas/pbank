@@ -33,26 +33,57 @@ export function Composer({ onPromptLibraryToggle }: ComposerProps) {
 
   const showAttachmentWarning = requiresAttachment && !hasAttachedFile;
   const warningMessage = composerError ?? "Attach a file before sending this prompt.";
-
   const sendDisabled = composerText.trim().length === 0;
+  const libraryOpen = !libraryCollapsed;
+
+  const attachButtonSx = isMobile
+    ? {
+        width: 48,
+        height: 48,
+        border: 1,
+        borderColor: hasAttachedFile ? "primary.main" : "divider",
+        color: hasAttachedFile ? "primary.main" : "text.secondary",
+        bgcolor: hasAttachedFile ? "action.selected" : "transparent",
+        flexShrink: 0,
+      }
+    : {
+        width: 32,
+        height: 32,
+        border: 1,
+        borderColor: hasAttachedFile ? "primary.main" : "divider",
+        color: hasAttachedFile ? "primary.main" : "text.secondary",
+        flexShrink: 0,
+      };
+
+  const sendButtonSx = isMobile
+    ? {
+        width: 48,
+        height: 48,
+        flexShrink: 0,
+        bgcolor: sendDisabled ? "action.disabledBackground" : "primary.main",
+        color: sendDisabled ? "action.disabled" : "primary.contrastText",
+        "&:hover": { bgcolor: sendDisabled ? "action.disabledBackground" : "primary.dark" },
+      }
+    : {
+        width: 40,
+        height: 40,
+        flexShrink: 0,
+        bgcolor: sendDisabled ? "action.disabledBackground" : "primary.main",
+        color: sendDisabled ? "action.disabled" : "primary.contrastText",
+        "&:hover": { bgcolor: sendDisabled ? "action.disabledBackground" : "primary.dark" },
+      };
 
   return (
     <Stack p={2} spacing={1} sx={{ width: "100%" }}>
       {showAttachmentWarning && <Alert severity="warning">{warningMessage}</Alert>}
 
       {isMobile ? (
+        /* Mobile: flat row with 48px touch targets, icon-only Prompt Library */
         <Box display="flex" alignItems="flex-end" gap={1.25}>
           <IconButton
             aria-label={hasAttachedFile ? "Remove attachment" : "Attach file"}
             onClick={() => setHasAttachedFile(!hasAttachedFile)}
-            sx={{
-              width: 48,
-              height: 48,
-              border: 1,
-              borderColor: hasAttachedFile ? "primary.main" : "divider",
-              color: hasAttachedFile ? "primary.main" : "text.secondary",
-              bgcolor: hasAttachedFile ? "action.selected" : "transparent",
-            }}
+            sx={attachButtonSx}
           >
             <AddIcon />
           </IconButton>
@@ -62,7 +93,7 @@ export function Composer({ onPromptLibraryToggle }: ComposerProps) {
             multiline
             minRows={1}
             maxRows={6}
-            placeholder="Ask anything..."
+            placeholder="Ask anything…"
             value={composerText}
             inputRef={textFieldRef}
             onChange={(event) => setComposerText(event.target.value)}
@@ -73,12 +104,7 @@ export function Composer({ onPromptLibraryToggle }: ComposerProps) {
               }
             }}
             inputProps={{ "aria-label": "Message input" }}
-            sx={{
-              "& .MuiOutlinedInput-root": {
-                borderRadius: 1.5,
-                minHeight: 48,
-              },
-            }}
+            sx={{ "& .MuiOutlinedInput-root": { borderRadius: 1.5, minHeight: 48 } }}
           />
 
           <IconButton
@@ -88,10 +114,11 @@ export function Composer({ onPromptLibraryToggle }: ComposerProps) {
               width: 48,
               height: 48,
               borderRadius: 1.5,
+              flexShrink: 0,
               border: 1,
-              borderColor: !libraryCollapsed ? "primary.main" : "divider",
-              bgcolor: !libraryCollapsed ? "primary.50" : "action.hover",
-              color: "primary.main",
+              borderColor: libraryOpen ? "primary.main" : "divider",
+              bgcolor: libraryOpen ? "action.selected" : "transparent",
+              color: "text.primary",
             }}
           >
             <ReviewsIcon fontSize="small" />
@@ -101,20 +128,13 @@ export function Composer({ onPromptLibraryToggle }: ComposerProps) {
             aria-label="Send message"
             onClick={sendMessage}
             disabled={sendDisabled}
-            sx={{
-              width: 48,
-              height: 48,
-              bgcolor: sendDisabled ? "action.disabledBackground" : "primary.main",
-              color: sendDisabled ? "action.disabled" : "primary.contrastText",
-              "&:hover": {
-                bgcolor: sendDisabled ? "action.disabledBackground" : "primary.dark",
-              },
-            }}
+            sx={sendButtonSx}
           >
             <SendIcon />
           </IconButton>
         </Box>
       ) : (
+        /* Desktop: card wrapper, same [ + ] [ input ] [ Prompt Library ] [ Send ] row */
         <Box
           sx={{
             border: 1,
@@ -125,76 +145,60 @@ export function Composer({ onPromptLibraryToggle }: ComposerProps) {
             bgcolor: "background.paper",
           }}
         >
-          <TextField
-            fullWidth
-            multiline
-            variant="standard"
-            minRows={2}
-            maxRows={6}
-            placeholder="Ask anything..."
-            value={composerText}
-            inputRef={textFieldRef}
-            onChange={(event) => setComposerText(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                sendMessage();
-              }
-            }}
-            inputProps={{ "aria-label": "Message input" }}
-            InputProps={{ disableUnderline: true }}
-          />
-
-          <Box display="flex" alignItems="center" justifyContent="space-between" mt={1}>
+          <Box display="flex" alignItems="flex-end" gap={1}>
             <IconButton
               aria-label={hasAttachedFile ? "Remove attachment" : "Attach file"}
               onClick={() => setHasAttachedFile(!hasAttachedFile)}
-              sx={{
-                width: 32,
-                height: 32,
-                border: 1,
-                borderColor: hasAttachedFile ? "primary.main" : "divider",
-                color: hasAttachedFile ? "primary.main" : "text.secondary",
-              }}
+              sx={attachButtonSx}
             >
               <AddIcon fontSize="small" />
             </IconButton>
 
-            <Box display="flex" alignItems="center" gap={1.5}>
-              <Button
-                onClick={(event) => onPromptLibraryToggle(event.currentTarget)}
-                variant="text"
-                startIcon={<ReviewsIcon fontSize="small" />}
-                aria-label="Open prompt library"
-                sx={{
-                  textTransform: "none",
-                  borderRadius: 999,
-                  bgcolor: !libraryCollapsed ? "action.selected" : "transparent",
-                  color: "text.primary",
-                  "&:hover": {
-                    bgcolor: !libraryCollapsed ? "action.selected" : "action.hover",
-                  },
-                }}
-              >
-                Prompt Library
-              </Button>
-              <IconButton
-                aria-label="Send message"
-                onClick={sendMessage}
-                disabled={sendDisabled}
-                sx={{
-                  width: 40,
-                  height: 40,
-                  bgcolor: sendDisabled ? "action.disabledBackground" : "primary.main",
-                  color: sendDisabled ? "action.disabled" : "primary.contrastText",
-                  "&:hover": {
-                    bgcolor: sendDisabled ? "action.disabledBackground" : "primary.dark",
-                  },
-                }}
-              >
-                <SendIcon />
-              </IconButton>
-            </Box>
+            <TextField
+              fullWidth
+              multiline
+              variant="standard"
+              minRows={2}
+              maxRows={6}
+              placeholder="Ask anything…"
+              value={composerText}
+              inputRef={textFieldRef}
+              onChange={(event) => setComposerText(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  sendMessage();
+                }
+              }}
+              inputProps={{ "aria-label": "Message input" }}
+              InputProps={{ disableUnderline: true }}
+            />
+
+            <Button
+              onClick={(event) => onPromptLibraryToggle(event.currentTarget)}
+              variant="text"
+              startIcon={<ReviewsIcon fontSize="small" />}
+              aria-label="Open prompt library"
+              sx={{
+                textTransform: "none",
+                borderRadius: 999,
+                flexShrink: 0,
+                bgcolor: libraryOpen ? "action.selected" : "transparent",
+                color: "text.primary",
+                "&:hover": { bgcolor: libraryOpen ? "action.selected" : "action.hover" },
+              }}
+            >
+              Prompt Library
+            </Button>
+
+            <IconButton
+              aria-label="Send message"
+              onClick={sendMessage}
+              disabled={sendDisabled}
+              sx={sendButtonSx}
+            >
+              <SendIcon />
+            </IconButton>
           </Box>
         </Box>
       )}

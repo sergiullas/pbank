@@ -34,7 +34,7 @@ function NavItem({ icon, label, active = false, isRail }: NavItemProps) {
       sx={(theme) => ({
         display: "flex",
         alignItems: "center",
-        gap: 1.5,
+        gap: isRail ? 0 : 1.5,
         px: isRail ? 0 : 2,
         mx: isRail ? "auto" : 1,
         borderRadius: 2,
@@ -65,6 +65,7 @@ function NavItem({ icon, label, active = false, isRail }: NavItemProps) {
           color: "inherit",
           whiteSpace: "nowrap",
           overflow: "hidden",
+          display: isRail ? "none" : "block",
           opacity: isRail ? 0 : 1,
           transform: isRail ? "translateX(-8px)" : "translateX(0)",
           transition: "opacity 160ms ease-out, transform 160ms ease-out",

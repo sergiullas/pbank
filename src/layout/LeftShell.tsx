@@ -160,6 +160,7 @@ export function LeftShell() {
                 fontSize: "1.05rem",
                 letterSpacing: "-0.01em",
                 whiteSpace: "nowrap",
+                display: isRail ? "none" : "block",
                 opacity: isRail ? 0 : 1,
                 transform: isRail ? "translateX(-8px)" : "translateX(0)",
                 transition: "opacity 160ms ease-out, transform 160ms ease-out",
@@ -175,6 +176,7 @@ export function LeftShell() {
         <Box
           sx={{
             opacity: isRail ? 0 : 1,
+            display: isRail ? "none" : "flex",
             transition: "opacity 160ms ease-out",
             pointerEvents: isRail ? "none" : "auto",
             flexShrink: 0,
@@ -256,6 +258,7 @@ export function LeftShell() {
           sx={{
             minWidth: 0,
             opacity: isRail ? 0 : 1,
+            display: isRail ? "none" : "block",
             transform: isRail ? "translateX(-8px)" : "translateX(0)",
             transition: "opacity 160ms ease-out, transform 160ms ease-out",
             pointerEvents: isRail ? "none" : "auto",

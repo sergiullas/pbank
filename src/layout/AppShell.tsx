@@ -6,38 +6,55 @@ import { useStore } from "../state/store";
 import { TopBar } from "./TopBar";
 import { LeftShell } from "./LeftShell";
 import { MobileSecondaryDrawer } from "../mobile/MobileSecondaryDrawer";
+import { MobileLeftDrawer } from "../mobile/MobileLeftDrawer";
+
+type MobileActiveDrawer = "none" | "leftShell" | "promptLibrary";
 
 export function AppShell() {
   const libraryCollapsed = useStore((state) => state.libraryCollapsed);
   const toggleLibraryCollapsed = useStore((state) => state.toggleLibraryCollapsed);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
+  const [activeDrawer, setActiveDrawer] = useState<MobileActiveDrawer>("none");
   const mobilePromptTriggerRef = useRef<HTMLElement | null>(null);
 
   const handlePromptLibraryToggle = useCallback((triggerElement?: HTMLElement | null) => {
     if (isMobile) {
       if (triggerElement) mobilePromptTriggerRef.current = triggerElement;
-      setIsMobilePanelOpen(true);
+      setActiveDrawer("promptLibrary");
       return;
     }
 
     toggleLibraryCollapsed();
   }, [isMobile, toggleLibraryCollapsed]);
 
+  const handleMenuClick = useCallback(() => {
+    setActiveDrawer("leftShell");
+  }, []);
+
+  const handleCloseDrawer = useCallback(() => {
+    setActiveDrawer("none");
+  }, []);
+
+  const handlePromptLibraryClose = useCallback(() => {
+    setActiveDrawer("none");
+    mobilePromptTriggerRef.current?.focus();
+  }, []);
+
   if (isMobile) {
     return (
       <Box height="100vh" display="flex" flexDirection="column">
-        <TopBar />
+        <TopBar onMenuClick={handleMenuClick} />
         <Box display="flex" flex={1} minHeight={0}>
           <ChatPane onPromptLibraryToggle={handlePromptLibraryToggle} />
         </Box>
+        <MobileLeftDrawer
+          open={activeDrawer === "leftShell"}
+          onClose={handleCloseDrawer}
+        />
         <MobileSecondaryDrawer
-          open={isMobilePanelOpen}
-          onClose={() => {
-            setIsMobilePanelOpen(false);
-            mobilePromptTriggerRef.current?.focus();
-          }}
+          open={activeDrawer === "promptLibrary"}
+          onClose={handlePromptLibraryClose}
         />
       </Box>
     );

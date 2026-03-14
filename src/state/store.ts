@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
   libraryCollapsed: "promptBank.libraryCollapsed",
   favorites: "promptBank.favorites",
   usageCounts: "promptBank.usageCounts",
+  leftShellMode: "shell.leftShellMode",
 } as const;
 
 const createId = () => crypto.randomUUID();
@@ -14,8 +15,11 @@ const createId = () => crypto.randomUUID();
 type FilterMode = "all" | "favorites" | "featured";
 type LibraryView = "browse" | "detail";
 export type SortMode = "popular" | "trending" | "latest";
+export type LeftShellMode = "expanded" | "rail";
 
 type StoreState = {
+  leftShellMode: LeftShellMode;
+  toggleLeftShell: () => void;
   libraryCollapsed: boolean;
   libraryView: LibraryView;
   prompts: Prompt[];
@@ -75,12 +79,22 @@ const readFavorites = (): FavoriteItem[] => {
 
 const readLibraryCollapsed = (): boolean => readJSON<boolean>(STORAGE_KEYS.libraryCollapsed, false);
 
+const readLeftShellMode = (): LeftShellMode => readJSON<LeftShellMode>(STORAGE_KEYS.leftShellMode, "expanded");
+
 const readUsageCounts = (): Record<string, number> => readJSON<Record<string, number>>(STORAGE_KEYS.usageCounts, {});
 
 const initialFavorites = readFavorites();
 const initialUsageCounts = readUsageCounts();
 
 export const useStore = create<StoreState>((set, get) => ({
+  leftShellMode: readLeftShellMode(),
+
+  toggleLeftShell: () => {
+    const next: LeftShellMode = get().leftShellMode === "expanded" ? "rail" : "expanded";
+    writeJSON(STORAGE_KEYS.leftShellMode, next);
+    set({ leftShellMode: next });
+  },
+
   libraryCollapsed: readLibraryCollapsed(),
   libraryView: "browse",
   prompts: seedPrompts,

@@ -59,7 +59,7 @@ export function Composer({ onPromptLibraryToggle }: ComposerProps) {
         sx={{
           border: 1,
           borderColor: "divider",
-          borderRadius: isMobile ? 3 : 2,
+          borderRadius: isMobile ? 1.5 : 1,
           px: 1.5,
           pt: isMobile ? 1 : 1.25,
           pb: isMobile ? 0.75 : 1,
@@ -93,7 +93,7 @@ export function Composer({ onPromptLibraryToggle }: ComposerProps) {
           sx={{
             height: "1px",
             bgcolor: "divider",
-            opacity: 0.6,
+            opacity: 0,
             mx: -1.5,
             my: "6px",
           }}

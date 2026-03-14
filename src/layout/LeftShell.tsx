@@ -7,12 +7,13 @@ import { useStore } from "../state/store";
 const EXPANDED_WIDTH = 280;
 const RAIL_WIDTH = 64;
 
-const SHELL_BG = "#0f1929";
-const SHELL_TEXT = "#e2e8f0";
-const SHELL_SUBTEXT = "#94a3b8";
-const ACTIVE_BG = "rgba(255,255,255,0.12)";
-const HOVER_BG = "rgba(255,255,255,0.07)";
-const DIVIDER = "rgba(255,255,255,0.08)";
+const SHELL_BG = "#f8fafc";
+const SHELL_TEXT = "#0f172a";
+const SHELL_SUBTEXT = "#64748b";
+const ACTIVE_BG = "#e2e8f0";
+const HOVER_BG = "#eef2f7";
+const DIVIDER = "#e2e8f0";
+const FOCUS_RING = "rgba(59, 130, 246, 0.35)";
 
 function MaterialSymbol({ name, size = 24 }: { name: string; size?: number }) {
   return (
@@ -58,7 +59,7 @@ function NavItem({ icon, label, active = false, isRail }: NavItemProps) {
         },
         outline: "none",
         "&:focus-visible": {
-          outline: `2px solid rgba(255,255,255,0.4)`,
+          outline: `2px solid ${FOCUS_RING}`,
           outlineOffset: -2,
         },
       }}
@@ -241,12 +242,12 @@ export function LeftShell() {
             sx={{
               width: 36,
               height: 36,
-              bgcolor: "rgba(255,255,255,0.15)",
+              bgcolor: "#dbe5f4",
               cursor: "pointer",
               fontSize: "0.875rem",
               flexShrink: 0,
               transition: "background-color 150ms ease",
-              "&:hover": { bgcolor: "rgba(255,255,255,0.22)" },
+              "&:hover": { bgcolor: "#cddbf1" },
             }}
             aria-label="Account settings"
           >

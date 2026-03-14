@@ -28,7 +28,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FavoriteItem, Prompt, PromptVersion } from "../types";
 import { type SortMode, useStore } from "../state/store";
 import { getLatestVersion, resolveFavoritePromptVersion } from "../promptBank/versioning";
@@ -147,6 +147,7 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
   const [versionMenuAnchor, setVersionMenuAnchor] = useState<null | HTMLElement>(null);
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [useAttachedFileForContext, setUseAttachedFileForContext] = useState(false);
+  const detailTitleRef = useRef<HTMLHeadingElement | null>(null);
 
   const resetDetailState = () => {
     setSelectedPromptId(null);
@@ -247,6 +248,24 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
     onClose();
   };
 
+  useEffect(() => {
+    if (mobileView === "detail") {
+      detailTitleRef.current?.focus();
+    }
+  }, [mobileView, selectedPromptId]);
+
+  const resultSummary = (() => {
+    if (filterMode === "favorites") {
+      return `${listCount} ${listCount === 1 ? "favorite" : "favorites"}`;
+    }
+
+    if (isSearching) {
+      return `${listCount} ${listCount === 1 ? "result" : "results"}`;
+    }
+
+    return `${listCount} ${listCount === 1 ? "prompt" : "prompts"}`;
+  })();
+
   const insertActivePrompt = () => {
     if (!selectedPrompt || !activeVersion) return;
 
@@ -312,6 +331,11 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
               <Typography variant="caption" color="text.secondary">
                 by {prompt.owner} · {options?.versionLabel ?? `v${getLatestVersion(prompt).version}`}
               </Typography>
+              <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+                {prompt.tags.slice(0, 2).map((tag) => (
+                  <Chip key={`${prompt.id}-${tag}`} label={tag} size="small" />
+                ))}
+              </Stack>
             </Stack>
           )}
         />
@@ -433,7 +457,7 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
                   </FormControl>
 
                   <Typography variant="caption" color="text.secondary" aria-live="polite">
-                    {listCount} {listCount === 1 ? "result" : "results"}
+                    {resultSummary}
                   </Typography>
                 </Stack>
               </Stack>
@@ -482,7 +506,14 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
               ) : (
                 <Stack spacing={2}>
                   <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
-                    <Typography variant="h6">{selectedPrompt.title}</Typography>
+                    <Typography
+                      variant="h6"
+                      ref={detailTitleRef}
+                      tabIndex={-1}
+                      sx={{ outline: "none" }}
+                    >
+                      {selectedPrompt.title}
+                    </Typography>
                     <IconButton
                       size="small"
                       aria-label={activeVersionFavorited ? "Remove from favorites" : "Add to favorites"}

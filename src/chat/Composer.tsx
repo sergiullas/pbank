@@ -37,7 +37,7 @@ export function Composer({ onPromptLibraryToggle }: ComposerProps) {
   const sendDisabled = composerText.trim().length === 0;
 
   return (
-    <Stack p={2} spacing={1} sx={{ width: "100%", maxWidth: isMobile ? "100%" : "80ch", margin: "0 auto" }}>
+    <Stack p={2} spacing={1} sx={{ width: "100%" }}>
       {showAttachmentWarning && <Alert severity="warning">{warningMessage}</Alert>}
 
       {isMobile ? (

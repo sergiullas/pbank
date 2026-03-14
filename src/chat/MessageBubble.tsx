@@ -13,7 +13,8 @@ export function MessageBubble({ message }: MessageBubbleProps) {
       elevation={0}
       sx={{
         p: 1.5,
-        maxWidth: "80%",
+        maxWidth: "80ch",
+        wordBreak: "break-word",
         bgcolor: isUser ? "primary.main" : "grey.100",
         color: isUser ? "primary.contrastText" : "text.primary",
       }}

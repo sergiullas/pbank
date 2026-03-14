@@ -28,7 +28,6 @@ export function MessageList() {
     <Box flex={1} overflow="auto" px={2} py={2}
     sx={{
       width: "100%",
-      maxWidth: "80ch",
       margin: "0 auto",
     }}
     >

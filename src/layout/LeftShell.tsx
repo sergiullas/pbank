@@ -160,6 +160,7 @@ export function LeftShell() {
                 fontSize: "1.05rem",
                 letterSpacing: "-0.01em",
                 whiteSpace: "nowrap",
+                display: isRail ? "none" : "block",
                 opacity: isRail ? 0 : 1,
                 transform: isRail ? "translateX(-8px)" : "translateX(0)",
                 transition: "opacity 160ms ease-out, transform 160ms ease-out",

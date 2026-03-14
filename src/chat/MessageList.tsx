@@ -25,10 +25,11 @@ export function MessageList() {
   }
 
   return (
-    <Box flex={1} overflow="auto" px={2} py={2} 
+    <Box flex={1} overflow="auto" px={2} py={2}
     sx={{
-      width: "70%",            // 80% of viewport width
-      margin: "0 auto",         // center horizontally
+      width: "100%",
+      maxWidth: "80ch",
+      margin: "0 auto",
     }}
     >
       <Stack spacing={1.5}>

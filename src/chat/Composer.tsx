@@ -37,7 +37,7 @@ export function Composer({ onPromptLibraryToggle }: ComposerProps) {
   const sendDisabled = composerText.trim().length === 0;
 
   return (
-    <Stack p={2} spacing={1} sx={{ width: isMobile ? "100%" : "72%", margin: "0 auto" }}>
+    <Stack p={2} spacing={1} sx={{ width: "100%", maxWidth: isMobile ? "100%" : "80ch", margin: "0 auto" }}>
       {showAttachmentWarning && <Alert severity="warning">{warningMessage}</Alert>}
 
       {isMobile ? (
@@ -163,10 +163,18 @@ export function Composer({ onPromptLibraryToggle }: ComposerProps) {
             <Box display="flex" alignItems="center" gap={1.5}>
               <Button
                 onClick={(event) => onPromptLibraryToggle(event.currentTarget)}
-                variant={!libraryCollapsed ? "contained" : "text"}
+                variant="text"
                 startIcon={<ReviewsIcon fontSize="small" />}
                 aria-label="Open prompt library"
-                sx={{ textTransform: "none", borderRadius: 999 }}
+                sx={{
+                  textTransform: "none",
+                  borderRadius: 999,
+                  bgcolor: !libraryCollapsed ? "action.selected" : "transparent",
+                  color: "text.primary",
+                  "&:hover": {
+                    bgcolor: !libraryCollapsed ? "action.selected" : "action.hover",
+                  },
+                }}
               >
                 Prompt Library
               </Button>

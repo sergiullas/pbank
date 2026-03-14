@@ -1,4 +1,5 @@
 import { Avatar, Box, IconButton, Tooltip, Typography } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import AutoStoriesOutlinedIcon from "@mui/icons-material/AutoStoriesOutlined";
@@ -6,14 +7,6 @@ import { useStore } from "../state/store";
 
 const EXPANDED_WIDTH = 280;
 const RAIL_WIDTH = 64;
-
-const SHELL_BG = "#f8fafc";
-const SHELL_TEXT = "#0f172a";
-const SHELL_SUBTEXT = "#64748b";
-const ACTIVE_BG = "#e2e8f0";
-const HOVER_BG = "#eef2f7";
-const DIVIDER = "#e2e8f0";
-const FOCUS_RING = "rgba(59, 130, 246, 0.35)";
 
 function MaterialSymbol({ name, size = 24 }: { name: string; size?: number }) {
   return (
@@ -38,7 +31,7 @@ function NavItem({ icon, label, active = false, isRail }: NavItemProps) {
     <Box
       role="button"
       tabIndex={0}
-      sx={{
+      sx={(theme) => ({
         display: "flex",
         alignItems: "center",
         gap: 1.5,
@@ -46,23 +39,23 @@ function NavItem({ icon, label, active = false, isRail }: NavItemProps) {
         mx: isRail ? "auto" : 1,
         borderRadius: 2,
         cursor: "pointer",
-        color: active ? SHELL_TEXT : SHELL_SUBTEXT,
-        bgcolor: active ? ACTIVE_BG : "transparent",
+        color: active ? "text.primary" : "text.secondary",
+        bgcolor: active ? "action.selected" : "transparent",
         justifyContent: isRail ? "center" : "flex-start",
         width: isRail ? 48 : "auto",
         height: 48,
         flexShrink: 0,
         transition: "background-color 150ms ease, color 150ms ease",
         "&:hover": {
-          bgcolor: active ? ACTIVE_BG : HOVER_BG,
-          color: SHELL_TEXT,
+          bgcolor: active ? "action.selected" : "action.hover",
+          color: "text.primary",
         },
         outline: "none",
         "&:focus-visible": {
-          outline: `2px solid ${FOCUS_RING}`,
+          outline: `2px solid ${alpha(theme.palette.primary.main, 0.35)}`,
           outlineOffset: -2,
         },
-      }}
+      })}
     >
       {icon}
       <Typography
@@ -108,12 +101,13 @@ export function LeftShell() {
         width,
         minWidth: width,
         height: "100%",
-        bgcolor: SHELL_BG,
+        bgcolor: "background.default",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
         transition: "width 220ms ease-out, min-width 220ms ease-out",
-        borderRight: `1px solid ${DIVIDER}`,
+        borderRight: 1,
+        borderColor: "divider",
         flexShrink: 0,
       }}
     >
@@ -127,7 +121,8 @@ export function LeftShell() {
           gap: 1,
           flexShrink: 0,
           justifyContent: isRail ? "center" : "space-between",
-          borderBottom: `1px solid ${DIVIDER}`,
+          borderBottom: 1,
+          borderColor: "divider",
         }}
       >
         {/* Brand */}
@@ -138,13 +133,13 @@ export function LeftShell() {
               alignItems: "center",
               gap: 1,
               cursor: isRail ? "pointer" : "default",
-              color: SHELL_TEXT,
+              color: "text.primary",
               minWidth: 0,
               borderRadius: 1.5,
               p: isRail ? 0.5 : 0,
               transition: "background-color 150ms ease",
               ...(isRail && {
-                "&:hover": { bgcolor: HOVER_BG },
+                "&:hover": { bgcolor: "action.hover" },
               }),
             }}
             onClick={isRail ? toggleLeftShell : undefined}
@@ -160,7 +155,7 @@ export function LeftShell() {
               variant="h6"
               sx={{
                 fontWeight: 700,
-                color: SHELL_TEXT,
+                color: "text.primary",
                 fontSize: "1.05rem",
                 letterSpacing: "-0.01em",
                 whiteSpace: "nowrap",
@@ -188,8 +183,8 @@ export function LeftShell() {
             size="small"
             onClick={toggleLeftShell}
             sx={{
-              color: SHELL_SUBTEXT,
-              "&:hover": { color: SHELL_TEXT, bgcolor: HOVER_BG },
+              color: "text.secondary",
+              "&:hover": { color: "text.primary", bgcolor: "action.hover" },
             }}
             aria-label="Collapse navigation"
             tabIndex={isRail ? -1 : 0}
@@ -229,7 +224,8 @@ export function LeftShell() {
         sx={{
           px: isRail ? 0 : 2,
           py: 1.5,
-          borderTop: `1px solid ${DIVIDER}`,
+          borderTop: 1,
+          borderColor: "divider",
           display: "flex",
           alignItems: "center",
           justifyContent: isRail ? "center" : "flex-start",
@@ -242,12 +238,13 @@ export function LeftShell() {
             sx={{
               width: 36,
               height: 36,
-              bgcolor: "#dbe5f4",
+              bgcolor: "action.selected",
+              color: "text.primary",
               cursor: "pointer",
               fontSize: "0.875rem",
               flexShrink: 0,
               transition: "background-color 150ms ease",
-              "&:hover": { bgcolor: "#cddbf1" },
+              "&:hover": { bgcolor: "action.hover" },
             }}
             aria-label="Account settings"
           >
@@ -265,11 +262,11 @@ export function LeftShell() {
         >
           <Typography
             variant="body2"
-            sx={{ color: SHELL_TEXT, fontWeight: 500, lineHeight: 1.3, whiteSpace: "nowrap" }}
+            sx={{ color: "text.primary", fontWeight: 500, lineHeight: 1.3, whiteSpace: "nowrap" }}
           >
             User
           </Typography>
-          <Typography variant="caption" sx={{ color: SHELL_SUBTEXT, lineHeight: 1.3 }}>
+          <Typography variant="caption" sx={{ color: "text.secondary", lineHeight: 1.3 }}>
             Account settings
           </Typography>
         </Box>

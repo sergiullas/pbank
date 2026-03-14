@@ -22,8 +22,22 @@ export function ChatPane({ onPromptLibraryToggle }: ChatPaneProps) {
       <Box px={2} py={1.5} borderBottom={1} borderColor="divider">
         <Typography variant="h6">New Chat</Typography>
       </Box>
-      <MessageList />
-      <Composer onPromptLibraryToggle={onPromptLibraryToggle} />
+
+      {/* Centered content column — matches Claude's ~700px reading column */}
+      <Box flex={1} display="flex" overflow="hidden">
+        <Box
+          flex={1}
+          display="flex"
+          flexDirection="column"
+          maxWidth={700}
+          width="100%"
+          mx="auto"
+          overflow="hidden"
+        >
+          <MessageList />
+          <Composer onPromptLibraryToggle={onPromptLibraryToggle} />
+        </Box>
+      </Box>
     </Box>
   );
 }

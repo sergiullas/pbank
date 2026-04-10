@@ -24,13 +24,16 @@ interface NavItemProps {
   label: string;
   active?: boolean;
   isRail: boolean;
+  onClick?: () => void;
 }
 
-function NavItem({ icon, label, active = false, isRail }: NavItemProps) {
+function NavItem({ icon, label, active = false, isRail, onClick }: NavItemProps) {
   const inner = (
     <Box
       role="button"
       tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => e.key === "Enter" && onClick?.()}
       sx={(theme) => ({
         display: "flex",
         alignItems: "center",
@@ -91,6 +94,8 @@ function NavItem({ icon, label, active = false, isRail }: NavItemProps) {
 export function LeftShell() {
   const leftShellMode = useStore((state) => state.leftShellMode);
   const toggleLeftShell = useStore((state) => state.toggleLeftShell);
+  const appMode = useStore((state) => state.appMode);
+  const setAppMode = useStore((state) => state.setAppMode);
   const isRail = leftShellMode === "rail";
   const width = isRail ? RAIL_WIDTH : EXPANDED_WIDTH;
 
@@ -212,13 +217,16 @@ export function LeftShell() {
         <NavItem
           icon={<ForumOutlinedIcon sx={{ fontSize: 22, flexShrink: 0 }} />}
           label="Chat"
-          active
+          active={appMode === "chat"}
           isRail={isRail}
+          onClick={() => setAppMode("chat")}
         />
         <NavItem
           icon={<AutoStoriesOutlinedIcon sx={{ fontSize: 22, flexShrink: 0 }} />}
           label="Prompt Manager"
+          active={appMode === "promptManager"}
           isRail={isRail}
+          onClick={() => setAppMode("promptManager")}
         />
       </Box>
 

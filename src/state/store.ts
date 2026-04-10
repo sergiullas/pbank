@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { seedPrompts } from "../data/seedPrompts";
-import type { FavoriteItem, Message, Prompt } from "../types";
+import type { FavoriteItem, Message, Prompt, PromptStatus, PromptVersion } from "../types";
+import { getLatestVersion, getNextVersionNumber } from "../promptBank/versioning";
 import { readJSON, writeJSON } from "./persist";
 
 const STORAGE_KEYS = {
@@ -16,10 +17,36 @@ type FilterMode = "all" | "favorites" | "featured";
 type LibraryView = "browse" | "detail";
 export type SortMode = "popular" | "trending" | "latest";
 export type LeftShellMode = "expanded" | "rail";
+export type AppMode = "chat" | "promptManager";
+export type PromptManagerView = "list" | "editor";
+export type PromptManagerStatusFilter = "all" | "draft" | "published" | "archived";
+
+export type PromptDraftPayload = {
+  title: string;
+  description?: string;
+  desiredOutcome?: string;
+  tags?: string[];
+  content: string;
+};
+
+export type NewVersionPayload = {
+  description?: string;
+  desiredOutcome?: string;
+  content: string;
+};
 
 type StoreState = {
+  // Shell
   leftShellMode: LeftShellMode;
   toggleLeftShell: () => void;
+
+  // App mode
+  appMode: AppMode;
+  setAppMode: (mode: AppMode) => void;
+  openPromptManager: () => void;
+  closePromptManager: () => void;
+
+  // Library state
   libraryCollapsed: boolean;
   libraryView: LibraryView;
   prompts: Prompt[];
@@ -30,12 +57,22 @@ type StoreState = {
   filterMode: FilterMode;
   sortMode: SortMode;
   usageCounts: Record<string, number>;
+
+  // Chat state
   messages: Message[];
   composerText: string;
   composerFocusSignal: number;
   hasAttachedFile: boolean;
   requiresAttachment: boolean;
   composerError: string | null;
+
+  // Prompt Manager UI state
+  selectedManagedPromptId: string | null;
+  promptManagerView: PromptManagerView;
+  promptManagerSearch: string;
+  promptManagerStatusFilter: PromptManagerStatusFilter;
+
+  // Library actions
   setLibraryCollapsed: (next: boolean) => void;
   toggleLibraryCollapsed: () => void;
   setPromptQuery: (q: string) => void;
@@ -48,6 +85,8 @@ type StoreState = {
   setFilterMode: (mode: FilterMode) => void;
   setSortMode: (mode: SortMode) => void;
   incrementUsage: (id: string) => void;
+
+  // Composer actions
   setComposerText: (text: string) => void;
   insertIntoComposer: (text: string, options?: { requiresAttachment?: boolean }) => void;
   setHasAttachedFile: (value: boolean) => void;
@@ -55,6 +94,18 @@ type StoreState = {
   clearAttachmentRequirement: () => void;
   clearComposerError: () => void;
   sendMessage: () => void;
+
+  // Prompt Manager actions
+  selectManagedPrompt: (promptId: string | null) => void;
+  startNewPromptDraft: () => void;
+  savePromptDraft: (promptId: string, payload: PromptDraftPayload) => void;
+  publishPrompt: (promptId: string, payload: PromptDraftPayload) => void;
+  unpublishPrompt: (promptId: string) => void;
+  archivePrompt: (promptId: string) => void;
+  restorePrompt: (promptId: string) => void;
+  savePromptAsNewVersion: (promptId: string, payload: NewVersionPayload) => void;
+  setPromptManagerSearch: (search: string) => void;
+  setPromptManagerStatusFilter: (filter: PromptManagerStatusFilter) => void;
 };
 
 const normalizeFavorite = (favorite: FavoriteItem): FavoriteItem => ({
@@ -95,6 +146,13 @@ export const useStore = create<StoreState>((set, get) => ({
     set({ leftShellMode: next });
   },
 
+  // App mode
+  appMode: "chat",
+  setAppMode: (mode) => set({ appMode: mode }),
+  openPromptManager: () => set({ appMode: "promptManager" }),
+  closePromptManager: () => set({ appMode: "chat" }),
+
+  // Library state
   libraryCollapsed: readLibraryCollapsed(),
   libraryView: "browse",
   prompts: seedPrompts,
@@ -105,6 +163,8 @@ export const useStore = create<StoreState>((set, get) => ({
   filterMode: "all",
   sortMode: "popular",
   usageCounts: initialUsageCounts,
+
+  // Chat state
   messages: [],
   composerText: "",
   composerFocusSignal: 0,
@@ -112,6 +172,13 @@ export const useStore = create<StoreState>((set, get) => ({
   requiresAttachment: false,
   composerError: null,
 
+  // Prompt Manager UI state
+  selectedManagedPromptId: null,
+  promptManagerView: "list",
+  promptManagerSearch: "",
+  promptManagerStatusFilter: "all",
+
+  // Library actions
   setLibraryCollapsed: (next) => {
     writeJSON(STORAGE_KEYS.libraryCollapsed, next);
     set({ libraryCollapsed: next });
@@ -170,6 +237,7 @@ export const useStore = create<StoreState>((set, get) => ({
     set({ usageCounts: nextUsage });
   },
 
+  // Composer actions
   setComposerText: (text) => set({
     composerText: text,
     requiresAttachment: text.trim().length === 0 ? false : get().requiresAttachment,
@@ -231,4 +299,187 @@ export const useStore = create<StoreState>((set, get) => ({
       set((state) => ({ messages: [...state.messages, assistantMessage] }));
     }, timeout);
   },
+
+  // Prompt Manager actions
+  selectManagedPrompt: (promptId) => set({
+    selectedManagedPromptId: promptId,
+    promptManagerView: promptId !== null ? "editor" : "list",
+  }),
+
+  startNewPromptDraft: () => {
+    const id = createId();
+    const now = new Date().toISOString();
+    const newPrompt: Prompt = {
+      id,
+      title: "Untitled Prompt",
+      description: "",
+      desiredOutcome: "",
+      category: "General",
+      tags: [],
+      content: "",
+      likes: 0,
+      createdAt: now,
+      lastUpdatedAt: now,
+      owner: "User",
+      media: false,
+      status: "draft",
+      publishedVersionId: null,
+      hasUnpublishedChanges: false,
+    };
+
+    set((state) => ({
+      prompts: [...state.prompts, newPrompt],
+      selectedManagedPromptId: id,
+      promptManagerView: "editor",
+    }));
+  },
+
+  savePromptDraft: (promptId, payload) => {
+    const now = new Date().toISOString();
+    set((state) => ({
+      prompts: state.prompts.map((p) => {
+        if (p.id !== promptId) return p;
+        return {
+          ...p,
+          title: payload.title,
+          description: payload.description,
+          desiredOutcome: payload.desiredOutcome,
+          tags: payload.tags ?? p.tags,
+          content: payload.content,
+          lastUpdatedAt: now,
+          hasUnpublishedChanges: p.status === "published" ? true : p.hasUnpublishedChanges,
+        };
+      }),
+    }));
+  },
+
+  publishPrompt: (promptId, payload) => {
+    const now = new Date().toISOString();
+    set((state) => {
+      const prompt = state.prompts.find((p) => p.id === promptId);
+      if (!prompt) return state;
+
+      // Build a new version snapshot from the payload
+      const nextVersionNumber = getNextVersionNumber(prompt);
+      const newVersion: PromptVersion = {
+        id: `${promptId}-v${nextVersionNumber}`,
+        version: nextVersionNumber,
+        createdAt: now,
+        description: payload.description,
+        desiredOutcome: payload.desiredOutcome,
+        content: payload.content,
+      };
+
+      const existingVersions = prompt.versions ?? [];
+      const updatedVersions = [...existingVersions, newVersion];
+
+      return {
+        prompts: state.prompts.map((p) => {
+          if (p.id !== promptId) return p;
+          return {
+            ...p,
+            title: payload.title,
+            description: payload.description,
+            desiredOutcome: payload.desiredOutcome,
+            tags: payload.tags ?? p.tags,
+            content: payload.content,
+            versions: updatedVersions,
+            status: "published" as PromptStatus,
+            publishedVersionId: newVersion.id,
+            lastUpdatedAt: now,
+            publishedAt: now,
+            hasUnpublishedChanges: false,
+          };
+        }),
+      };
+    });
+  },
+
+  unpublishPrompt: (promptId) => {
+    const now = new Date().toISOString();
+    set((state) => ({
+      prompts: state.prompts.map((p) => {
+        if (p.id !== promptId) return p;
+        return {
+          ...p,
+          status: "draft" as PromptStatus,
+          publishedVersionId: null,
+          publishedAt: null,
+          lastUpdatedAt: now,
+          hasUnpublishedChanges: false,
+        };
+      }),
+    }));
+  },
+
+  archivePrompt: (promptId) => {
+    const now = new Date().toISOString();
+    set((state) => ({
+      prompts: state.prompts.map((p) => {
+        if (p.id !== promptId) return p;
+        return {
+          ...p,
+          status: "archived" as PromptStatus,
+          publishedVersionId: null,
+          publishedAt: null,
+          lastUpdatedAt: now,
+          hasUnpublishedChanges: false,
+        };
+      }),
+    }));
+  },
+
+  restorePrompt: (promptId) => {
+    const now = new Date().toISOString();
+    set((state) => ({
+      prompts: state.prompts.map((p) => {
+        if (p.id !== promptId) return p;
+        return {
+          ...p,
+          status: "draft" as PromptStatus,
+          lastUpdatedAt: now,
+        };
+      }),
+    }));
+  },
+
+  savePromptAsNewVersion: (promptId, payload) => {
+    const now = new Date().toISOString();
+    set((state) => {
+      const prompt = state.prompts.find((p) => p.id === promptId);
+      if (!prompt) return state;
+
+      const nextVersionNumber = getNextVersionNumber(prompt);
+      const newVersion: PromptVersion = {
+        id: `${promptId}-v${nextVersionNumber}`,
+        version: nextVersionNumber,
+        createdAt: now,
+        description: payload.description,
+        desiredOutcome: payload.desiredOutcome,
+        content: payload.content,
+      };
+
+      const existingVersions = prompt.versions ?? [];
+
+      return {
+        prompts: state.prompts.map((p) => {
+          if (p.id !== promptId) return p;
+          return {
+            ...p,
+            content: payload.content,
+            description: payload.description ?? p.description,
+            desiredOutcome: payload.desiredOutcome ?? p.desiredOutcome,
+            versions: [...existingVersions, newVersion],
+            lastUpdatedAt: now,
+            // Preserve publishedVersionId — new version is not auto-published
+            hasUnpublishedChanges: p.status === "published" ? true : p.hasUnpublishedChanges,
+          };
+        }),
+      };
+    });
+  },
+
+  setPromptManagerSearch: (search) => set({ promptManagerSearch: search }),
+
+  setPromptManagerStatusFilter: (filter) => set({ promptManagerStatusFilter: filter }),
 }));

@@ -2,6 +2,7 @@ import AutoStoriesOutlinedIcon from "@mui/icons-material/AutoStoriesOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import { Avatar, Box, Drawer, IconButton, Typography, useTheme } from "@mui/material";
+import { useStore } from "../state/store";
 
 function MaterialSymbol({ name, size = 24 }: { name: string; size?: number }) {
   return (
@@ -18,13 +19,16 @@ interface NavRowProps {
   icon: React.ReactNode;
   label: string;
   active?: boolean;
+  onClick?: () => void;
 }
 
-function NavRow({ icon, label, active = false }: NavRowProps) {
+function NavRow({ icon, label, active = false, onClick }: NavRowProps) {
   return (
     <Box
       role="button"
       tabIndex={0}
+      onClick={onClick}
+      onKeyDown={(e) => e.key === "Enter" && onClick?.()}
       sx={{
         display: "flex",
         alignItems: "center",
@@ -59,6 +63,13 @@ interface MobileLeftDrawerProps {
 
 export function MobileLeftDrawer({ open, onClose }: MobileLeftDrawerProps) {
   const theme = useTheme();
+  const appMode = useStore((state) => state.appMode);
+  const setAppMode = useStore((state) => state.setAppMode);
+
+  const handleNavClick = (mode: "chat" | "promptManager") => {
+    setAppMode(mode);
+    onClose();
+  };
 
   return (
     <Drawer
@@ -104,11 +115,14 @@ export function MobileLeftDrawer({ open, onClose }: MobileLeftDrawerProps) {
           <NavRow
             icon={<ForumOutlinedIcon sx={{ fontSize: 22 }} />}
             label="Chat"
-            active
+            active={appMode === "chat"}
+            onClick={() => handleNavClick("chat")}
           />
           <NavRow
             icon={<AutoStoriesOutlinedIcon sx={{ fontSize: 22 }} />}
             label="Prompt Manager"
+            active={appMode === "promptManager"}
+            onClick={() => handleNavClick("promptManager")}
           />
         </Box>
 

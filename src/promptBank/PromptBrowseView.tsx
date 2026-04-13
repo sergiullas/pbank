@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { type SortMode, useStore } from "../state/store";
 import type { FavoriteItem, Prompt } from "../types";
 import { PromptListItem } from "./PromptListItem";
-import { getLatestVersion, resolveFavoritePromptVersion } from "./versioning";
+import { getPublishedVersion, resolveFavoritePromptVersion } from "./versioning";
 
 const SORT_LABELS: Record<SortMode, string> = {
   popular: "Most Popular",
@@ -112,6 +112,9 @@ export function PromptBrowseView() {
     const normalizedQuery = query.trim().toLowerCase();
 
     const filtered = prompts.filter((prompt) => {
+      // Only show published prompts in the library
+      if (prompt.status !== "published") return false;
+
       const matchesFilter =
         filterMode === "all" ||
         (filterMode === "favorites" && isPromptFavorited(prompt.id));
@@ -271,7 +274,7 @@ export function PromptBrowseView() {
         ) : (
           <List disablePadding>
             {visiblePrompts.map((prompt) => {
-              const latestVersion = getLatestVersion(prompt);
+              const publishedVersion = getPublishedVersion(prompt);
               return (
                 <PromptListItem
                   key={prompt.id}
@@ -279,8 +282,8 @@ export function PromptBrowseView() {
                   selected={selectedPromptId === prompt.id}
                   isFavorite={isPromptFavorited(prompt.id)}
                   isFavoritesView={false}
-                  versionLabel={`v${latestVersion.version}`}
-                  insertContent={latestVersion.content}
+                  versionLabel={`v${publishedVersion.version}`}
+                  insertContent={publishedVersion.content}
                   onSelect={openPromptDetail}
                   onToggleFavorite={togglePromptFavorite}
                   onInsert={(content, id) => {

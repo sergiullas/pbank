@@ -7,6 +7,8 @@ export type Message = {
   createdAt: string;
 };
 
+export type PromptStatus = "draft" | "published" | "archived";
+
 export type PromptVersion = {
   id: string;
   version: number;
@@ -30,8 +32,13 @@ export type Prompt = {
   owner: string;
   media: boolean;
   versions?: PromptVersion[];
+  // Lifecycle fields
+  status: PromptStatus;
+  publishedVersionId?: string | null;
+  lastUpdatedAt?: string;
+  publishedAt?: string | null;
+  hasUnpublishedChanges?: boolean;
 };
-
 
 export type FavoriteItem = {
   id: string;

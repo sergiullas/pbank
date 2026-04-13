@@ -31,7 +31,7 @@ import { alpha } from "@mui/material/styles";
 import { useMemo, useState } from "react";
 import type { FavoriteItem, Prompt, PromptVersion } from "../types";
 import { type SortMode, useStore } from "../state/store";
-import { getLatestVersion, resolveFavoritePromptVersion } from "../promptBank/versioning";
+import { getLatestVersion, getPublishedVersion, resolveFavoritePromptVersion } from "../promptBank/versioning";
 import { extractTemplateVariables, substituteTemplateVariables } from "../promptBank/templateVariables";
 
 interface MobileSecondaryDrawerProps {
@@ -184,6 +184,9 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
     const normalizedQuery = promptQuery.trim().toLowerCase();
 
     const filtered = prompts.filter((prompt) => {
+      // Only show published prompts in the library
+      if (prompt.status !== "published") return false;
+
       const matchesFilter = filterMode === "all" || (filterMode === "favorites" && isPromptFavorited(prompt.id));
       if (!matchesFilter) return false;
 
@@ -310,7 +313,7 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
                 {options?.description ?? prompt.description ?? "No description available."}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                by {prompt.owner} · {options?.versionLabel ?? `v${getLatestVersion(prompt).version}`}
+                by {prompt.owner} · {options?.versionLabel ?? `v${getPublishedVersion(prompt).version}`}
               </Typography>
             </Stack>
           )}

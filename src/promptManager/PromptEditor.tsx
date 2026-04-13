@@ -370,18 +370,20 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                             </Typography>
                           )}
                         </Box>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          sx={{ flexShrink: 0 }}
-                          onClick={() => {
-                            setContent(version.content);
-                            if (version.description != null) setDescription(version.description);
-                            if (version.desiredOutcome != null) setDesiredOutcome(version.desiredOutcome);
-                          }}
-                        >
-                          Load
-                        </Button>
+                        {!isLatest && (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            sx={{ flexShrink: 0 }}
+                            onClick={() => {
+                              setContent(version.content);
+                              if (version.description != null) setDescription(version.description);
+                              if (version.desiredOutcome != null) setDesiredOutcome(version.desiredOutcome);
+                            }}
+                          >
+                            Load
+                          </Button>
+                        )}
                       </Box>
                     );
                   })}

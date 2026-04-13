@@ -142,7 +142,7 @@ export function PromptListItem({
           <Box>
             <Typography fontWeight={600}>{prompt.title}</Typography>
             <Typography variant="caption" color="text.secondary">
-              by {prompt.owner} · v{prompt.versions?.length ? Math.max(...prompt.versions.map((version) => version.version)) : 1}
+              by {prompt.owner} · {versionLabel ?? `v${prompt.versions?.length ? Math.max(...prompt.versions.map((v) => v.version)) : 1}`}
             </Typography>
           </Box>
         }

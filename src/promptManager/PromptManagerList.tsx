@@ -4,6 +4,7 @@ import {
   Button,
   FormControl,
   InputLabel,
+  Link,
   MenuItem,
   Select,
   Stack,
@@ -16,12 +17,15 @@ import type { Prompt } from "../types";
 import {
   filterManagerPrompts,
   formatLastUpdated,
+  LIST_SECTION_TITLE,
   sortManagerPrompts,
   STATUS_FILTER_LABELS,
   STATUS_FILTER_OPTIONS,
 } from "./promptManagerSelectors";
 import { PromptManagerListItem } from "./PromptManagerListItem";
 import { PromptStatusChip } from "./PromptStatusChip";
+
+const MAX_DRAFT_CARDS = 4;
 
 // ── Draft card ───────────────────────────────────────────────────────────────
 
@@ -89,19 +93,27 @@ export function PromptManagerList() {
   const selectManagedPrompt = useStore((state) => state.selectManagedPrompt);
   const startNewPromptDraft = useStore((state) => state.startNewPromptDraft);
 
-  // Drafts strip — always shows only draft prompts, independent of the list filter
-  const draftPrompts = useMemo(
-    () => sortManagerPrompts(prompts.filter((p) => p.status === "draft")).slice(0, 4),
+  // All draft prompts, sorted — used for card strip count and overflow detection
+  const allDraftPrompts = useMemo(
+    () => sortManagerPrompts(prompts.filter((p) => p.status === "draft")),
     [prompts],
   );
+  const draftCardPrompts = allDraftPrompts.slice(0, MAX_DRAFT_CARDS);
+  const totalDraftCount = allDraftPrompts.length;
+  const hasMoreDrafts = totalDraftCount > MAX_DRAFT_CARDS;
 
-  // Published Prompts list — filter excludes draft by definition (see filterManagerPrompts)
+  // Lower list — uses the active filter (All is genuinely all statuses)
   const listedPrompts = useMemo(
     () => sortManagerPrompts(filterManagerPrompts(prompts, search, statusFilter)),
     [prompts, search, statusFilter],
   );
 
   const hasActiveFilter = search.trim().length > 0 || statusFilter !== "published";
+
+  const handleViewAllDrafts = () => {
+    setSearch("");
+    setStatusFilter("draft");
+  };
 
   return (
     <Box display="flex" flexDirection="column" height="100%" minHeight={0}>
@@ -130,11 +142,24 @@ export function PromptManagerList() {
 
           {/* ── Drafts section ── */}
           <Box mb={4}>
-            <Typography variant="overline" color="text.secondary" letterSpacing={1} display="block" mb={1.5}>
-              Drafts
-            </Typography>
+            <Stack direction="row" alignItems="baseline" justifyContent="space-between" mb={1.5}>
+              <Typography variant="overline" color="text.secondary" letterSpacing={1}>
+                Drafts
+              </Typography>
+              {hasMoreDrafts && (
+                <Link
+                  component="button"
+                  variant="caption"
+                  underline="hover"
+                  onClick={handleViewAllDrafts}
+                  sx={{ color: "primary.main", cursor: "pointer" }}
+                >
+                  View all ({totalDraftCount})
+                </Link>
+              )}
+            </Stack>
 
-            {draftPrompts.length === 0 ? (
+            {draftCardPrompts.length === 0 ? (
               <Box
                 sx={{
                   border: "1px dashed",
@@ -165,7 +190,7 @@ export function PromptManagerList() {
                 gridTemplateColumns={{ xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }}
                 gap={1.5}
               >
-                {draftPrompts.map((prompt) => (
+                {draftCardPrompts.map((prompt) => (
                   <DraftCard
                     key={prompt.id}
                     prompt={prompt}
@@ -176,10 +201,10 @@ export function PromptManagerList() {
             )}
           </Box>
 
-          {/* ── Published Prompts section ── */}
+          {/* ── Lower list section ── */}
           <Box>
             <Typography variant="overline" color="text.secondary" letterSpacing={1} display="block" mb={1.5}>
-              Published Prompts
+              {LIST_SECTION_TITLE[statusFilter]}
             </Typography>
 
             {/* Controls */}

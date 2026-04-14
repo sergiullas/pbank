@@ -4,10 +4,9 @@ export type PromptManagerStatusFilter = "all" | "draft" | "published" | "archive
 export type PromptManagerSortMode = "lastUpdated" | "title" | "status";
 
 /**
- * Filter prompts for the Published Prompts section of Prompt Manager.
+ * Filter prompts for the lower list in Prompt Manager.
  *
- * "all" here means published + archived — drafts are never included because
- * they live in the dedicated Drafts card strip above the list.
+ * "all" genuinely includes every status (published, draft, archived).
  */
 export function filterManagerPrompts(
   prompts: Prompt[],
@@ -17,8 +16,6 @@ export function filterManagerPrompts(
   const normalizedSearch = search.trim().toLowerCase();
 
   return prompts.filter((prompt) => {
-    // "all" in the Published Prompts section = published + archived (not draft)
-    if (statusFilter === "all" && prompt.status === "draft") return false;
     if (statusFilter !== "all" && prompt.status !== statusFilter) return false;
 
     if (normalizedSearch) {
@@ -77,15 +74,25 @@ export function getMetaLine(prompt: Prompt): string {
 }
 
 /**
- * Filter options shown in the Published Prompts section.
- * Draft is intentionally excluded — drafts live in the Drafts card strip.
- * "all" in this context means published + archived.
+ * Filter options shown in the lower list.
+ * Draft is included to support "View all drafts" from the Drafts strip.
+ * "All" genuinely means all statuses.
  */
-export const STATUS_FILTER_OPTIONS: PromptManagerStatusFilter[] = ["published", "archived", "all"];
+export const STATUS_FILTER_OPTIONS: PromptManagerStatusFilter[] = ["published", "draft", "archived", "all"];
 
 export const STATUS_FILTER_LABELS: Record<PromptManagerStatusFilter, string> = {
-  all: "All",
-  draft: "Draft",       // kept in type for store compatibility; not shown in UI
   published: "Published",
+  draft: "Draft",
   archived: "Archived",
+  all: "All",
+};
+
+/**
+ * Dynamic section title for the lower list based on the active filter.
+ */
+export const LIST_SECTION_TITLE: Record<PromptManagerStatusFilter, string> = {
+  published: "Published Prompts",
+  draft: "All Drafts",
+  archived: "Archived Prompts",
+  all: "All Prompts",
 };

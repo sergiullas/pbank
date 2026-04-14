@@ -176,7 +176,7 @@ export const useStore = create<StoreState>((set, get) => ({
   selectedManagedPromptId: null,
   promptManagerView: "list",
   promptManagerSearch: "",
-  promptManagerStatusFilter: "all",
+  promptManagerStatusFilter: "published",
 
   // Library actions
   setLibraryCollapsed: (next) => {

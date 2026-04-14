@@ -1,14 +1,84 @@
-import { Box, FormControl, InputLabel, MenuItem, Select, Stack, TextField, Typography, Button } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import {
+  Box,
+  Button,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
 import { useMemo } from "react";
 import { useStore } from "../state/store";
+import type { Prompt } from "../types";
 import {
   filterManagerPrompts,
+  formatLastUpdated,
   sortManagerPrompts,
   STATUS_FILTER_LABELS,
   STATUS_FILTER_OPTIONS,
 } from "./promptManagerSelectors";
 import { PromptManagerListItem } from "./PromptManagerListItem";
+import { PromptStatusChip } from "./PromptStatusChip";
+
+// ── Draft card ───────────────────────────────────────────────────────────────
+
+function DraftCard({ prompt, onEdit }: { prompt: Prompt; onEdit: () => void }) {
+  const snippet = prompt.description || prompt.desiredOutcome || null;
+
+  return (
+    <Box
+      role="button"
+      tabIndex={0}
+      onClick={onEdit}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onEdit()}
+      sx={{
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: 2,
+        p: 2,
+        cursor: "pointer",
+        bgcolor: "background.paper",
+        display: "flex",
+        flexDirection: "column",
+        gap: 0.75,
+        outline: "none",
+        transition: "border-color 150ms ease, background-color 150ms ease",
+        "&:hover": { bgcolor: "action.hover", borderColor: "text.disabled" },
+        "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main", outlineOffset: -2 },
+      }}
+    >
+      <Stack direction="row" alignItems="flex-start" gap={1}>
+        <Typography
+          variant="subtitle2"
+          fontWeight={600}
+          sx={{ flex: 1, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
+        >
+          {prompt.title}
+        </Typography>
+        <PromptStatusChip status="draft" />
+      </Stack>
+
+      {snippet && (
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}
+        >
+          {snippet}
+        </Typography>
+      )}
+
+      <Typography variant="caption" color="text.disabled">
+        Updated {formatLastUpdated(prompt)}
+      </Typography>
+    </Box>
+  );
+}
+
+// ── Main list ────────────────────────────────────────────────────────────────
 
 export function PromptManagerList() {
   const prompts = useStore((state) => state.prompts);
@@ -19,14 +89,23 @@ export function PromptManagerList() {
   const selectManagedPrompt = useStore((state) => state.selectManagedPrompt);
   const startNewPromptDraft = useStore((state) => state.startNewPromptDraft);
 
-  const visiblePrompts = useMemo(() => {
-    const filtered = filterManagerPrompts(prompts, search, statusFilter);
-    return sortManagerPrompts(filtered);
-  }, [prompts, search, statusFilter]);
+  // Drafts strip — always shows only draft prompts, independent of the list filter
+  const draftPrompts = useMemo(
+    () => sortManagerPrompts(prompts.filter((p) => p.status === "draft")).slice(0, 4),
+    [prompts],
+  );
+
+  // Published Prompts list — filter excludes draft by definition (see filterManagerPrompts)
+  const listedPrompts = useMemo(
+    () => sortManagerPrompts(filterManagerPrompts(prompts, search, statusFilter)),
+    [prompts, search, statusFilter],
+  );
+
+  const hasActiveFilter = search.trim().length > 0 || statusFilter !== "published";
 
   return (
     <Box display="flex" flexDirection="column" height="100%" minHeight={0}>
-      {/* Header */}
+      {/* ── Page header ── */}
       <Box
         px={3}
         py={2}
@@ -40,90 +119,130 @@ export function PromptManagerList() {
         <Typography variant="h5" fontWeight={700}>
           Prompt Manager
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={startNewPromptDraft}
-        >
+        <Button variant="contained" startIcon={<AddIcon />} onClick={startNewPromptDraft}>
           New Prompt
         </Button>
       </Box>
 
-      {/* Controls */}
-      <Box px={3} py={1.5} borderBottom={1} borderColor="divider" flexShrink={0}>
-        <Stack direction="row" gap={1.5} alignItems="center">
-          <TextField
-            size="small"
-            placeholder="Search prompts…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            sx={{ flex: 1, maxWidth: 360 }}
-          />
-          <FormControl size="small" sx={{ minWidth: 140 }}>
-            <InputLabel id="pm-status-filter-label">Status</InputLabel>
-            <Select
-              labelId="pm-status-filter-label"
-              label="Status"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-            >
-              {STATUS_FILTER_OPTIONS.map((option) => (
-                <MenuItem key={option} value={option}>
-                  {STATUS_FILTER_LABELS[option]}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
-            {visiblePrompts.length} {visiblePrompts.length === 1 ? "prompt" : "prompts"}
-          </Typography>
-        </Stack>
-      </Box>
-
-      {/* List */}
+      {/* ── Scrollable body ── */}
       <Box flex={1} minHeight={0} overflow="auto">
-        {visiblePrompts.length === 0 ? (
-          <Box
-            display="flex"
-            flexDirection="column"
-            alignItems="center"
-            justifyContent="center"
-            height="100%"
-            gap={2}
-            p={4}
-          >
-            {search || statusFilter !== "all" ? (
-              <>
-                <Typography variant="h6" color="text.secondary">
-                  No prompts match your filters
-                </Typography>
+        <Box maxWidth={960} mx="auto" px={3} py={3}>
+
+          {/* ── Drafts section ── */}
+          <Box mb={4}>
+            <Typography variant="overline" color="text.secondary" letterSpacing={1} display="block" mb={1.5}>
+              Drafts
+            </Typography>
+
+            {draftPrompts.length === 0 ? (
+              <Box
+                sx={{
+                  border: "1px dashed",
+                  borderColor: "divider",
+                  borderRadius: 2,
+                  p: 3,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 1,
+                }}
+              >
                 <Typography variant="body2" color="text.secondary">
-                  Try adjusting your search or status filter.
+                  No drafts yet
                 </Typography>
-              </>
-            ) : (
-              <>
-                <Typography variant="h6" color="text.secondary">
-                  No prompts yet
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Create your first prompt to get started.
-                </Typography>
-                <Button variant="contained" startIcon={<AddIcon />} onClick={startNewPromptDraft}>
-                  New Prompt
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={startNewPromptDraft}
+                >
+                  Create new prompt
                 </Button>
-              </>
+              </Box>
+            ) : (
+              <Box
+                display="grid"
+                gridTemplateColumns={{ xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }}
+                gap={1.5}
+              >
+                {draftPrompts.map((prompt) => (
+                  <DraftCard
+                    key={prompt.id}
+                    prompt={prompt}
+                    onEdit={() => selectManagedPrompt(prompt.id)}
+                  />
+                ))}
+              </Box>
             )}
           </Box>
-        ) : (
-          visiblePrompts.map((prompt) => (
-            <PromptManagerListItem
-              key={prompt.id}
-              prompt={prompt}
-              onEdit={() => selectManagedPrompt(prompt.id)}
-            />
-          ))
-        )}
+
+          {/* ── Published Prompts section ── */}
+          <Box>
+            <Typography variant="overline" color="text.secondary" letterSpacing={1} display="block" mb={1.5}>
+              Published Prompts
+            </Typography>
+
+            {/* Controls */}
+            <Stack direction="row" gap={1.5} alignItems="center" mb={1.5}>
+              <TextField
+                size="small"
+                placeholder="Search prompts…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                sx={{ flex: 1, maxWidth: 360 }}
+              />
+              <FormControl size="small" sx={{ minWidth: 140 }}>
+                <InputLabel id="pm-status-filter-label">Status</InputLabel>
+                <Select
+                  labelId="pm-status-filter-label"
+                  label="Status"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                >
+                  {STATUS_FILTER_OPTIONS.map((option) => (
+                    <MenuItem key={option} value={option}>
+                      {STATUS_FILTER_LABELS[option]}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
+                {listedPrompts.length} {listedPrompts.length === 1 ? "prompt" : "prompts"}
+              </Typography>
+            </Stack>
+
+            {/* List */}
+            {listedPrompts.length === 0 ? (
+              <Box
+                sx={{
+                  border: "1px dashed",
+                  borderColor: "divider",
+                  borderRadius: 2,
+                  p: 4,
+                  textAlign: "center",
+                }}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  {hasActiveFilter
+                    ? "No prompts match your filters. Try adjusting your search or status."
+                    : "No published prompts yet. Publish a draft to make it appear here."}
+                </Typography>
+              </Box>
+            ) : (
+              <Box border={1} borderColor="divider" borderRadius={2} overflow="hidden">
+                {listedPrompts.map((prompt, index) => (
+                  <PromptManagerListItem
+                    key={prompt.id}
+                    prompt={prompt}
+                    onEdit={() => selectManagedPrompt(prompt.id)}
+                    showTopBorder={index > 0}
+                  />
+                ))}
+              </Box>
+            )}
+          </Box>
+
+        </Box>
       </Box>
     </Box>
   );

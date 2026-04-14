@@ -1,11 +1,13 @@
-import type { Prompt, PromptStatus } from "../types";
+import type { Prompt } from "../types";
 
 export type PromptManagerStatusFilter = "all" | "draft" | "published" | "archived";
 export type PromptManagerSortMode = "lastUpdated" | "title" | "status";
 
 /**
- * Filter prompts by status and search query for Prompt Manager view.
- * Prompt Manager shows ALL prompts regardless of published status.
+ * Filter prompts for the Published Prompts section of Prompt Manager.
+ *
+ * "all" here means published + archived — drafts are never included because
+ * they live in the dedicated Drafts card strip above the list.
  */
 export function filterManagerPrompts(
   prompts: Prompt[],
@@ -15,10 +17,10 @@ export function filterManagerPrompts(
   const normalizedSearch = search.trim().toLowerCase();
 
   return prompts.filter((prompt) => {
-    // Status filter
+    // "all" in the Published Prompts section = published + archived (not draft)
+    if (statusFilter === "all" && prompt.status === "draft") return false;
     if (statusFilter !== "all" && prompt.status !== statusFilter) return false;
 
-    // Search filter
     if (normalizedSearch) {
       return (
         prompt.title.toLowerCase().includes(normalizedSearch) ||
@@ -45,17 +47,15 @@ export function sortManagerPrompts(prompts: Prompt[]): Prompt[] {
 }
 
 /**
- * Returns a human-readable summary of a prompt's version state.
+ * Returns a compact version label for use in the metadata line (e.g. "v3").
  */
-export function getVersionSummary(prompt: Prompt): string {
-  const versionCount = prompt.versions?.length ?? 0;
-  if (versionCount === 0) return "v1";
-  if (versionCount === 1) return "v1";
-  return `v${versionCount} (${versionCount} versions)`;
+export function getVersionLabel(prompt: Prompt): string {
+  if (!prompt.versions?.length) return "v1";
+  return `v${Math.max(...prompt.versions.map((v) => v.version))}`;
 }
 
 /**
- * Returns a formatted date string or placeholder.
+ * Returns a human-readable date string or placeholder.
  */
 export function formatLastUpdated(prompt: Prompt): string {
   const raw = prompt.lastUpdatedAt ?? prompt.createdAt;
@@ -67,11 +67,25 @@ export function formatLastUpdated(prompt: Prompt): string {
   return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
 
+/**
+ * Returns a compact metadata string: "v3 • Updated Mar 14, 2026 • tag1 • tag2"
+ */
+export function getMetaLine(prompt: Prompt): string {
+  const parts: string[] = [getVersionLabel(prompt), `Updated ${formatLastUpdated(prompt)}`];
+  prompt.tags.slice(0, 2).forEach((tag) => parts.push(tag));
+  return parts.join(" • ");
+}
+
+/**
+ * Filter options shown in the Published Prompts section.
+ * Draft is intentionally excluded — drafts live in the Drafts card strip.
+ * "all" in this context means published + archived.
+ */
+export const STATUS_FILTER_OPTIONS: PromptManagerStatusFilter[] = ["published", "archived", "all"];
+
 export const STATUS_FILTER_LABELS: Record<PromptManagerStatusFilter, string> = {
   all: "All",
-  draft: "Draft",
+  draft: "Draft",       // kept in type for store compatibility; not shown in UI
   published: "Published",
   archived: "Archived",
 };
-
-export const STATUS_FILTER_OPTIONS: PromptManagerStatusFilter[] = ["all", "draft", "published", "archived"];

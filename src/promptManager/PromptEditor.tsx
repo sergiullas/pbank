@@ -144,7 +144,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
       </Box>
 
       {/* Scrollable body */}
-      <Box flex={1} minHeight={0} display="flex" overflow="hidden">
+      <Box flex={1} minHeight={0} display="flex" flexDirection={{ xs: "column", lg: "row" }} overflow="hidden">
         <Box flex={1} minWidth={0} overflow="auto">
           <Box maxWidth={800} mx="auto" px={3} py={3}>
             <Stack spacing={4}>
@@ -221,10 +221,17 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                 onChange={(e) => setContent(e.target.value)}
                 fullWidth
                 multiline
-                minRows={8}
-                maxRows={24}
+                minRows={4}
+                maxRows={16}
                 placeholder="Write your prompt template here…"
                 inputProps={{ "aria-label": "Prompt template content", style: { fontFamily: "monospace", fontSize: "0.875rem" } }}
+                sx={{
+                  "& .MuiInputBase-inputMultiline": {
+                    maxHeight: "40vh",
+                    overflowY: "auto !important",
+                    resize: "none",
+                  },
+                }}
               />
 
               <Typography variant="caption" color="text.secondary">

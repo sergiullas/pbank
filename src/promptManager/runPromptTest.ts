@@ -7,26 +7,21 @@ type RunPromptTestInput = {
   attachment?: File;
 };
 
-export type PromptTestResult = {
-  renderedPrompt: string;
-  response: string;
-};
-
-export async function runPromptTest({
+export async function renderPromptTestTemplate({
   template,
   variables,
   attachment,
-}: RunPromptTestInput): Promise<PromptTestResult> {
+}: RunPromptTestInput): Promise<string> {
   const templateVariables = extractTemplateVariables(template);
   const requiresContext = templateVariables.some((variable) => variable.isContext);
   const hasAttachment = Boolean(attachment);
   const attachmentText = attachment ? await attachment.text() : "";
 
-  if (requiresContext && !hasAttachment) {
+  if (requiresContext && !attachmentText.trim()) {
     throw new Error("Attach a file to run this test because the template uses [CONTEXT].");
   }
 
-  const renderedPrompt = substituteTemplateVariables(
+  return substituteTemplateVariables(
     template,
     { ...variables, CONTEXT: attachmentText },
     {
@@ -34,8 +29,9 @@ export async function runPromptTest({
       attachedFilePlaceholder: attachmentText,
     },
   );
+}
 
-  const response = await executePrompt({ prompt: renderedPrompt, hasAttachment });
-
-  return { renderedPrompt, response };
+export async function runPromptTest(input: RunPromptTestInput): Promise<string> {
+  const renderedPrompt = await renderPromptTestTemplate(input);
+  return executePrompt({ prompt: renderedPrompt, hasAttachment: Boolean(input.attachment) });
 }

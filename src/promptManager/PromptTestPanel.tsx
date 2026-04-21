@@ -18,7 +18,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useMemo, useState } from "react";
-import { extractTemplateVariables } from "../promptBank/templateVariables";
+import { parseTemplateVariables } from "../promptBank/templateVariables";
 import { renderPromptTestTemplate, runPromptTest } from "./runPromptTest";
 
 interface PromptTestPanelProps {
@@ -27,7 +27,7 @@ interface PromptTestPanelProps {
 }
 
 export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
-  const variables = useMemo(() => extractTemplateVariables(template), [template]);
+  const { variables, invalidTokens } = useMemo(() => parseTemplateVariables(template), [template]);
   const hasContextVariable = variables.some((variable) => variable.isContext);
   const nonContextVariables = variables.filter((variable) => !variable.isContext);
 
@@ -41,12 +41,11 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
   const [showAiResponse, setShowAiResponse] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const multilineTokenPattern = /(DESCRIPTION|SUMMARY|NOTES|INPUT_TEXT|BODY)/i;
   const hasMissingVariables = nonContextVariables.some(
     (variable) => !(values[variable.token] ?? "").trim(),
   );
   const contextRequiredAndMissing = hasContextVariable && (!useContext || !file);
-  const runDisabled = isRunning || hasMissingVariables || contextRequiredAndMissing;
+  const runDisabled = isRunning || hasMissingVariables || contextRequiredAndMissing || invalidTokens.length > 0;
 
   const handleRun = async () => {
     setIsRunning(true);
@@ -111,6 +110,16 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
           </Typography>
         </Stack>
 
+        {invalidTokens.length > 0 && (
+          <Alert severity="error">
+            {invalidTokens.map((invalidToken) => (
+              <Typography key={`${invalidToken.raw}-${invalidToken.message}`} variant="body2">
+                <code>{invalidToken.raw}</code> — {invalidToken.message}
+              </Typography>
+            ))}
+          </Alert>
+        )}
+
         <Box
           sx={{
             border: "1px solid",
@@ -133,12 +142,12 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
               size="small"
               required
               disabled={isRunning}
-              multiline={multilineTokenPattern.test(variable.token)}
-              minRows={multilineTokenPattern.test(variable.token) ? 2 : 1}
-              maxRows={multilineTokenPattern.test(variable.token) ? 8 : 1}
-              sx={multilineTokenPattern.test(variable.token) ? {
+              multiline={variable.type === "textarea"}
+              minRows={variable.type === "textarea" ? 2 : 1}
+              maxRows={variable.type === "textarea" ? 8 : 1}
+              sx={variable.type === "textarea" ? {
                 "& .MuiInputBase-inputMultiline": {
-                  maxHeight: "22vh",
+                  maxHeight: "25vh",
                   overflowY: "auto !important",
                   resize: "none",
                 },

@@ -1,4 +1,7 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import AttachFileIcon from "@mui/icons-material/AttachFile";
+import ShortTextIcon from "@mui/icons-material/ShortText";
+import SubjectIcon from "@mui/icons-material/Subject";
 import {
   Alert,
   Box,
@@ -16,7 +19,7 @@ import { alpha } from "@mui/material/styles";
 import { useMemo, useState } from "react";
 import type { Prompt } from "../types";
 import { useStore } from "../state/store";
-import { extractTemplateVariables } from "../promptBank/templateVariables";
+import { parseTemplateVariables } from "../promptBank/templateVariables";
 import { getLatestVersion, getPublishedVersion } from "../promptBank/versioning";
 import { PromptStatusChip } from "./PromptStatusChip";
 import { formatLastUpdated } from "./promptManagerSelectors";
@@ -42,7 +45,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const [savedFeedback, setSavedFeedback] = useState<string | null>(null);
   const [showTestPanel, setShowTestPanel] = useState(false);
 
-  const templateVariables = useMemo(() => extractTemplateVariables(content), [content]);
+  const { variables: templateVariables, invalidTokens } = useMemo(() => parseTemplateVariables(content), [content]);
 
   const latestVersion = getLatestVersion(prompt);
   const publishedVersion = prompt.publishedVersionId ? getPublishedVersion(prompt) : null;
@@ -225,6 +228,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                 maxRows={16}
                 placeholder="Write your prompt template here…"
                 inputProps={{ "aria-label": "Prompt template content", style: { fontFamily: "monospace", fontSize: "0.875rem" } }}
+                error={invalidTokens.length > 0}
                 sx={{
                   "& .MuiInputBase-inputMultiline": {
                     maxHeight: "40vh",
@@ -235,9 +239,18 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
               />
 
               <Typography variant="caption" color="text.secondary">
-                Use <code>[TOKEN]</code> syntax to create dynamic variables.{" "}
-                <code>[CONTEXT]</code> is treated as attached file context in chat.
+                Use <code>[TOKEN]</code> for short input, <code>[[TOKEN]]</code> for multi-line input, and <code>[CONTEXT]</code> for file context.
               </Typography>
+
+              {invalidTokens.length > 0 && (
+                <Alert severity="error">
+                  {invalidTokens.map((invalidToken) => (
+                    <Typography key={`${invalidToken.raw}-${invalidToken.message}`} variant="body2">
+                      <code>{invalidToken.raw}</code> — {invalidToken.message}
+                    </Typography>
+                  ))}
+                </Alert>
+              )}
             </Stack>
 
             {/* — Variables preview section — */}
@@ -252,17 +265,43 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                     {templateVariables.map((variable) => (
                       <Tooltip
                         key={variable.token}
-                        title={variable.isContext ? "Uses attached file as context in chat" : `Variable: ${variable.raw}`}
+                        title={
+                          variable.type === "context"
+                            ? "Attachment variable"
+                            : variable.type === "textarea"
+                              ? "Multi-line variable"
+                              : "Single-line variable"
+                        }
                       >
                         <Chip
-                          label={variable.raw}
+                          icon={
+                            variable.type === "context"
+                              ? <AttachFileIcon />
+                              : variable.type === "textarea"
+                                ? <SubjectIcon />
+                                : <ShortTextIcon />
+                          }
+                          label={`${variable.token} — ${
+                            variable.type === "context"
+                              ? "Attachment"
+                              : variable.type === "textarea"
+                                ? "Multi-line"
+                                : "Single-line"
+                          }`}
                           size="small"
-                          color={variable.isContext ? "info" : "default"}
-                          variant={variable.isContext ? "filled" : "outlined"}
-                          sx={variable.isContext ? {} : {
+                          color={variable.type === "context" ? "info" : variable.type === "textarea" ? "secondary" : "default"}
+                          variant={variable.type === "text" ? "outlined" : "filled"}
+                          aria-label={
+                            variable.type === "context"
+                              ? "Attachment variable"
+                              : variable.type === "textarea"
+                                ? "Multi-line variable"
+                                : "Single-line variable"
+                          }
+                          sx={variable.type === "text" ? {
                             fontFamily: "monospace",
                             borderColor: "text.disabled",
-                          }}
+                          } : {}}
                         />
                       </Tooltip>
                     ))}
@@ -295,7 +334,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                     Detected Variables
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    No variables detected. Add <code>[TOKEN]</code> placeholders to make this prompt dynamic.
+                    No variables detected. Add <code>[TOKEN]</code> or <code>[[TOKEN]]</code> placeholders to make this prompt dynamic.
                   </Typography>
                 </Box>
               </>

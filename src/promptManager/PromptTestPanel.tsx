@@ -35,6 +35,7 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
   const [result, setResult] = useState<string | null>(null);
   const [renderedPrompt, setRenderedPrompt] = useState<string | null>(null);
   const [showRenderedPrompt, setShowRenderedPrompt] = useState(false);
+  const [showAiResponse, setShowAiResponse] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const multilineTokenPattern = /(DESCRIPTION|SUMMARY|NOTES|INPUT_TEXT|BODY)/i;
@@ -222,24 +223,33 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
 
         <Divider />
 
-        <Box minHeight={200} flex={1} minWidth={0} overflow="hidden" display="flex" flexDirection="column">
-          <Typography variant="subtitle2" gutterBottom>
-            AI Response
-          </Typography>
-          <Box
-            sx={{
-              p: 1.5,
-              border: "1px solid",
-              borderColor: "divider",
-              borderRadius: 1,
-              bgcolor: "background.default",
-              whiteSpace: "pre-wrap",
-              overflowY: "auto",
-              flex: 1,
-            }}
-          >
-            {isRunning ? "Running..." : result ?? "Run a test to see results"}
+        <Box minHeight={showAiResponse ? 200 : 0} flex={showAiResponse ? 1 : 0} minWidth={0} overflow="hidden" display="flex" flexDirection="column">
+          <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+            <Typography variant="subtitle2">AI Response</Typography>
+            <Button
+              size="small"
+              onClick={() => setShowAiResponse((prev) => !prev)}
+              endIcon={showAiResponse ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            >
+              {showAiResponse ? "Hide" : "Show"}
+            </Button>
           </Box>
+          {showAiResponse && (
+            <Box
+              sx={{
+                p: 1.5,
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 1,
+                bgcolor: "background.default",
+                whiteSpace: "pre-wrap",
+                overflowY: "auto",
+                flex: 1,
+              }}
+            >
+              {isRunning ? "Running..." : result ?? "Run a test to see results"}
+            </Box>
+          )}
         </Box>
       </Box>
     </Box>

@@ -27,7 +27,6 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
   const variables = useMemo(() => extractTemplateVariables(template), [template]);
   const hasContextVariable = variables.some((variable) => variable.isContext);
   const nonContextVariables = variables.filter((variable) => !variable.isContext);
-  const renderedPromptDefaultCollapsed = nonContextVariables.length > 2;
 
   const [values, setValues] = useState<Record<string, string>>({});
   const [useContext, setUseContext] = useState(hasContextVariable);
@@ -35,7 +34,7 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
   const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [renderedPrompt, setRenderedPrompt] = useState<string | null>(null);
-  const [showRenderedPrompt, setShowRenderedPrompt] = useState(!renderedPromptDefaultCollapsed);
+  const [showRenderedPrompt, setShowRenderedPrompt] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const multilineTokenPattern = /(DESCRIPTION|SUMMARY|NOTES|INPUT_TEXT|BODY)/i;
@@ -80,7 +79,9 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
       bgcolor="background.paper"
       display="flex"
       flexDirection="column"
+      height="100%"
       minHeight={0}
+      overflow="hidden"
     >
       <Box px={2} py={1.5} borderBottom={1} borderColor="divider" display="flex" alignItems="center" gap={1}>
         <Typography variant="subtitle1" fontWeight={600} sx={{ flex: 1 }}>
@@ -91,7 +92,15 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
         </IconButton>
       </Box>
 
-      <Box p={2} minHeight={0} display="flex" flexDirection="column" gap={2}>
+      <Box
+        p={2}
+        flex={1}
+        minHeight={0}
+        display="flex"
+        flexDirection="column"
+        gap={2}
+        sx={{ overflowY: "auto" }}
+      >
         <Stack spacing={1}>
           <Typography variant="body2" color="text.secondary">
             Run your prompt with sample inputs before publishing.
@@ -104,9 +113,7 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
             borderColor: "divider",
             borderRadius: 1,
             p: 1.25,
-            maxHeight: "35%",
-            minHeight: 72,
-            overflowY: "auto",
+            minHeight: 0,
           }}
         >
           <Stack spacing={1.25}>
@@ -181,7 +188,7 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
 
         <Divider />
 
-        <Box>
+        <Box minHeight={0}>
           <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
             <Typography variant="subtitle2">Rendered Prompt</Typography>
             <Button
@@ -204,7 +211,7 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
                 whiteSpace: "pre-wrap",
                 fontFamily: "monospace",
                 fontSize: "0.75rem",
-                maxHeight: 220,
+                maxHeight: 200,
                 overflowY: "auto",
               }}
             >

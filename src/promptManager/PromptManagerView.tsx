@@ -22,7 +22,7 @@ export function PromptManagerView() {
   return (
     <Box display="flex" flexDirection="column" height="100%" minHeight={0} overflow="hidden">
       {promptManagerView === "editor" && selectedPrompt ? (
-        <PromptEditor prompt={selectedPrompt} onBack={handleBack} />
+        <PromptEditor key={selectedPrompt.id} prompt={selectedPrompt} onBack={handleBack} />
       ) : promptManagerView === "editor" && !selectedPrompt ? (
         // Edge case: editor requested but prompt not found
         <Box p={4} display="flex" flexDirection="column" gap={1}>

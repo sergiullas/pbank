@@ -13,13 +13,14 @@ import {
 } from "@mui/material";
 import type { PromptVersion } from "../types";
 import { alpha } from "@mui/material/styles";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { Prompt } from "../types";
 import { useStore } from "../state/store";
 import { extractTemplateVariables } from "../promptBank/templateVariables";
 import { getLatestVersion, getPublishedVersion } from "../promptBank/versioning";
 import { PromptStatusChip } from "./PromptStatusChip";
 import { formatLastUpdated } from "./promptManagerSelectors";
+import { PromptTestPanel } from "./PromptTestPanel";
 
 interface PromptEditorProps {
   prompt: Prompt;
@@ -39,14 +40,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const [desiredOutcome, setDesiredOutcome] = useState(prompt.desiredOutcome ?? "");
   const [content, setContent] = useState(prompt.content);
   const [savedFeedback, setSavedFeedback] = useState<string | null>(null);
-
-  // Re-sync if the prompt object changes (e.g., after a store action)
-  useEffect(() => {
-    setTitle(prompt.title);
-    setDescription(prompt.description ?? "");
-    setDesiredOutcome(prompt.desiredOutcome ?? "");
-    setContent(prompt.content);
-  }, [prompt.id]); // Only reset on prompt ID change, not every update
+  const [showTestPanel, setShowTestPanel] = useState(false);
 
   const templateVariables = useMemo(() => extractTemplateVariables(content), [content]);
 
@@ -134,6 +128,14 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
           {title || "Untitled Prompt"}
         </Typography>
 
+        <Button
+          size="small"
+          variant={showTestPanel ? "contained" : "outlined"}
+          onClick={() => setShowTestPanel((prev) => !prev)}
+        >
+          Test Prompt
+        </Button>
+
         <PromptStatusChip status={prompt.status} hasUnpublishedChanges={prompt.hasUnpublishedChanges} />
 
         <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
@@ -142,9 +144,10 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
       </Box>
 
       {/* Scrollable body */}
-      <Box flex={1} minHeight={0} overflow="auto">
-        <Box maxWidth={800} mx="auto" px={3} py={3}>
-          <Stack spacing={4}>
+      <Box flex={1} minHeight={0} display="flex" flexDirection={{ xs: "column", lg: "row" }} overflow="hidden">
+        <Box flex={1} minWidth={0} overflow="auto">
+          <Box maxWidth={800} mx="auto" px={3} py={3}>
+            <Stack spacing={4}>
 
             {/* Saved feedback */}
             {savedFeedback && (
@@ -218,10 +221,17 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                 onChange={(e) => setContent(e.target.value)}
                 fullWidth
                 multiline
-                minRows={8}
-                maxRows={24}
+                minRows={4}
+                maxRows={16}
                 placeholder="Write your prompt template here…"
                 inputProps={{ "aria-label": "Prompt template content", style: { fontFamily: "monospace", fontSize: "0.875rem" } }}
+                sx={{
+                  "& .MuiInputBase-inputMultiline": {
+                    maxHeight: "40vh",
+                    overflowY: "auto !important",
+                    resize: "none",
+                  },
+                }}
               />
 
               <Typography variant="caption" color="text.secondary">
@@ -401,8 +411,10 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
               </Button>
             </Stack>
 
-          </Stack>
+            </Stack>
+          </Box>
         </Box>
+        {showTestPanel && <PromptTestPanel template={content} onClose={() => setShowTestPanel(false)} />}
       </Box>
 
       {/* — Footer actions — */}

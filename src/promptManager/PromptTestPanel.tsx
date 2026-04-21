@@ -2,6 +2,9 @@ import CloseIcon from "@mui/icons-material/Close";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
   Alert,
   Box,
   Button,
@@ -189,18 +192,20 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
 
         <Divider />
 
-        <Box minHeight={0}>
-          <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+        <Accordion
+          disableGutters
+          expanded={showRenderedPrompt}
+          onChange={(_, expanded) => setShowRenderedPrompt(expanded)}
+          elevation={0}
+          sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}
+        >
+          <AccordionSummary
+            expandIcon={showRenderedPrompt ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            sx={{ minHeight: 44 }}
+          >
             <Typography variant="subtitle2">Rendered Prompt</Typography>
-            <Button
-              size="small"
-              onClick={() => setShowRenderedPrompt((prev) => !prev)}
-              endIcon={showRenderedPrompt ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            >
-              {showRenderedPrompt ? "Hide" : "Show"}
-            </Button>
-          </Box>
-          {showRenderedPrompt && (
+          </AccordionSummary>
+          <AccordionDetails sx={{ pt: 0 }}>
             <Box
               component="pre"
               sx={{
@@ -218,23 +223,30 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
             >
               {renderedPrompt ?? "Run a test to preview rendered prompt."}
             </Box>
-          )}
-        </Box>
+          </AccordionDetails>
+        </Accordion>
 
-        <Divider />
-
-        <Box minHeight={showAiResponse ? 200 : 0} flex={showAiResponse ? 1 : 0} minWidth={0} overflow="hidden" display="flex" flexDirection="column">
-          <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
+        <Accordion
+          disableGutters
+          expanded={showAiResponse}
+          onChange={(_, expanded) => setShowAiResponse(expanded)}
+          elevation={0}
+          sx={{
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 1,
+            minHeight: showAiResponse ? 220 : "auto",
+            flex: showAiResponse ? 1 : 0,
+            overflow: "hidden",
+          }}
+        >
+          <AccordionSummary
+            expandIcon={showAiResponse ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            sx={{ minHeight: 44 }}
+          >
             <Typography variant="subtitle2">AI Response</Typography>
-            <Button
-              size="small"
-              onClick={() => setShowAiResponse((prev) => !prev)}
-              endIcon={showAiResponse ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            >
-              {showAiResponse ? "Hide" : "Show"}
-            </Button>
-          </Box>
-          {showAiResponse && (
+          </AccordionSummary>
+          <AccordionDetails sx={{ pt: 0, height: "100%", minHeight: 0 }}>
             <Box
               sx={{
                 p: 1.5,
@@ -244,13 +256,14 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
                 bgcolor: "background.default",
                 whiteSpace: "pre-wrap",
                 overflowY: "auto",
-                flex: 1,
+                minHeight: 200,
+                maxHeight: "100%",
               }}
             >
               {isRunning ? "Running..." : result ?? "Run a test to see results"}
             </Box>
-          )}
-        </Box>
+          </AccordionDetails>
+        </Accordion>
       </Box>
     </Box>
   );

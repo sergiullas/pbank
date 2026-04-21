@@ -1,8 +1,9 @@
 import { create } from "zustand";
 import { seedPrompts } from "../data/seedPrompts";
 import type { FavoriteItem, Message, Prompt, PromptStatus, PromptVersion } from "../types";
-import { getLatestVersion, getNextVersionNumber } from "../promptBank/versioning";
+import { getNextVersionNumber } from "../promptBank/versioning";
 import { readJSON, writeJSON } from "./persist";
+import { executePrompt } from "../chat/executePrompt";
 
 const STORAGE_KEYS = {
   libraryCollapsed: "promptBank.libraryCollapsed",
@@ -288,17 +289,19 @@ export const useStore = create<StoreState>((set, get) => ({
       composerError: null,
     }));
 
-    const timeout = 300 + Math.floor(Math.random() * 301);
-    window.setTimeout(() => {
+    executePrompt({
+      prompt: text,
+      hasAttachment: get().hasAttachedFile,
+    }).then((assistantText) => {
       const assistantMessage: Message = {
         id: createId(),
         role: "assistant",
-        content: "Mock reply: Thanks — I received your message and can help refine it further.",
+        content: assistantText,
         createdAt: new Date().toISOString(),
       };
 
       set((state) => ({ messages: [...state.messages, assistantMessage] }));
-    }, timeout);
+    });
   },
 
   // Prompt Manager actions

@@ -20,7 +20,7 @@ import { alpha } from "@mui/material/styles";
 import { useEffect, useMemo, useState } from "react";
 import type { PromptVersion } from "../types";
 import { useStore } from "../state/store";
-import { getLatestVersion } from "./versioning";
+import { getLatestVersion, resolveInitialLibraryVersion } from "./versioning";
 import { extractTemplateVariables, substituteTemplateVariables } from "./templateVariables";
 
 const byVersionDesc = (a: PromptVersion, b: PromptVersion) => b.version - a.version;
@@ -35,7 +35,14 @@ export function PromptDetailView() {
   const favorites = useStore((state) => state.favorites);
   const togglePromptFavorite = useStore((state) => state.togglePromptFavorite);
   const toggleVersionFavorite = useStore((state) => state.toggleVersionFavorite);
-  const [selectedVersionNumber, setSelectedVersionNumber] = useState<number | null>(detailInitialVersionNumber);
+
+  // Resolve initial version using priority: explicit → version-specific favorite → published → latest.
+  // Lazy initializer runs once at mount; the component is keyed so it remounts on prompt change.
+  const [selectedVersionNumber, setSelectedVersionNumber] = useState<number | null>(() => {
+    const prompt = prompts.find((p) => p.id === selectedPromptId) ?? null;
+    return resolveInitialLibraryVersion(prompt, favorites, detailInitialVersionNumber);
+  });
+
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [useAttachedFileForContext, setUseAttachedFileForContext] = useState(false);
@@ -84,9 +91,31 @@ export function PromptDetailView() {
   const latestVersionNumber = getLatestVersion(prompt).version;
   const isLatestVersion = activeVersion.version === latestVersionNumber;
   const menuOpen = Boolean(anchorEl);
+
+  // The version number that is officially published for this prompt in the library
+  const publishedVersionNumber = prompt.publishedVersionId
+    ? (prompt.versions?.find((v) => v.id === prompt.publishedVersionId)?.version ?? null)
+    : null;
+
+  // Set of version numbers the user has specifically favorited
+  const favoritedVersionNumbers = new Set<number>(
+    favorites
+      .filter((f) => f.promptId === prompt.id && f.version != null)
+      .map((f) => f.version as number),
+  );
+
   const activeVersionFavorited = isLatestVersion
     ? favorites.some((fav) => fav.promptId === prompt.id && fav.version == null)
     : favorites.some((fav) => fav.promptId === prompt.id && fav.version === activeVersion.version);
+
+  // Build a readable label for the active version shown in the trigger button
+  const activeVersionLabel = (() => {
+    const badges: string[] = [];
+    if (activeVersion.version === publishedVersionNumber) badges.push("Published");
+    if (favoritedVersionNumbers.has(activeVersion.version)) badges.push("Favorited");
+    if (badges.length === 0 && isLatestVersion) badges.push("Latest");
+    return badges.length > 0 ? `v${activeVersion.version} (${badges.join(", ")})` : `v${activeVersion.version}`;
+  })();
 
   return (
     <Box display="flex" flexDirection="column" height="100%" minHeight={0}>
@@ -139,8 +168,7 @@ export function PromptDetailView() {
                       "&:hover": { textDecoration: "underline", bgcolor: "transparent", color: "text.primary" },
                     }}
                   >
-                    v{activeVersion.version}
-                    {isLatestVersion ? " (Latest)" : ""}
+                    {activeVersionLabel}
                   </Button>
                   <Menu
                     anchorEl={anchorEl}
@@ -148,19 +176,36 @@ export function PromptDetailView() {
                     onClose={() => setAnchorEl(null)}
                     MenuListProps={{ "aria-label": "Prompt versions" }}
                   >
-                    {sortedVersions.map((version) => (
-                      <MenuItem
-                        key={version.id}
-                        selected={version.version === activeVersion.version}
-                        onClick={() => {
-                          setSelectedVersionNumber(version.version);
-                          setAnchorEl(null);
-                        }}
-                      >
-                        v{version.version}
-                        {version.version === latestVersionNumber ? " (Latest)" : ""}
-                      </MenuItem>
-                    ))}
+                    {sortedVersions.map((version) => {
+                      const isPublished = version.version === publishedVersionNumber;
+                      const isFavorited = favoritedVersionNumbers.has(version.version);
+                      const isLatest = version.version === latestVersionNumber;
+                      return (
+                        <MenuItem
+                          key={version.id}
+                          selected={version.version === activeVersion.version}
+                          onClick={() => {
+                            setSelectedVersionNumber(version.version);
+                            setAnchorEl(null);
+                          }}
+                        >
+                          <Box display="flex" alignItems="center" gap={0.75}>
+                            <Typography variant="body2" sx={{ mr: 0.5 }}>
+                              v{version.version}
+                            </Typography>
+                            {isPublished && (
+                              <Chip label="Published" size="small" color="success" variant="outlined" />
+                            )}
+                            {isFavorited && (
+                              <Chip label="Favorited" size="small" color="warning" variant="outlined" />
+                            )}
+                            {isLatest && !isPublished && !isFavorited && (
+                              <Chip label="Latest" size="small" variant="outlined" />
+                            )}
+                          </Box>
+                        </MenuItem>
+                      );
+                    })}
                   </Menu>
                 </>
               ) : null}

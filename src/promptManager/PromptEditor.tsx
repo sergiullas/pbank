@@ -11,6 +11,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import type { PromptVersion } from "../types";
 import { alpha } from "@mui/material/styles";
 import { useEffect, useMemo, useState } from "react";
 import type { Prompt } from "../types";
@@ -325,6 +326,69 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   Last updated {formatLastUpdated(prompt)}
                 </Typography>
               </Stack>
+
+              {/* Version history list */}
+              {versionCount > 0 && (
+                <Stack spacing={1}>
+                  {[...(prompt.versions ?? [])].sort((a: PromptVersion, b: PromptVersion) => b.version - a.version).map((version) => {
+                    const isPublished = version.id === prompt.publishedVersionId;
+                    const isLatest = version.version === latestVersion.version;
+                    return (
+                      <Box
+                        key={version.id}
+                        sx={{
+                          display: "flex",
+                          alignItems: "flex-start",
+                          gap: 1.5,
+                          p: 1.5,
+                          borderRadius: 1,
+                          border: "1px solid",
+                          borderColor: "divider",
+                          bgcolor: "background.paper",
+                        }}
+                      >
+                        <Box flex={1} minWidth={0}>
+                          <Stack direction="row" alignItems="center" gap={0.75} flexWrap="wrap">
+                            <Typography variant="body2" fontWeight={600}>
+                              v{version.version}
+                            </Typography>
+                            {isPublished && (
+                              <Chip label="Published" size="small" color="success" variant="outlined" />
+                            )}
+                            {isLatest && (
+                              <Chip label="Latest" size="small" variant="outlined" />
+                            )}
+                          </Stack>
+                          {version.description && (
+                            <Typography variant="caption" color="text.secondary" display="block" mt={0.25}>
+                              {version.description}
+                            </Typography>
+                          )}
+                          {version.createdAt && (
+                            <Typography variant="caption" color="text.disabled">
+                              {new Date(version.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
+                            </Typography>
+                          )}
+                        </Box>
+                        {!isLatest && (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            sx={{ flexShrink: 0 }}
+                            onClick={() => {
+                              setContent(version.content);
+                              if (version.description != null) setDescription(version.description);
+                              if (version.desiredOutcome != null) setDesiredOutcome(version.desiredOutcome);
+                            }}
+                          >
+                            Load
+                          </Button>
+                        )}
+                      </Box>
+                    );
+                  })}
+                </Stack>
+              )}
 
               <Button
                 variant="outlined"

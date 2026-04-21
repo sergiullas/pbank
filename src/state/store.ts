@@ -104,6 +104,7 @@ type StoreState = {
   archivePrompt: (promptId: string) => void;
   restorePrompt: (promptId: string) => void;
   savePromptAsNewVersion: (promptId: string, payload: NewVersionPayload) => void;
+  deletePrompt: (promptId: string) => void;
   setPromptManagerSearch: (search: string) => void;
   setPromptManagerStatusFilter: (filter: PromptManagerStatusFilter) => void;
 };
@@ -176,7 +177,7 @@ export const useStore = create<StoreState>((set, get) => ({
   selectedManagedPromptId: null,
   promptManagerView: "list",
   promptManagerSearch: "",
-  promptManagerStatusFilter: "all",
+  promptManagerStatusFilter: "published",
 
   // Library actions
   setLibraryCollapsed: (next) => {
@@ -440,6 +441,15 @@ export const useStore = create<StoreState>((set, get) => ({
           lastUpdatedAt: now,
         };
       }),
+    }));
+  },
+
+  deletePrompt: (promptId) => {
+    set((state) => ({
+      prompts: state.prompts.filter((p) => p.id !== promptId),
+      // If the deleted prompt was open in the editor, go back to list
+      selectedManagedPromptId: state.selectedManagedPromptId === promptId ? null : state.selectedManagedPromptId,
+      promptManagerView: state.selectedManagedPromptId === promptId ? "list" : state.promptManagerView,
     }));
   },
 

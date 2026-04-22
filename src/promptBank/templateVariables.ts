@@ -55,7 +55,9 @@ export function parseTemplateVariables(template: string): TemplateVariableParseR
     if (closeIndex === -1) {
       const raw = template.slice(index, Math.min(template.length, index + 32));
       invalidTokens.push({ raw, message: "Unclosed token bracket." });
-      break;
+      index += 1;
+      continue;
+    }
     }
 
     const raw = template.slice(index, closeIndex + closeDelimiter.length);

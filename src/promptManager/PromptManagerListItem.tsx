@@ -28,7 +28,6 @@ interface PromptManagerListItemProps {
 
 export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }: PromptManagerListItemProps) {
   const publishPrompt = useStore((state) => state.publishPrompt);
-  const unpublishPrompt = useStore((state) => state.unpublishPrompt);
   const archivePrompt = useStore((state) => state.archivePrompt);
   const restorePrompt = useStore((state) => state.restorePrompt);
   const deletePrompt = useStore((state) => state.deletePrompt);
@@ -57,6 +56,20 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
   const handleDeleteConfirm = () => {
     deletePrompt(prompt.id);
     setDeleteDialogOpen(false);
+  };
+
+  const primaryActionLabel = prompt.status === "draft"
+    ? "Continue editing"
+    : prompt.status === "published"
+      ? "Edit"
+      : "Restore";
+
+  const handlePrimaryAction = () => {
+    if (prompt.status === "archived") {
+      restorePrompt(prompt.id);
+      return;
+    }
+    onEdit();
   };
 
   return (
@@ -103,8 +116,8 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
           flexShrink={0}
           onClick={(e) => e.stopPropagation()}
         >
-          <Button size="small" variant="outlined" onClick={onEdit}>
-            Edit
+          <Button size="small" variant="outlined" onClick={handlePrimaryAction}>
+            {primaryActionLabel}
           </Button>
 
           <Tooltip title="More actions">
@@ -128,14 +141,11 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
             transformOrigin={{ vertical: "top", horizontal: "right" }}
             MenuListProps={{ "aria-label": "Prompt actions" }}
           >
-            {prompt.status === "published" && [
-              <MenuItem key="unpublish" onClick={() => handleMenuAction(() => unpublishPrompt(prompt.id))}>
-                Unpublish
-              </MenuItem>,
-              <MenuItem key="archive" onClick={() => handleMenuAction(() => archivePrompt(prompt.id))}>
+            {prompt.status === "published" && (
+              <MenuItem onClick={() => handleMenuAction(() => archivePrompt(prompt.id))}>
                 Archive
-              </MenuItem>,
-            ]}
+              </MenuItem>
+            )}
 
             {prompt.status === "draft" && [
               <MenuItem

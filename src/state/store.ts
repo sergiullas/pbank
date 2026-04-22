@@ -72,6 +72,7 @@ type StoreState = {
   promptManagerView: PromptManagerView;
   promptManagerSearch: string;
   promptManagerStatusFilter: PromptManagerStatusFilter;
+  hasPromptEditorUnsavedChanges: boolean;
 
   // Library actions
   setLibraryCollapsed: (next: boolean) => void;
@@ -108,6 +109,7 @@ type StoreState = {
   deletePrompt: (promptId: string) => void;
   setPromptManagerSearch: (search: string) => void;
   setPromptManagerStatusFilter: (filter: PromptManagerStatusFilter) => void;
+  setPromptEditorUnsavedChanges: (value: boolean) => void;
 };
 
 const normalizeFavorite = (favorite: FavoriteItem): FavoriteItem => ({
@@ -150,7 +152,13 @@ export const useStore = create<StoreState>((set, get) => ({
 
   // App mode
   appMode: "chat",
-  setAppMode: (mode) => set({ appMode: mode }),
+  setAppMode: (mode) => {
+    if (get().appMode === "promptManager" && mode !== "promptManager" && get().hasPromptEditorUnsavedChanges) {
+      const shouldLeave = window.confirm("You have unsaved changes. Leave the editor and discard them?");
+      if (!shouldLeave) return;
+    }
+    set({ appMode: mode });
+  },
   openPromptManager: () => set({ appMode: "promptManager" }),
   closePromptManager: () => set({ appMode: "chat" }),
 
@@ -179,6 +187,7 @@ export const useStore = create<StoreState>((set, get) => ({
   promptManagerView: "list",
   promptManagerSearch: "",
   promptManagerStatusFilter: "published",
+  hasPromptEditorUnsavedChanges: false,
 
   // Library actions
   setLibraryCollapsed: (next) => {
@@ -495,4 +504,5 @@ export const useStore = create<StoreState>((set, get) => ({
   setPromptManagerSearch: (search) => set({ promptManagerSearch: search }),
 
   setPromptManagerStatusFilter: (filter) => set({ promptManagerStatusFilter: filter }),
+  setPromptEditorUnsavedChanges: (value) => set({ hasPromptEditorUnsavedChanges: value }),
 }));

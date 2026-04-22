@@ -250,14 +250,11 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         flexShrink={0}
         flexWrap="wrap"
       >
-        <Button
-          startIcon={<ArrowBackIcon />}
-          onClick={handleBack}
-          aria-label="Back to Prompt Manager"
-          sx={{ textTransform: "none" }}
-        >
-          Back to Prompt Manager
-        </Button>
+        <Tooltip title="Back to Prompt Manager">
+          <IconButton size="small" onClick={handleBack} aria-label="Back to Prompt Manager">
+            <ArrowBackIcon />
+          </IconButton>
+        </Tooltip>
 
         <Stack direction="row" alignItems="center" gap={1} sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="subtitle1" fontWeight={600} noWrap>

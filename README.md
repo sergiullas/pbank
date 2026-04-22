@@ -71,3 +71,8 @@ export default defineConfig([
   },
 ])
 ```
+
+## Product Milestones
+
+- Phase 2 v1 (Prompt Testing + Token Syntax/Rendering) final status: **Complete**.
+- Checklist and QA pass notes: `docs/phase2-v1-checklist.md`.

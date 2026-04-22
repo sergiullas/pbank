@@ -58,7 +58,6 @@ export function parseTemplateVariables(template: string): TemplateVariableParseR
       index += 1;
       continue;
     }
-    }
 
     const raw = template.slice(index, closeIndex + closeDelimiter.length);
     const tokenValue = template.slice(index + openLength, closeIndex).trim();

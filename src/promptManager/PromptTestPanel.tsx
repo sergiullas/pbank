@@ -18,7 +18,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useMemo, useState } from "react";
-import { extractTemplateVariables } from "../promptBank/templateVariables";
+import { parseTemplateVariables } from "../promptBank/templateVariables";
 import { renderPromptTestTemplate, runPromptTest } from "./runPromptTest";
 
 interface PromptTestPanelProps {
@@ -27,7 +27,7 @@ interface PromptTestPanelProps {
 }
 
 export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
-  const variables = useMemo(() => extractTemplateVariables(template), [template]);
+  const { variables, invalidTokens } = useMemo(() => parseTemplateVariables(template), [template]);
   const hasContextVariable = variables.some((variable) => variable.isContext);
   const nonContextVariables = variables.filter((variable) => !variable.isContext);
 
@@ -40,13 +40,13 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
   const [showRenderedPrompt, setShowRenderedPrompt] = useState(false);
   const [showAiResponse, setShowAiResponse] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasRunOutput = renderedPrompt !== null || result !== null;
 
-  const multilineTokenPattern = /(DESCRIPTION|SUMMARY|NOTES|INPUT_TEXT|BODY)/i;
   const hasMissingVariables = nonContextVariables.some(
     (variable) => !(values[variable.token] ?? "").trim(),
   );
   const contextRequiredAndMissing = hasContextVariable && (!useContext || !file);
-  const runDisabled = isRunning || hasMissingVariables || contextRequiredAndMissing;
+  const runDisabled = isRunning || hasMissingVariables || contextRequiredAndMissing || invalidTokens.length > 0;
 
   const handleRun = async () => {
     setIsRunning(true);
@@ -64,9 +64,11 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
       ]);
       setRenderedPrompt(nextRenderedPrompt);
       setResult(nextResult);
+      setShowRenderedPrompt(true);
+      setShowAiResponse(true);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to run prompt test.";
-      setError(message);
+      const detail = err instanceof Error ? err.message : "Failed to run prompt test.";
+      setError(`Something went wrong. Try again.${detail ? ` ${detail}` : ""}`);
     } finally {
       setIsRunning(false);
     }
@@ -96,20 +98,22 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
         </IconButton>
       </Box>
 
-      <Box
-        p={2}
-        flex={1}
-        minHeight={0}
-        display="flex"
-        flexDirection="column"
-        gap={2}
-        sx={{ overflowY: "auto" }}
-      >
+      <Box p={2} flex={1} minHeight={0} display="flex" flexDirection="column" gap={2} sx={{ overflow: "hidden" }}>
         <Stack spacing={1}>
           <Typography variant="body2" color="text.secondary">
             Run your prompt with sample inputs before publishing.
           </Typography>
         </Stack>
+
+        {invalidTokens.length > 0 && (
+          <Alert severity="error">
+            {invalidTokens.map((invalidToken) => (
+              <Typography key={`${invalidToken.raw}-${invalidToken.message}`} variant="body2">
+                <code>{invalidToken.raw}</code> — {invalidToken.message}
+              </Typography>
+            ))}
+          </Alert>
+        )}
 
         <Box
           sx={{
@@ -117,7 +121,10 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
             borderColor: "divider",
             borderRadius: 1,
             p: 1.25,
-            minHeight: 0,
+            minHeight: 110,
+            maxHeight: "34%",
+            overflowY: "auto",
+            flexShrink: 0,
           }}
         >
           <Stack spacing={1.25}>
@@ -133,12 +140,12 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
               size="small"
               required
               disabled={isRunning}
-              multiline={multilineTokenPattern.test(variable.token)}
-              minRows={multilineTokenPattern.test(variable.token) ? 2 : 1}
-              maxRows={multilineTokenPattern.test(variable.token) ? 8 : 1}
-              sx={multilineTokenPattern.test(variable.token) ? {
+              multiline={variable.type === "textarea"}
+              minRows={variable.type === "textarea" ? 2 : 1}
+              maxRows={variable.type === "textarea" ? 8 : 1}
+              sx={variable.type === "textarea" ? {
                 "& .MuiInputBase-inputMultiline": {
-                  maxHeight: "22vh",
+                  maxHeight: "25vh",
                   overflowY: "auto !important",
                   resize: "none",
                 },
@@ -183,6 +190,7 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
           onClick={handleRun}
           disabled={runDisabled}
           fullWidth
+          sx={{ flexShrink: 0 }}
           startIcon={isRunning ? <CircularProgress color="inherit" size={16} /> : undefined}
         >
           {isRunning ? "Running..." : "Run Test"}
@@ -190,80 +198,92 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
 
         {error && <Alert severity="error">{error}</Alert>}
 
-        <Divider />
+        {hasRunOutput && (
+          <>
+            <Divider sx={{ flexShrink: 0 }} />
 
-        <Accordion
-          disableGutters
-          expanded={showRenderedPrompt}
-          onChange={(_, expanded) => setShowRenderedPrompt(expanded)}
-          elevation={0}
-          sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}
-        >
-          <AccordionSummary
-            expandIcon={showRenderedPrompt ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            sx={{ minHeight: 44 }}
-          >
-            <Typography variant="subtitle2">Rendered Prompt</Typography>
-          </AccordionSummary>
-          <AccordionDetails sx={{ pt: 0 }}>
-            <Box
-              component="pre"
+            <Accordion
+              disableGutters
+              expanded={showRenderedPrompt}
+              onChange={(_, expanded) => setShowRenderedPrompt(expanded)}
+              elevation={0}
+              sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, flexShrink: 0 }}
+            >
+              <AccordionSummary
+                expandIcon={showRenderedPrompt ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                sx={{ minHeight: 44 }}
+              >
+                <Typography variant="subtitle2">Rendered Prompt</Typography>
+              </AccordionSummary>
+              <AccordionDetails sx={{ pt: 0 }}>
+                <Box
+                  component="pre"
+                  sx={{
+                    m: 0,
+                    p: 1.5,
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: 1,
+                    whiteSpace: "pre-wrap",
+                    fontFamily: "monospace",
+                    fontSize: "0.75rem",
+                    minHeight: 180,
+                    maxHeight: 220,
+                    overflowY: "auto",
+                  }}
+                >
+                  {renderedPrompt}
+                </Box>
+              </AccordionDetails>
+            </Accordion>
+
+            <Accordion
+              disableGutters
+              expanded={showAiResponse}
+              onChange={(_, expanded) => setShowAiResponse(expanded)}
+              elevation={0}
               sx={{
-                m: 0,
-                p: 1.5,
                 border: "1px solid",
                 borderColor: "divider",
                 borderRadius: 1,
-                whiteSpace: "pre-wrap",
-                fontFamily: "monospace",
-                fontSize: "0.75rem",
-                maxHeight: 200,
-                overflowY: "auto",
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+                flexShrink: 0,
+                ...(showAiResponse ? { minHeight: 240, flex: 1 } : {}),
               }}
             >
-              {renderedPrompt ?? "Run a test to preview rendered prompt."}
-            </Box>
-          </AccordionDetails>
-        </Accordion>
-
-        <Accordion
-          disableGutters
-          expanded={showAiResponse}
-          onChange={(_, expanded) => setShowAiResponse(expanded)}
-          elevation={0}
-          sx={{
-            border: "1px solid",
-            borderColor: "divider",
-            borderRadius: 1,
-            minHeight: showAiResponse ? 220 : "auto",
-            flex: showAiResponse ? 1 : 0,
-            overflow: "hidden",
-          }}
-        >
-          <AccordionSummary
-            expandIcon={showAiResponse ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            sx={{ minHeight: 44 }}
-          >
-            <Typography variant="subtitle2">AI Response</Typography>
-          </AccordionSummary>
-          <AccordionDetails sx={{ pt: 0, height: "100%", minHeight: 0 }}>
-            <Box
-              sx={{
-                p: 1.5,
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: 1,
-                bgcolor: "background.default",
-                whiteSpace: "pre-wrap",
-                overflowY: "auto",
-                minHeight: 200,
-                maxHeight: "100%",
-              }}
-            >
-              {isRunning ? "Running..." : result ?? "Run a test to see results"}
-            </Box>
-          </AccordionDetails>
-        </Accordion>
+              <AccordionSummary
+                expandIcon={showAiResponse ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                sx={{ minHeight: 44 }}
+              >
+                <Typography variant="subtitle2">AI Response</Typography>
+              </AccordionSummary>
+              <AccordionDetails sx={{ pt: 0, height: "100%", minHeight: 0, display: "flex", flexDirection: "column" }}>
+                <Box
+                  role="region"
+                  aria-label="AI response output"
+                  tabIndex={0}
+                  sx={{
+                    flex: 1,
+                    minHeight: 0,
+                    p: 1.5,
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: 1,
+                    bgcolor: "background.default",
+                    whiteSpace: "pre-wrap",
+                    overflowY: "auto",
+                    height: "100%",
+                    maxHeight: "100%",
+                  }}
+                >
+                  {result}
+                </Box>
+              </AccordionDetails>
+            </Accordion>
+          </>
+        )}
       </Box>
     </Box>
   );

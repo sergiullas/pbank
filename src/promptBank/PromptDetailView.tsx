@@ -340,6 +340,16 @@ export function PromptDetailView() {
                     }
                     fullWidth
                     size="small"
+                    multiline={variable.type === "textarea"}
+                    minRows={variable.type === "textarea" ? 2 : 1}
+                    maxRows={variable.type === "textarea" ? 8 : 1}
+                    sx={variable.type === "textarea" ? {
+                      "& .MuiInputBase-inputMultiline": {
+                        maxHeight: "25vh",
+                        overflowY: "auto !important",
+                        resize: "none",
+                      },
+                    } : undefined}
                   />
                 );
               })}

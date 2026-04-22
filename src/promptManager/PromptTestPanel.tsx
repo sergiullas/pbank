@@ -64,8 +64,8 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
       setRenderedPrompt(nextRenderedPrompt);
       setResult(nextResult);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to run prompt test.";
-      setError(message);
+      const detail = err instanceof Error ? err.message : "Failed to run prompt test.";
+      setError(`Something went wrong. Try again.${detail ? ` ${detail}` : ""}`);
     } finally {
       setIsRunning(false);
     }
@@ -95,15 +95,7 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
         </IconButton>
       </Box>
 
-      <Box
-        p={2}
-        flex={1}
-        minHeight={0}
-        display="flex"
-        flexDirection="column"
-        gap={2}
-        sx={{ overflowY: "auto" }}
-      >
+      <Box p={2} flex={1} minHeight={0} display="flex" flexDirection="column" gap={2} sx={{ overflow: "hidden" }}>
         <Stack spacing={1}>
           <Typography variant="body2" color="text.secondary">
             Run your prompt with sample inputs before publishing.
@@ -126,7 +118,10 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
             borderColor: "divider",
             borderRadius: 1,
             p: 1.25,
-            minHeight: 0,
+            minHeight: 110,
+            maxHeight: "34%",
+            overflowY: "auto",
+            flexShrink: 0,
           }}
         >
           <Stack spacing={1.25}>
@@ -192,6 +187,7 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
           onClick={handleRun}
           disabled={runDisabled}
           fullWidth
+          sx={{ flexShrink: 0 }}
           startIcon={isRunning ? <CircularProgress color="inherit" size={16} /> : undefined}
         >
           {isRunning ? "Running..." : "Run Test"}
@@ -199,7 +195,7 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
 
         {error && <Alert severity="error">{error}</Alert>}
 
-        <Divider />
+        <Divider sx={{ flexShrink: 0 }} />
 
         <Accordion
           disableGutters
@@ -226,7 +222,8 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
                 whiteSpace: "pre-wrap",
                 fontFamily: "monospace",
                 fontSize: "0.75rem",
-                maxHeight: 200,
+                minHeight: 180,
+                maxHeight: 220,
                 overflowY: "auto",
               }}
             >
@@ -244,7 +241,7 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
             border: "1px solid",
             borderColor: "divider",
             borderRadius: 1,
-            minHeight: showAiResponse ? 220 : "auto",
+            minHeight: showAiResponse ? 240 : "auto",
             flex: showAiResponse ? 1 : 0,
             overflow: "hidden",
           }}

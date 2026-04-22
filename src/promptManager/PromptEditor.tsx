@@ -25,6 +25,8 @@ import { PromptStatusChip } from "./PromptStatusChip";
 import { formatLastUpdated } from "./promptManagerSelectors";
 import { PromptTestPanel } from "./PromptTestPanel";
 
+const TOKEN_PREVIEW_REGEX = /\[\[([^[\]]+)\]\]|\[([^[\]]+)\]/g;
+
 interface PromptEditorProps {
   prompt: Prompt;
   onBack: () => void;
@@ -98,6 +100,36 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     archivePrompt(prompt.id);
     onBack();
   };
+
+  const templatePreviewParts = useMemo(() => {
+    const parts: Array<{ kind: "text" | "token"; value: string; type?: "text" | "textarea" | "context" }> = [];
+    let lastIndex = 0;
+    let match: RegExpExecArray | null;
+    const regex = new RegExp(TOKEN_PREVIEW_REGEX);
+
+    while ((match = regex.exec(content)) !== null) {
+      const raw = match[0];
+      const name = (match[1] ?? match[2] ?? "").trim();
+      const isDouble = Boolean(match[1]);
+      if (match.index > lastIndex) {
+        parts.push({ kind: "text", value: content.slice(lastIndex, match.index) });
+      }
+
+      if (name) {
+        const type = name === "CONTEXT" ? "context" : isDouble ? "textarea" : "text";
+        parts.push({ kind: "token", value: raw, type });
+      } else {
+        parts.push({ kind: "text", value: raw });
+      }
+      lastIndex = regex.lastIndex;
+    }
+
+    if (lastIndex < content.length) {
+      parts.push({ kind: "text", value: content.slice(lastIndex) });
+    }
+
+    return parts;
+  }, [content]);
 
   // Status label shown in header
   const statusLabel = (() => {
@@ -251,6 +283,35 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   ))}
                 </Alert>
               )}
+
+              <Box
+                border={1}
+                borderColor="divider"
+                borderRadius={1}
+                p={1.5}
+                sx={{ bgcolor: "background.default", fontFamily: "monospace", fontSize: "0.8rem", whiteSpace: "pre-wrap" }}
+              >
+                {templatePreviewParts.map((part, index) => {
+                  if (part.kind === "text") {
+                    return <Box key={`text-${index}`} component="span">{part.value}</Box>;
+                  }
+
+                  const isContext = part.type === "context";
+                  const isTextarea = part.type === "textarea";
+                  return (
+                    <Chip
+                      key={`token-${index}`}
+                      size="small"
+                      icon={isContext ? <AttachFileIcon /> : isTextarea ? <SubjectIcon /> : <ShortTextIcon />}
+                      label={part.value}
+                      color={isContext ? "info" : isTextarea ? "secondary" : "default"}
+                      variant={isTextarea ? "filled" : "outlined"}
+                      aria-label={isContext ? "Attachment variable" : isTextarea ? "Multi-line variable" : "Single-line variable"}
+                      sx={{ mx: 0.25, my: 0.25, verticalAlign: "middle" }}
+                    />
+                  );
+                })}
+              </Box>
             </Stack>
 
             {/* — Variables preview section — */}

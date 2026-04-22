@@ -247,6 +247,8 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
                 borderColor: "divider",
                 borderRadius: 1,
                 overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
                 flexShrink: 0,
                 ...(showAiResponse ? { minHeight: 240, flex: 1 } : {}),
               }}
@@ -257,9 +259,14 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
               >
                 <Typography variant="subtitle2">AI Response</Typography>
               </AccordionSummary>
-              <AccordionDetails sx={{ pt: 0, height: "100%", minHeight: 0 }}>
+              <AccordionDetails sx={{ pt: 0, height: "100%", minHeight: 0, display: "flex", flexDirection: "column" }}>
                 <Box
+                  role="region"
+                  aria-label="AI response output"
+                  tabIndex={0}
                   sx={{
+                    flex: 1,
+                    minHeight: 0,
                     p: 1.5,
                     border: "1px solid",
                     borderColor: "divider",
@@ -267,7 +274,7 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
                     bgcolor: "background.default",
                     whiteSpace: "pre-wrap",
                     overflowY: "auto",
-                    minHeight: 200,
+                    height: "100%",
                     maxHeight: "100%",
                   }}
                 >

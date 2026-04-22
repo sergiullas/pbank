@@ -304,7 +304,18 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
         maxWidth="lg"
         aria-labelledby="expanded-ai-response-title"
       >
-        <DialogTitle id="expanded-ai-response-title">Expanded AI Response</DialogTitle>
+        <DialogTitle id="expanded-ai-response-title" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Box component="span" sx={{ flex: 1 }}>
+            Expanded AI Response
+          </Box>
+          <IconButton
+            onClick={() => setShowExpandedResponse(false)}
+            aria-label="Close expanded response"
+            edge="end"
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
         <DialogContent dividers>
           <Box
             component="pre"

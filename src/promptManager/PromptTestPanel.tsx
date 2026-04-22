@@ -40,6 +40,7 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
   const [showRenderedPrompt, setShowRenderedPrompt] = useState(false);
   const [showAiResponse, setShowAiResponse] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasRunOutput = renderedPrompt !== null || result !== null;
 
   const hasMissingVariables = nonContextVariables.some(
     (variable) => !(values[variable.token] ?? "").trim(),
@@ -63,6 +64,8 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
       ]);
       setRenderedPrompt(nextRenderedPrompt);
       setResult(nextResult);
+      setShowRenderedPrompt(true);
+      setShowAiResponse(true);
     } catch (err) {
       const detail = err instanceof Error ? err.message : "Failed to run prompt test.";
       setError(`Something went wrong. Try again.${detail ? ` ${detail}` : ""}`);
@@ -195,81 +198,85 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
 
         {error && <Alert severity="error">{error}</Alert>}
 
-        <Divider sx={{ flexShrink: 0 }} />
+        {hasRunOutput && (
+          <>
+            <Divider sx={{ flexShrink: 0 }} />
 
-        <Accordion
-          disableGutters
-          expanded={showRenderedPrompt}
-          onChange={(_, expanded) => setShowRenderedPrompt(expanded)}
-          elevation={0}
-          sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}
-        >
-          <AccordionSummary
-            expandIcon={showRenderedPrompt ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            sx={{ minHeight: 44 }}
-          >
-            <Typography variant="subtitle2">Rendered Prompt</Typography>
-          </AccordionSummary>
-          <AccordionDetails sx={{ pt: 0 }}>
-            <Box
-              component="pre"
+            <Accordion
+              disableGutters
+              expanded={showRenderedPrompt}
+              onChange={(_, expanded) => setShowRenderedPrompt(expanded)}
+              elevation={0}
+              sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, flexShrink: 0 }}
+            >
+              <AccordionSummary
+                expandIcon={showRenderedPrompt ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                sx={{ minHeight: 44 }}
+              >
+                <Typography variant="subtitle2">Rendered Prompt</Typography>
+              </AccordionSummary>
+              <AccordionDetails sx={{ pt: 0 }}>
+                <Box
+                  component="pre"
+                  sx={{
+                    m: 0,
+                    p: 1.5,
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: 1,
+                    whiteSpace: "pre-wrap",
+                    fontFamily: "monospace",
+                    fontSize: "0.75rem",
+                    minHeight: 180,
+                    maxHeight: 220,
+                    overflowY: "auto",
+                  }}
+                >
+                  {renderedPrompt}
+                </Box>
+              </AccordionDetails>
+            </Accordion>
+
+            <Accordion
+              disableGutters
+              expanded={showAiResponse}
+              onChange={(_, expanded) => setShowAiResponse(expanded)}
+              elevation={0}
               sx={{
-                m: 0,
-                p: 1.5,
                 border: "1px solid",
                 borderColor: "divider",
                 borderRadius: 1,
-                whiteSpace: "pre-wrap",
-                fontFamily: "monospace",
-                fontSize: "0.75rem",
-                minHeight: 180,
-                maxHeight: 220,
-                overflowY: "auto",
+                overflow: "hidden",
+                flexShrink: 0,
+                ...(showAiResponse ? { minHeight: 240, flex: 1 } : {}),
               }}
             >
-              {renderedPrompt ?? "Run a test to preview rendered prompt."}
-            </Box>
-          </AccordionDetails>
-        </Accordion>
-
-        <Accordion
-          disableGutters
-          expanded={showAiResponse}
-          onChange={(_, expanded) => setShowAiResponse(expanded)}
-          elevation={0}
-          sx={{
-            border: "1px solid",
-            borderColor: "divider",
-            borderRadius: 1,
-            minHeight: showAiResponse ? 240 : "auto",
-            flex: showAiResponse ? 1 : 0,
-            overflow: "hidden",
-          }}
-        >
-          <AccordionSummary
-            expandIcon={showAiResponse ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            sx={{ minHeight: 44 }}
-          >
-            <Typography variant="subtitle2">AI Response</Typography>
-          </AccordionSummary>
-          <AccordionDetails sx={{ pt: 0, height: "100%", minHeight: 0 }}>
-            <Box
-              sx={{
-                p: 1.5,
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: 1,
-                bgcolor: "background.default",
-                whiteSpace: "pre-wrap",
-                overflowY: "auto",
-                minHeight: 200,
-                maxHeight: "100%",
-              }}
-            >
-              {isRunning ? "Running..." : result ?? "Run a test to see results"}
-            </Box>
-          </AccordionDetails>
-        </Accordion>
+              <AccordionSummary
+                expandIcon={showAiResponse ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                sx={{ minHeight: 44 }}
+              >
+                <Typography variant="subtitle2">AI Response</Typography>
+              </AccordionSummary>
+              <AccordionDetails sx={{ pt: 0, height: "100%", minHeight: 0 }}>
+                <Box
+                  sx={{
+                    p: 1.5,
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: 1,
+                    bgcolor: "background.default",
+                    whiteSpace: "pre-wrap",
+                    overflowY: "auto",
+                    minHeight: 200,
+                    maxHeight: "100%",
+                  }}
+                >
+                  {result}
+                </Box>
+              </AccordionDetails>
+            </Accordion>
+          </>
+        )}
       </Box>
     </Box>
   );

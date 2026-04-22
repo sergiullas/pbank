@@ -1,23 +1,20 @@
 import CloseIcon from "@mui/icons-material/Close";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
   Alert,
   Box,
   Button,
   Checkbox,
   CircularProgress,
-  Divider,
+  Dialog,
+  DialogContent,
+  DialogTitle,
   FormControlLabel,
   IconButton,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { parseTemplateVariables } from "../promptBank/templateVariables";
 import { renderPromptTestTemplate, runPromptTest } from "./runPromptTest";
 
@@ -25,6 +22,8 @@ interface PromptTestPanelProps {
   template: string;
   onClose: () => void;
 }
+
+type RunStatus = "idle" | "loading" | "success" | "error";
 
 export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
   const { variables, invalidTokens } = useMemo(() => parseTemplateVariables(template), [template]);
@@ -34,23 +33,36 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [useContext, setUseContext] = useState(hasContextVariable);
   const [file, setFile] = useState<File | null>(null);
-  const [isRunning, setIsRunning] = useState(false);
   const [result, setResult] = useState<string | null>(null);
   const [renderedPrompt, setRenderedPrompt] = useState<string | null>(null);
   const [showRenderedPrompt, setShowRenderedPrompt] = useState(false);
-  const [showAiResponse, setShowAiResponse] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const hasRunOutput = renderedPrompt !== null || result !== null;
+  const [showExpandedResponse, setShowExpandedResponse] = useState(false);
+  const [runStatus, setRunStatus] = useState<RunStatus>("idle");
+  const [hasRunOnce, setHasRunOnce] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const aiResponseHeadingRef = useRef<HTMLHeadingElement | null>(null);
+
+  useEffect(() => {
+    if (!hasRunOnce || runStatus === "loading") {
+      return;
+    }
+
+    aiResponseHeadingRef.current?.focus();
+  }, [hasRunOnce, runStatus]);
 
   const hasMissingVariables = nonContextVariables.some(
     (variable) => !(values[variable.token] ?? "").trim(),
   );
   const contextRequiredAndMissing = hasContextVariable && (!useContext || !file);
-  const runDisabled = isRunning || hasMissingVariables || contextRequiredAndMissing || invalidTokens.length > 0;
+  const runDisabled = runStatus === "loading" || hasMissingVariables || contextRequiredAndMissing || invalidTokens.length > 0;
 
   const handleRun = async () => {
-    setIsRunning(true);
-    setError(null);
+    setHasRunOnce(true);
+    setRunStatus("loading");
+    setErrorMessage(null);
+    setResult(null);
+    setRenderedPrompt(null);
 
     try {
       const input = {
@@ -64,13 +76,10 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
       ]);
       setRenderedPrompt(nextRenderedPrompt);
       setResult(nextResult);
-      setShowRenderedPrompt(true);
-      setShowAiResponse(true);
-    } catch (err) {
-      const detail = err instanceof Error ? err.message : "Failed to run prompt test.";
-      setError(`Something went wrong. Try again.${detail ? ` ${detail}` : ""}`);
-    } finally {
-      setIsRunning(false);
+      setRunStatus("success");
+    } catch {
+      setRunStatus("error");
+      setErrorMessage("Something went wrong. Try again.");
     }
   };
 
@@ -98,13 +107,7 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
         </IconButton>
       </Box>
 
-      <Box p={2} flex={1} minHeight={0} display="flex" flexDirection="column" gap={2} sx={{ overflow: "hidden" }}>
-        <Stack spacing={1}>
-          <Typography variant="body2" color="text.secondary">
-            Run your prompt with sample inputs before publishing.
-          </Typography>
-        </Stack>
-
+      <Box p={2} flex={1} minHeight={0} display="flex" flexDirection="column" gap={2} sx={{ overflowY: "auto" }}>
         {invalidTokens.length > 0 && (
           <Alert severity="error">
             {invalidTokens.map((invalidToken) => (
@@ -122,66 +125,75 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
             borderRadius: 1,
             p: 1.25,
             minHeight: 110,
-            maxHeight: "34%",
+            maxHeight: "35%",
             overflowY: "auto",
             flexShrink: 0,
           }}
         >
           <Stack spacing={1.25}>
-          {nonContextVariables.map((variable) => (
-            <TextField
-              key={variable.token}
-              label={variable.raw}
-              value={values[variable.token] ?? ""}
-              onChange={(event) =>
-                setValues((prev) => ({ ...prev, [variable.token]: event.target.value }))
-              }
-              fullWidth
-              size="small"
-              required
-              disabled={isRunning}
-              multiline={variable.type === "textarea"}
-              minRows={variable.type === "textarea" ? 2 : 1}
-              maxRows={variable.type === "textarea" ? 8 : 1}
-              sx={variable.type === "textarea" ? {
-                "& .MuiInputBase-inputMultiline": {
-                  maxHeight: "25vh",
-                  overflowY: "auto !important",
-                  resize: "none",
-                },
-              } : undefined}
-            />
-          ))}
-
-          {hasContextVariable && (
-            <Stack spacing={1}>
-              <FormControlLabel
-                control={
-                  <Checkbox
-                    checked={useContext}
-                    disabled={isRunning}
-                    onChange={(event) => {
-                      setUseContext(event.target.checked);
-                      if (!event.target.checked) setFile(null);
-                    }}
-                  />
+            {nonContextVariables.map((variable) => (
+              <TextField
+                key={variable.token}
+                label={variable.raw}
+                value={values[variable.token] ?? ""}
+                onChange={(event) =>
+                  setValues((prev) => ({ ...prev, [variable.token]: event.target.value }))
                 }
-                label="Use attached file as context"
+                fullWidth
+                size="small"
+                required
+                disabled={runStatus === "loading"}
+                multiline={variable.type === "textarea"}
+                minRows={variable.type === "textarea" ? 2 : 1}
+                maxRows={variable.type === "textarea" ? 8 : 1}
+                sx={
+                  variable.type === "textarea"
+                    ? {
+                        "& .MuiInputBase-inputMultiline": {
+                          maxHeight: "25vh",
+                          overflowY: "auto !important",
+                          resize: "none",
+                        },
+                      }
+                    : undefined
+                }
               />
+            ))}
 
-              {useContext && (
-                <Button variant="outlined" component="label">
-                  {file ? `Selected: ${file.name}` : "Attach file"}
-                  <input
-                    type="file"
-                    hidden
-                    disabled={isRunning}
-                    onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-                  />
-                </Button>
-              )}
-            </Stack>
-          )}
+            {hasContextVariable && (
+              <Stack spacing={1}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={useContext}
+                      disabled={runStatus === "loading"}
+                      onChange={(event) => {
+                        setUseContext(event.target.checked);
+                        if (!event.target.checked) setFile(null);
+                      }}
+                    />
+                  }
+                  label="Use attached file as context"
+                />
+
+                {useContext && (
+                  <Stack spacing={0.75}>
+                    <Button variant="outlined" component="label" disabled={runStatus === "loading"}>
+                      {file ? "Replace file" : "Attach file"}
+                      <input
+                        type="file"
+                        hidden
+                        disabled={runStatus === "loading"}
+                        onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                      />
+                    </Button>
+                    <Typography variant="caption" color="text.secondary" aria-live="polite">
+                      {file ? `Attached file: ${file.name}` : "No file attached"}
+                    </Typography>
+                  </Stack>
+                )}
+              </Stack>
+            )}
           </Stack>
         </Box>
 
@@ -191,100 +203,124 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
           disabled={runDisabled}
           fullWidth
           sx={{ flexShrink: 0 }}
-          startIcon={isRunning ? <CircularProgress color="inherit" size={16} /> : undefined}
+          startIcon={runStatus === "loading" ? <CircularProgress color="inherit" size={16} /> : undefined}
         >
-          {isRunning ? "Running..." : "Run Test"}
+          {runStatus === "loading" ? "Running..." : "Run Test"}
         </Button>
 
-        {error && <Alert severity="error">{error}</Alert>}
+        {!hasRunOnce && (
+          <Typography variant="body2" color="text.secondary">
+            Run a test to see results
+          </Typography>
+        )}
 
-        {hasRunOutput && (
-          <>
-            <Divider sx={{ flexShrink: 0 }} />
-
-            <Accordion
-              disableGutters
-              expanded={showRenderedPrompt}
-              onChange={(_, expanded) => setShowRenderedPrompt(expanded)}
-              elevation={0}
-              sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, flexShrink: 0 }}
-            >
-              <AccordionSummary
-                expandIcon={showRenderedPrompt ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                sx={{ minHeight: 44 }}
+        {hasRunOnce && (
+          <Box display="flex" flexDirection="column" gap={1.5} minHeight={0}>
+            <Box display="flex" alignItems="center" justifyContent="space-between" gap={1}>
+              <Typography
+                variant="subtitle2"
+                ref={aiResponseHeadingRef}
+                tabIndex={-1}
+                sx={{ outline: "none" }}
               >
-                <Typography variant="subtitle2">Rendered Prompt</Typography>
-              </AccordionSummary>
-              <AccordionDetails sx={{ pt: 0 }}>
-                <Box
-                  component="pre"
-                  sx={{
-                    m: 0,
-                    p: 1.5,
-                    border: "1px solid",
-                    borderColor: "divider",
-                    borderRadius: 1,
-                    whiteSpace: "pre-wrap",
-                    fontFamily: "monospace",
-                    fontSize: "0.75rem",
-                    minHeight: 180,
-                    maxHeight: 220,
-                    overflowY: "auto",
-                  }}
-                >
-                  {renderedPrompt}
-                </Box>
-              </AccordionDetails>
-            </Accordion>
+                AI Response
+              </Typography>
+              <Button
+                size="small"
+                onClick={() => setShowExpandedResponse(true)}
+                disabled={!result || runStatus !== "success"}
+              >
+                Expand Response
+              </Button>
+            </Box>
 
-            <Accordion
-              disableGutters
-              expanded={showAiResponse}
-              onChange={(_, expanded) => setShowAiResponse(expanded)}
-              elevation={0}
+            <Box
+              role="region"
+              aria-live="polite"
+              aria-label="AI response output"
+              tabIndex={0}
               sx={{
+                minHeight: 200,
+                maxHeight: "42vh",
+                p: 1.5,
                 border: "1px solid",
                 borderColor: "divider",
                 borderRadius: 1,
-                overflow: "hidden",
-                display: "flex",
-                flexDirection: "column",
-                flexShrink: 0,
-                ...(showAiResponse ? { minHeight: 240, flex: 1 } : {}),
+                bgcolor: "background.default",
+                whiteSpace: "pre-wrap",
+                lineHeight: 1.6,
+                overflowY: "auto",
               }}
             >
-              <AccordionSummary
-                expandIcon={showAiResponse ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                sx={{ minHeight: 44 }}
+              {runStatus === "loading" && "Running test..."}
+              {runStatus === "error" && errorMessage}
+              {runStatus === "success" && result}
+            </Box>
+
+            <Box>
+              <Button
+                size="small"
+                onClick={() => setShowRenderedPrompt((prev) => !prev)}
+                disabled={runStatus === "loading" || runStatus === "error" || !renderedPrompt}
               >
-                <Typography variant="subtitle2">AI Response</Typography>
-              </AccordionSummary>
-              <AccordionDetails sx={{ pt: 0, height: "100%", minHeight: 0, display: "flex", flexDirection: "column" }}>
-                <Box
-                  role="region"
-                  aria-label="AI response output"
-                  tabIndex={0}
-                  sx={{
-                    flex: 1,
-                    minHeight: 0,
-                    p: 1.5,
-                    border: "1px solid",
-                    borderColor: "divider",
-                    borderRadius: 1,
-                    bgcolor: "background.default",
-                    whiteSpace: "pre-wrap",
-                    overflowY: "auto",
-                    height: "100%",
-                    maxHeight: "100%",
-                  }}
-                >
-                  {result}
+                {showRenderedPrompt ? "Hide rendered prompt" : "Show rendered prompt"}
+              </Button>
+
+              {showRenderedPrompt && renderedPrompt && (
+                <Box mt={1}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Rendered Prompt
+                  </Typography>
+                  <Box
+                    component="pre"
+                    sx={{
+                      m: 0,
+                      p: 1.5,
+                      border: "1px solid",
+                      borderColor: "divider",
+                      borderRadius: 1,
+                      bgcolor: "background.default",
+                      whiteSpace: "pre-wrap",
+                      fontFamily: "monospace",
+                      fontSize: "0.75rem",
+                      lineHeight: 1.5,
+                      maxHeight: 220,
+                      overflowY: "auto",
+                    }}
+                  >
+                    {renderedPrompt}
+                  </Box>
                 </Box>
-              </AccordionDetails>
-            </Accordion>
-          </>
+              )}
+            </Box>
+          </Box>
         )}
       </Box>
+
+      <Dialog
+        open={showExpandedResponse}
+        onClose={() => setShowExpandedResponse(false)}
+        fullWidth
+        maxWidth="lg"
+        aria-labelledby="expanded-ai-response-title"
+      >
+        <DialogTitle id="expanded-ai-response-title">Expanded AI Response</DialogTitle>
+        <DialogContent dividers>
+          <Box
+            component="pre"
+            sx={{
+              m: 0,
+              whiteSpace: "pre-wrap",
+              fontFamily: "inherit",
+              fontSize: "0.95rem",
+              lineHeight: 1.6,
+              minHeight: 300,
+            }}
+          >
+            {result}
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 }

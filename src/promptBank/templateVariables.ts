@@ -122,8 +122,8 @@ export function substituteTemplateVariables(
     if (!value?.trim()) continue;
 
     const escapedToken = escapeRegExp(token);
-    output = output.replace(new RegExp(`\\[\\[${escapedToken}\\]\\]`, "g"), value);
-    output = output.replace(new RegExp(`\\[${escapedToken}\\]`, "g"), value);
+    output = output.replace(new RegExp(`\\[\\[${escapedToken}\\]\\]`, "g"), () => value);
+    output = output.replace(new RegExp(`\\[${escapedToken}\\]`, "g"), () => value);
   }
 
   return output;

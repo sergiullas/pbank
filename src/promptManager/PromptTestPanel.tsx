@@ -109,7 +109,7 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
 
       <Box p={2} flex={1} minHeight={0} display="flex" flexDirection="column" gap={2} sx={{ overflowY: "auto" }}>
         {invalidTokens.length > 0 && (
-          <Alert severity="error">
+          <Alert severity="error" role="alert" aria-live="polite">
             {invalidTokens.map((invalidToken) => (
               <Typography key={`${invalidToken.raw}-${invalidToken.message}`} variant="body2">
                 <code>{invalidToken.raw}</code> — {invalidToken.message}

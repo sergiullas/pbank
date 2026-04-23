@@ -62,6 +62,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const [showTestPanel, setShowTestPanel] = useState(false);
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
   const [viewAllVersionsOpen, setViewAllVersionsOpen] = useState(false);
   const [versionMenuAnchorPosition, setVersionMenuAnchorPosition] = useState<{ top: number; left: number } | null>(null);
   const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(null);
@@ -175,7 +176,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   };
 
   const handleBack = () => {
-    if (!isReadOnly && isDirty && !window.confirm("You have unsaved changes. Leave without saving?")) {
+    if (!isReadOnly && isDirty) {
+      setUnsavedDialogOpen(true);
       return;
     }
     onBack();
@@ -283,7 +285,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         <Box flex={1} minWidth={0} overflow="auto">
           <Box maxWidth={800} mx="auto" px={3} py={3}>
             <Stack spacing={4}>
-              {savedFeedback && <Alert severity="success" sx={{ py: 0.5 }}>{savedFeedback}</Alert>}
+              {savedFeedback && <Alert severity="success" sx={{ py: 0.5 }} aria-live="polite">{savedFeedback}</Alert>}
 
               <Stack spacing={2}>
                 <Typography variant="overline" color="text.secondary" letterSpacing={1}>
@@ -391,7 +393,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                 </Typography>
 
                 {invalidTokens.length > 0 && (
-                  <Alert severity="error">
+                  <Alert severity="error" role="alert" aria-live="polite">
                     {invalidTokens.map((invalidToken) => (
                       <Typography key={`${invalidToken.raw}-${invalidToken.message}`} variant="body2">
                         <code>{invalidToken.raw}</code> — {invalidToken.message}
@@ -553,6 +555,11 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
             <Button variant="contained" color="primary" onClick={() => setPublishDialogOpen(true)} disabled={!draftFormState.content.trim()}>
               Publish
             </Button>
+            {!draftFormState.content.trim() && (
+              <Typography variant="caption" color="text.secondary">
+                Add template content to enable publishing.
+              </Typography>
+            )}
           </>
         )}
 
@@ -579,8 +586,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         )}
       </Box>
 
-      <Dialog open={publishDialogOpen} onClose={() => setPublishDialogOpen(false)}>
-        <DialogTitle>Publish new version?</DialogTitle>
+      <Dialog open={publishDialogOpen} onClose={() => setPublishDialogOpen(false)} aria-labelledby="publish-dialog-title">
+        <DialogTitle id="publish-dialog-title">Publish new version?</DialogTitle>
         <DialogContent>
           <DialogContentText>This will create a new immutable version.</DialogContentText>
           <DialogContentText>Published versions cannot be edited or deleted.</DialogContentText>
@@ -591,8 +598,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>{(hasVersionHistory || prompt.publishedVersionId) ? "Delete draft?" : "Delete prompt?"}</DialogTitle>
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} aria-labelledby="delete-dialog-title">
+        <DialogTitle id="delete-dialog-title">{(hasVersionHistory || prompt.publishedVersionId) ? "Delete draft?" : "Delete prompt?"}</DialogTitle>
         <DialogContent>
           {(hasVersionHistory || prompt.publishedVersionId) ? (
             <DialogContentText>
@@ -608,8 +615,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={viewAllVersionsOpen} onClose={() => setViewAllVersionsOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle>All Versions</DialogTitle>
+      <Dialog open={viewAllVersionsOpen} onClose={() => setViewAllVersionsOpen(false)} fullWidth maxWidth="sm" aria-labelledby="all-versions-title">
+        <DialogTitle id="all-versions-title">All Versions</DialogTitle>
         <DialogContent>
           <Stack spacing={1} mt={0.5}>
             {sortedVersions.map((version) => (
@@ -667,6 +674,28 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
           </>
         )}
       </Menu>
+
+      <Dialog open={unsavedDialogOpen} onClose={() => setUnsavedDialogOpen(false)} aria-labelledby="unsaved-dialog-title">
+        <DialogTitle id="unsaved-dialog-title">Discard unsaved changes?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            You have unsaved edits. If you leave now, your changes will be lost.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setUnsavedDialogOpen(false)}>Stay</Button>
+          <Button
+            color="warning"
+            variant="contained"
+            onClick={() => {
+              setUnsavedDialogOpen(false);
+              onBack();
+            }}
+          >
+            Leave without saving
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

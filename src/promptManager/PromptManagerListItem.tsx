@@ -68,10 +68,22 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
     setDeleteDialogOpen(false);
   };
 
+  const rowLabel = `Open prompt ${prompt.title}`;
+  const menuButtonLabel = `More actions for ${prompt.title}`;
+
   return (
     <>
       <Box
+        role="button"
+        tabIndex={0}
+        aria-label={rowLabel}
         onClick={onEdit}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            onEdit();
+          }
+        }}
         sx={(theme) => ({
           px: 2.5,
           py: 1.75,
@@ -80,8 +92,13 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
           alignItems: "center",
           gap: 2,
           cursor: "pointer",
+          outline: "none",
           transition: "background-color 120ms ease",
           "&:hover": { bgcolor: "action.hover" },
+          "&:focus-visible": {
+            outline: `2px solid ${theme.palette.primary.main}`,
+            outlineOffset: -2,
+          },
         })}
       >
         {/* Main content */}
@@ -112,10 +129,10 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
           flexShrink={0}
           onClick={(e) => e.stopPropagation()}
         >
-          <Tooltip title="More actions">
+          <Tooltip title={menuButtonLabel}>
             <IconButton
               size="small"
-              aria-label="More actions"
+              aria-label={menuButtonLabel}
               aria-haspopup="menu"
               aria-expanded={menuOpen ? "true" : undefined}
               onClick={handleOpenMenu}
@@ -131,7 +148,7 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
             onClick={(e) => e.stopPropagation()}
             anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
             transformOrigin={{ vertical: "top", horizontal: "right" }}
-            MenuListProps={{ "aria-label": "Prompt actions" }}
+            MenuListProps={{ "aria-label": `Prompt actions for ${prompt.title}` }}
           >
             {prompt.status === "published" && (
               <MenuItem onClick={() => handleMenuAction(onEdit)}>

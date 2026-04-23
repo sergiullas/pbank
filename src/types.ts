@@ -34,6 +34,7 @@ export type Prompt = {
   versions?: PromptVersion[];
   // Lifecycle fields
   status: PromptStatus;
+  archivedFromStatus?: Exclude<PromptStatus, "archived"> | null;
   publishedVersionId?: string | null;
   lastUpdatedAt?: string;
   publishedAt?: string | null;

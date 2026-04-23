@@ -135,7 +135,6 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
   const setPromptQuery = useStore((state) => state.setPromptQuery);
   const setFilterMode = useStore((state) => state.setFilterMode);
   const setSortMode = useStore((state) => state.setSortMode);
-  const togglePromptFavorite = useStore((state) => state.togglePromptFavorite);
   const toggleVersionFavorite = useStore((state) => state.toggleVersionFavorite);
   const isPromptFavorited = useStore((state) => state.isPromptFavorited);
   const insertIntoComposer = useStore((state) => state.insertIntoComposer);
@@ -236,9 +235,7 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
   const latestVersionNumber = selectedPrompt ? getLatestVersion(selectedPrompt).version : null;
   const isLatestVersion = latestVersionNumber != null && activeVersion?.version === latestVersionNumber;
   const activeVersionFavorited = selectedPrompt && activeVersion
-    ? (isLatestVersion
-      ? favorites.some((favorite) => favorite.promptId === selectedPrompt.id && favorite.version == null)
-      : favorites.some((favorite) => favorite.promptId === selectedPrompt.id && favorite.version === activeVersion.version))
+    ? favorites.some((favorite) => favorite.promptId === selectedPrompt.id && favorite.version === activeVersion.version)
     : false;
 
   const selectValue = filterMode === "favorites" ? "mostUsed" : isSearching ? "relevance" : sortMode;
@@ -269,7 +266,7 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
   ) => {
     const promptFavorited = options?.favorite
       ? true
-      : favorites.some((favorite) => favorite.promptId === prompt.id && favorite.version == null);
+      : favorites.some((favorite) => favorite.promptId === prompt.id && favorite.version === getPublishedVersion(prompt).version);
 
     return (
       <ListItemButton
@@ -295,9 +292,7 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
                   aria-label={promptFavorited ? "Remove from favorites" : "Add to favorites"}
                   onClick={(event) => {
                     event.stopPropagation();
-                    if (options?.favorite?.version == null) {
-                      togglePromptFavorite(prompt.id);
-                    } else {
+                    if (options?.favorite?.version != null) {
                       toggleVersionFavorite(prompt.id, options.favorite.version);
                     }
                   }}
@@ -315,6 +310,9 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
               <Typography variant="caption" color="text.secondary">
                 by {prompt.owner} · {options?.versionLabel ?? `v${getPublishedVersion(prompt).version}`}
               </Typography>
+              {prompt.status === "archived" && (
+                <Chip label="Archived" size="small" color="warning" variant="outlined" sx={{ width: "fit-content" }} />
+              )}
             </Stack>
           )}
         />
@@ -456,7 +454,7 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
                   <List disablePadding>
                     {favoriteItems.map(({ favorite, prompt }) => {
                       const resolvedVersion = resolveFavoritePromptVersion(prompt, favorite);
-                      const versionLabel = favorite.version == null ? "Latest" : `v${resolvedVersion.version}`;
+                      const versionLabel = `v${resolvedVersion.version}`;
 
                       return renderPromptRow(prompt, {
                         favorite,
@@ -490,11 +488,7 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
                       size="small"
                       aria-label={activeVersionFavorited ? "Remove from favorites" : "Add to favorites"}
                       onClick={() => {
-                        if (isLatestVersion) {
-                          togglePromptFavorite(selectedPrompt.id);
-                        } else {
-                          toggleVersionFavorite(selectedPrompt.id, activeVersion.version);
-                        }
+                        toggleVersionFavorite(selectedPrompt.id, activeVersion.version);
                       }}
                     >
                       {activeVersionFavorited ? <StarIcon fontSize="small" color="warning" /> : <StarBorderIcon fontSize="small" />}

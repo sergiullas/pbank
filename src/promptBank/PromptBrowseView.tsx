@@ -100,7 +100,6 @@ export function PromptBrowseView() {
   const setFilterMode = useStore((state) => state.setFilterMode);
   const setSortMode = useStore((state) => state.setSortMode);
   const openPromptDetail = useStore((state) => state.openPromptDetail);
-  const togglePromptFavorite = useStore((state) => state.togglePromptFavorite);
   const toggleVersionFavorite = useStore((state) => state.toggleVersionFavorite);
   const isPromptFavorited = useStore((state) => state.isPromptFavorited);
   const insertIntoComposer = useStore((state) => state.insertIntoComposer);
@@ -238,7 +237,7 @@ export function PromptBrowseView() {
             <List disablePadding>
               {favoriteItems.map(({ favorite, prompt }) => {
                 const resolvedVersion = resolveFavoritePromptVersion(prompt, favorite);
-                const versionLabel = favorite.version == null ? "Latest" : `v${resolvedVersion.version}`;
+                const versionLabel = `v${resolvedVersion.version}`;
                 return (
                   <PromptListItem
                     key={favorite.id}
@@ -246,15 +245,12 @@ export function PromptBrowseView() {
                     selected={selectedPromptId === prompt.id}
                     isFavorite
                     isFavoritesView
+                    isArchived={prompt.status === "archived"}
                     versionLabel={versionLabel}
                     insertContent={resolvedVersion.content}
-                    onSelect={() => openPromptDetail(prompt.id, favorite.version)}
+                    onSelect={() => openPromptDetail(prompt.id, resolvedVersion.version)}
                     onToggleFavorite={() => {
-                      if (favorite.version == null) {
-                        togglePromptFavorite(prompt.id);
-                      } else {
-                        toggleVersionFavorite(prompt.id, favorite.version);
-                      }
+                      if (favorite.version != null) toggleVersionFavorite(prompt.id, favorite.version);
                     }}
                     onInsert={(content, id) => {
                       insertIntoComposer(content);
@@ -285,7 +281,7 @@ export function PromptBrowseView() {
                   versionLabel={`v${publishedVersion.version}`}
                   insertContent={publishedVersion.content}
                   onSelect={openPromptDetail}
-                  onToggleFavorite={togglePromptFavorite}
+                  onToggleFavorite={() => toggleVersionFavorite(prompt.id, publishedVersion.version)}
                   onInsert={(content, id) => {
                     insertIntoComposer(content);
                     incrementUsage(id);

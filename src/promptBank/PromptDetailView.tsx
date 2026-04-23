@@ -16,7 +16,6 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import { useEffect, useMemo, useState } from "react";
 import type { PromptVersion } from "../types";
 import { useStore } from "../state/store";
@@ -33,7 +32,6 @@ export function PromptDetailView() {
   const insertIntoComposer = useStore((state) => state.insertIntoComposer);
   const incrementUsage = useStore((state) => state.incrementUsage);
   const favorites = useStore((state) => state.favorites);
-  const togglePromptFavorite = useStore((state) => state.togglePromptFavorite);
   const toggleVersionFavorite = useStore((state) => state.toggleVersionFavorite);
 
   // Resolve initial version using priority: explicit → version-specific favorite → published → latest.
@@ -89,7 +87,6 @@ export function PromptDetailView() {
 
   const sortedVersions = prompt.versions ? [...prompt.versions].sort(byVersionDesc) : [];
   const latestVersionNumber = getLatestVersion(prompt).version;
-  const isLatestVersion = activeVersion.version === latestVersionNumber;
   const menuOpen = Boolean(anchorEl);
 
   // The version number that is officially published for this prompt in the library
@@ -104,16 +101,14 @@ export function PromptDetailView() {
       .map((f) => f.version as number),
   );
 
-  const activeVersionFavorited = isLatestVersion
-    ? favorites.some((fav) => fav.promptId === prompt.id && fav.version == null)
-    : favorites.some((fav) => fav.promptId === prompt.id && fav.version === activeVersion.version);
+  const activeVersionFavorited = favorites.some((fav) => fav.promptId === prompt.id && fav.version === activeVersion.version);
 
   // Build a readable label for the active version shown in the trigger button
   const activeVersionLabel = (() => {
     const badges: string[] = [];
     if (activeVersion.version === publishedVersionNumber) badges.push("Published");
     if (favoritedVersionNumbers.has(activeVersion.version)) badges.push("Favorited");
-    if (badges.length === 0 && isLatestVersion) badges.push("Latest");
+    if (badges.length === 0 && activeVersion.version === latestVersionNumber) badges.push("Latest");
     return badges.length > 0 ? `v${activeVersion.version} (${badges.join(", ")})` : `v${activeVersion.version}`;
   })();
 
@@ -216,10 +211,8 @@ export function PromptDetailView() {
                 <IconButton
                   size="small"
                   aria-label={`Favorite version v${activeVersion.version} of ${prompt.title}`}
-                  onClick={() => isLatestVersion
-                    ? togglePromptFavorite(prompt.id)
-                    : toggleVersionFavorite(prompt.id, activeVersion.version)
-                  }
+                  disabled={!activeVersionFavorited && prompt.status === "archived"}
+                  onClick={() => toggleVersionFavorite(prompt.id, activeVersion.version)}
                 >
                   {activeVersionFavorited ? <StarIcon fontSize="small" color="warning" /> : <StarBorderIcon fontSize="small" />}
                 </IconButton>
@@ -235,7 +228,7 @@ export function PromptDetailView() {
 
           <Stack spacing={1}>
             <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: 1 }}>
-              Categories
+              Tags
             </Typography>
             <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
               {prompt.tags.map((tag) => (
@@ -245,23 +238,6 @@ export function PromptDetailView() {
           </Stack>
 
           <Divider sx={{ my: 0.5 }} />
-
-          {activeVersion.desiredOutcome && (
-            <Stack spacing={1}>
-              <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: 1 }}>
-                Desired Outcome
-              </Typography>
-              <Box
-                p={2}
-                borderRadius={2}
-                sx={{ bgcolor: (theme) => alpha(theme.palette.success.main, 0.1) }}
-              >
-                <Typography variant="body2" color="text.primary">
-                  {activeVersion.desiredOutcome}
-                </Typography>
-              </Box>
-            </Stack>
-          )}
 
           <Stack spacing={1}>
             <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: 1 }}>

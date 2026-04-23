@@ -132,13 +132,14 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
             {prompt.status === "published" && (
               <MenuItem
                 onClick={() =>
-                  handleMenuAction(() =>
+                  handleMenuAction(() => {
                     savePromptAsNewVersion(prompt.id, {
                       description: prompt.description,
                       desiredOutcome: prompt.desiredOutcome,
                       content: prompt.content,
-                    }),
-                  )
+                    });
+                    onEdit();
+                  })
                 }
               >
                 Create New Version
@@ -152,7 +153,7 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
 
             {prompt.status === "draft" && [
               <MenuItem key="edit" onClick={() => handleMenuAction(onEdit)}>
-                Edit
+                View
               </MenuItem>,
               <MenuItem
                 key="publish"
@@ -170,9 +171,11 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
               >
                 Publish
               </MenuItem>,
-              <MenuItem key="delete" onClick={handleDeleteClick} sx={{ color: "error.main" }}>
-                Delete Draft
-              </MenuItem>,
+              !prompt.publishedVersionId && (
+                <MenuItem key="delete" onClick={handleDeleteClick} sx={{ color: "error.main" }}>
+                  Delete Draft
+                </MenuItem>
+              ),
             ]}
 
             {prompt.status === "archived" && (

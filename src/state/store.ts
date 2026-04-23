@@ -126,10 +126,30 @@ const readFavorites = (): FavoriteItem[] => {
 
   if (typeof stored[0] === "string") {
     const now = new Date().toISOString();
-    return (stored as string[]).map((promptId) => ({ id: `${promptId}:latest`, promptId, createdAt: now }));
+    const migrated = (stored as string[])
+      .map((promptId) => {
+        const prompt = seedPrompts.find((candidate) => candidate.id === promptId);
+        const publishedVersion = prompt?.versions?.find((version) => version.id === prompt.publishedVersionId);
+        return publishedVersion
+          ? { id: `${promptId}:v${publishedVersion.version}`, promptId, version: publishedVersion.version, createdAt: now }
+          : null;
+      });
+    return migrated.filter(Boolean) as FavoriteItem[];
   }
 
-  return (stored as FavoriteItem[]).map((favorite) => normalizeFavorite(favorite));
+  const migrated = (stored as FavoriteItem[])
+    .map((favorite) => {
+      if (favorite.version != null) return normalizeFavorite(favorite);
+      const prompt = seedPrompts.find((candidate) => candidate.id === favorite.promptId);
+      const publishedVersion = prompt?.versions?.find((version) => version.id === prompt.publishedVersionId);
+      if (!publishedVersion) return null;
+      return normalizeFavorite({
+        ...favorite,
+        id: `${favorite.promptId}:v${publishedVersion.version}`,
+        version: publishedVersion.version,
+      });
+    });
+  return migrated.filter(Boolean) as FavoriteItem[];
 };
 
 const readLibraryCollapsed = (): boolean => readJSON<boolean>(STORAGE_KEYS.libraryCollapsed, true);
@@ -208,25 +228,23 @@ export const useStore = create<StoreState>((set, get) => ({
 
   closePromptDetail: () => set({ libraryView: "browse", detailInitialVersionNumber: null }),
 
-  isPromptFavorited: (promptId) => get().favorites.some((favorite) => favorite.promptId === promptId && favorite.version == null),
+  isPromptFavorited: (promptId) => get().favorites.some((favorite) => favorite.promptId === promptId),
 
   isVersionFavorited: (promptId, version) =>
     get().favorites.some((favorite) => favorite.promptId === promptId && favorite.version === version),
 
   togglePromptFavorite: (promptId) => {
-    const promptFavoriteId = `${promptId}:latest`;
-    const exists = get().favorites.some((favorite) => favorite.id === promptFavoriteId);
-    const nextFavorites = exists
-      ? get().favorites.filter((favorite) => favorite.id !== promptFavoriteId)
-      : [...get().favorites, { id: promptFavoriteId, promptId, createdAt: new Date().toISOString() }];
-
-    writeJSON(STORAGE_KEYS.favorites, nextFavorites);
-    set({ favorites: nextFavorites });
+    const prompt = get().prompts.find((candidate) => candidate.id === promptId);
+    const publishedVersion = prompt?.versions?.find((version) => version.id === prompt.publishedVersionId) ?? null;
+    if (!publishedVersion) return;
+    get().toggleVersionFavorite(promptId, publishedVersion.version);
   },
 
   toggleVersionFavorite: (promptId, version) => {
     const versionFavoriteId = `${promptId}:v${version}`;
     const exists = get().favorites.some((favorite) => favorite.id === versionFavoriteId);
+    const prompt = get().prompts.find((candidate) => candidate.id === promptId);
+    if (!exists && prompt?.status === "archived") return;
     const nextFavorites = exists
       ? get().favorites.filter((favorite) => favorite.id !== versionFavoriteId)
       : [...get().favorites, { id: versionFavoriteId, promptId, version, createdAt: new Date().toISOString() }];
@@ -322,7 +340,7 @@ export const useStore = create<StoreState>((set, get) => ({
   startNewPromptDraft: () => {
     const id = createId();
     const now = new Date().toISOString();
-    const newPrompt: Prompt = {
+      const newPrompt: Prompt = {
       id,
       title: "Untitled Prompt",
       description: "",
@@ -335,10 +353,11 @@ export const useStore = create<StoreState>((set, get) => ({
       lastUpdatedAt: now,
       owner: "User",
       media: false,
-      status: "draft",
-      publishedVersionId: null,
-      hasUnpublishedChanges: false,
-    };
+        status: "draft",
+        archivedFromStatus: null,
+        publishedVersionId: null,
+        hasUnpublishedChanges: false,
+      };
 
     set((state) => ({
       prompts: [...state.prompts, newPrompt],
@@ -398,6 +417,7 @@ export const useStore = create<StoreState>((set, get) => ({
             content: payload.content,
             versions: updatedVersions,
             status: "published" as PromptStatus,
+            archivedFromStatus: null,
             publishedVersionId: newVersion.id,
             lastUpdatedAt: now,
             publishedAt: now,
@@ -433,8 +453,7 @@ export const useStore = create<StoreState>((set, get) => ({
         return {
           ...p,
           status: "archived" as PromptStatus,
-          publishedVersionId: null,
-          publishedAt: null,
+          archivedFromStatus: p.status === "archived" ? p.archivedFromStatus ?? "draft" : p.status,
           lastUpdatedAt: now,
           hasUnpublishedChanges: false,
         };
@@ -449,7 +468,8 @@ export const useStore = create<StoreState>((set, get) => ({
         if (p.id !== promptId) return p;
         return {
           ...p,
-          status: "draft" as PromptStatus,
+          status: p.archivedFromStatus ?? "draft",
+          archivedFromStatus: null,
           lastUpdatedAt: now,
         };
       }),
@@ -458,7 +478,11 @@ export const useStore = create<StoreState>((set, get) => ({
 
   deletePrompt: (promptId) => {
     set((state) => ({
-      prompts: state.prompts.filter((p) => p.id !== promptId),
+      prompts: state.prompts.filter((p) => {
+        if (p.id !== promptId) return true;
+        if (p.status !== "draft") return true;
+        return Boolean(p.publishedVersionId);
+      }),
       // If the deleted prompt was open in the editor, go back to list
       selectedManagedPromptId: state.selectedManagedPromptId === promptId ? null : state.selectedManagedPromptId,
       promptManagerView: state.selectedManagedPromptId === promptId ? "list" : state.promptManagerView,
@@ -488,13 +512,14 @@ export const useStore = create<StoreState>((set, get) => ({
           if (p.id !== promptId) return p;
           return {
             ...p,
+            status: "draft" as PromptStatus,
             content: payload.content,
             description: payload.description ?? p.description,
             desiredOutcome: payload.desiredOutcome ?? p.desiredOutcome,
             versions: [...existingVersions, newVersion],
             lastUpdatedAt: now,
             // Preserve publishedVersionId — new version is not auto-published
-            hasUnpublishedChanges: p.status === "published" ? true : p.hasUnpublishedChanges,
+            hasUnpublishedChanges: true,
           };
         }),
       };

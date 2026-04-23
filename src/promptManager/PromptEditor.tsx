@@ -37,7 +37,9 @@ interface PromptEditorProps {
   onBack: () => void;
 }
 
-const INLINE_VERSION_COUNT = 5;
+type EditorMode = "draft-edit" | "published-readonly" | "version-readonly" | "archived-readonly";
+
+const INLINE_VERSION_COUNT = 4;
 
 export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const savePromptDraft = useStore((state) => state.savePromptDraft);
@@ -47,10 +49,13 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const restorePrompt = useStore((state) => state.restorePrompt);
   const setPromptEditorUnsavedChanges = useStore((state) => state.setPromptEditorUnsavedChanges);
 
-  const [title, setTitle] = useState(prompt.title);
-  const [description, setDescription] = useState(prompt.description ?? "");
-  const [promptInstructions, setPromptInstructions] = useState(prompt.desiredOutcome ?? "");
-  const [content, setContent] = useState(prompt.content);
+  const [draftFormState, setDraftFormState] = useState(() => ({
+    title: prompt.title,
+    description: prompt.description ?? "",
+    promptInstructions: prompt.desiredOutcome ?? "",
+    content: prompt.content,
+  }));
+  const [viewingVersion, setViewingVersion] = useState<PromptVersion | null>(null);
   const [savedFeedback, setSavedFeedback] = useState<string | null>(null);
   const [showTestPanel, setShowTestPanel] = useState(false);
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
@@ -59,10 +64,33 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const [versionMenuAnchor, setVersionMenuAnchor] = useState<null | HTMLElement>(null);
   const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(null);
 
-  const { variables: templateVariables, invalidTokens } = useMemo(() => parseTemplateVariables(content), [content]);
+  const publishedVersion = prompt.publishedVersionId ? getPublishedVersion(prompt) : null;
+  const hasPublishedVersions = Boolean(prompt.publishedVersionId);
+  const hasDraft = prompt.status === "draft";
+
+  const editorMode: EditorMode = useMemo(() => {
+    if (viewingVersion) return "version-readonly";
+    if (prompt.status === "archived") return "archived-readonly";
+    if (hasDraft) return "draft-edit";
+    return "published-readonly";
+  }, [hasDraft, prompt.status, viewingVersion]);
+
+  const activeSource = viewingVersion ?? {
+    id: "working-copy",
+    version: getLatestVersion(prompt).version,
+    content: draftFormState.content,
+    description: draftFormState.description || undefined,
+    desiredOutcome: draftFormState.promptInstructions || undefined,
+    createdAt: prompt.lastUpdatedAt ?? prompt.createdAt,
+  };
+
+  const isReadOnly = editorMode !== "draft-edit";
+  const { variables: templateVariables, invalidTokens } = useMemo(
+    () => parseTemplateVariables(activeSource.content),
+    [activeSource.content],
+  );
 
   const latestVersion = getLatestVersion(prompt);
-  const publishedVersion = prompt.publishedVersionId ? getPublishedVersion(prompt) : null;
   const sortedVersions = useMemo(
     () => [...(prompt.versions ?? [])].sort((a, b) => b.version - a.version),
     [prompt.versions],
@@ -70,10 +98,10 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const versionCount = sortedVersions.length;
 
   const isDirty =
-    title !== prompt.title ||
-    description !== (prompt.description ?? "") ||
-    promptInstructions !== (prompt.desiredOutcome ?? "") ||
-    content !== prompt.content;
+    draftFormState.title !== prompt.title ||
+    draftFormState.description !== (prompt.description ?? "") ||
+    draftFormState.promptInstructions !== (prompt.desiredOutcome ?? "") ||
+    draftFormState.content !== prompt.content;
 
   useEffect(() => {
     setPromptEditorUnsavedChanges(isDirty);
@@ -82,14 +110,14 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (!isDirty) return;
+    if (!isDirty || isReadOnly) return;
       event.preventDefault();
       event.returnValue = "";
     };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isDirty]);
+  }, [isDirty, isReadOnly]);
 
   const showFeedback = (msg: string) => {
     setSavedFeedback(msg);
@@ -97,11 +125,11 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   };
 
   const buildPayload = () => ({
-    title: title.trim() || "Untitled Prompt",
-    description: description.trim() || undefined,
-    desiredOutcome: promptInstructions.trim() || undefined,
+    title: draftFormState.title.trim() || "Untitled Prompt",
+    description: draftFormState.description.trim() || undefined,
+    desiredOutcome: draftFormState.promptInstructions.trim() || undefined,
     tags: prompt.tags,
-    content,
+    content: draftFormState.content,
   });
 
   const handleSaveDraft = () => {
@@ -115,13 +143,16 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     showFeedback(prompt.status === "published" ? "Changes published." : "Prompt published.");
   };
 
-  const handleSaveAsNewVersion = (version?: PromptVersion) => {
+  const handleCreateNewVersion = (version?: PromptVersion) => {
+    if (hasDraft) return;
+    const baseVersion = version ?? viewingVersion ?? publishedVersion ?? latestVersion;
     savePromptAsNewVersion(prompt.id, {
-      description: (version?.description ?? description).trim() || undefined,
-      desiredOutcome: (version?.desiredOutcome ?? promptInstructions).trim() || undefined,
-      content: version?.content ?? content,
+      description: (baseVersion.description ?? "").trim() || undefined,
+      desiredOutcome: (baseVersion.desiredOutcome ?? "").trim() || undefined,
+      content: baseVersion.content,
     });
-    showFeedback("New version created.");
+    setViewingVersion(null);
+    showFeedback("Draft opened from selected version.");
   };
 
   const handleDeleteConfirm = () => {
@@ -131,46 +162,28 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   };
 
   const handleBack = () => {
-    if (isDirty && !window.confirm("You have unsaved changes. Leave without saving?")) {
+    if (!isReadOnly && isDirty && !window.confirm("You have unsaved changes. Leave without saving?")) {
       return;
     }
     onBack();
   };
 
   const handleViewVersion = (version: PromptVersion) => {
-    setContent(version.content);
-    setDescription(version.description ?? "");
-    setPromptInstructions(version.desiredOutcome ?? "");
+    setViewingVersion(version);
     setVersionMenuAnchor(null);
     setViewAllVersionsOpen(false);
   };
 
   const inlineVersions = useMemo(() => {
-    if (sortedVersions.length <= INLINE_VERSION_COUNT) return sortedVersions;
-
-    const latest = sortedVersions[0];
+    const topVersions = sortedVersions.slice(0, INLINE_VERSION_COUNT);
     const published = sortedVersions.find((version) => version.id === prompt.publishedVersionId);
-    const selectedIds = new Set<string>([latest.id]);
-    const results: PromptVersion[] = [latest];
-
-    if (published && !selectedIds.has(published.id)) {
-      selectedIds.add(published.id);
-      results.push(published);
-    }
-
-    for (const version of sortedVersions) {
-      if (results.length >= INLINE_VERSION_COUNT) break;
-      if (selectedIds.has(version.id)) continue;
-      selectedIds.add(version.id);
-      results.push(version);
-    }
-
-    return results.sort((a, b) => b.version - a.version);
+    const withoutPublished = topVersions.filter((version) => version.id !== published?.id);
+    return published ? [...withoutPublished, published] : withoutPublished;
   }, [sortedVersions, prompt.publishedVersionId]);
 
   const VersionRow = ({ version }: { version: PromptVersion }) => {
     const isPublished = version.id === prompt.publishedVersionId;
-    const isLatest = version.version === latestVersion.version;
+    const isViewing = viewingVersion?.id === version.id;
 
     return (
       <Box
@@ -192,7 +205,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
               v{version.version}
             </Typography>
             {isPublished && <Chip label="Published" size="small" color="success" variant="outlined" />}
-            {isLatest && <Chip label="Latest" size="small" variant="outlined" />}
+            {isViewing && <Chip label="Viewing" size="small" variant="outlined" />}
           </Stack>
           {version.description && (
             <Typography variant="caption" color="text.secondary" display="block" mt={0.25}>
@@ -206,27 +219,16 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
           )}
         </Box>
 
-        {isLatest ? (
-          <Button size="small" variant="contained" onClick={() => handleSaveAsNewVersion()}>
-            Save as new version
-          </Button>
-        ) : (
-          <>
-            <Button size="small" variant="outlined" onClick={() => handleViewVersion(version)}>
-              View
-            </Button>
-            <IconButton
-              size="small"
-              aria-label={`Version ${version.version} actions`}
-              onClick={(event) => {
-                setSelectedVersion(version);
-                setVersionMenuAnchor(event.currentTarget);
-              }}
-            >
-              <MoreVertIcon fontSize="small" />
-            </IconButton>
-          </>
-        )}
+        <IconButton
+          size="small"
+          aria-label={`Version ${version.version} actions`}
+          onClick={(event) => {
+            setSelectedVersion(version);
+            setVersionMenuAnchor(event.currentTarget);
+          }}
+        >
+          <MoreVertIcon fontSize="small" />
+        </IconButton>
       </Box>
     );
   };
@@ -252,11 +254,12 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
 
         <Stack direction="row" alignItems="center" gap={1} sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="subtitle1" fontWeight={600} noWrap>
-            {(title || "Untitled Prompt")} v{latestVersion.version}
+            {(draftFormState.title || "Untitled Prompt")} v{activeSource.version}
           </Typography>
-          {(prompt.status === "draft" || prompt.status === "archived") && (
+          {(editorMode === "draft-edit" || editorMode === "archived-readonly") && (
             <PromptStatusChip status={prompt.status} hasUnpublishedChanges={prompt.hasUnpublishedChanges} />
           )}
+          {editorMode === "version-readonly" && <Chip label="Read-only" size="small" variant="outlined" />}
         </Stack>
 
         <Button
@@ -281,8 +284,9 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
 
                 <TextField
                   label="Title"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  value={draftFormState.title}
+                  onChange={(e) => setDraftFormState((prev) => ({ ...prev, title: e.target.value }))}
+                  disabled={isReadOnly}
                   fullWidth
                   required
                   inputProps={{ "aria-label": "Prompt title" }}
@@ -290,8 +294,9 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
 
                 <TextField
                   label="Description"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  value={isReadOnly ? (activeSource.description ?? "") : draftFormState.description}
+                  onChange={(e) => setDraftFormState((prev) => ({ ...prev, description: e.target.value }))}
+                  disabled={isReadOnly}
                   fullWidth
                   multiline
                   minRows={2}
@@ -332,8 +337,9 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
 
                 <TextField
                   label="Template"
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
+                  value={activeSource.content}
+                  onChange={(e) => setDraftFormState((prev) => ({ ...prev, content: e.target.value }))}
+                  disabled={isReadOnly}
                   fullWidth
                   multiline
                   minRows={4}
@@ -356,8 +362,9 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
 
                 <TextField
                   label="Prompt Instructions"
-                  value={promptInstructions}
-                  onChange={(e) => setPromptInstructions(e.target.value)}
+                  value={isReadOnly ? (activeSource.desiredOutcome ?? "") : draftFormState.promptInstructions}
+                  onChange={(e) => setDraftFormState((prev) => ({ ...prev, promptInstructions: e.target.value }))}
+                  disabled={isReadOnly}
                   fullWidth
                   multiline
                   minRows={3}
@@ -510,7 +517,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
             </Stack>
           </Box>
         </Box>
-        {showTestPanel && <PromptTestPanel template={content} onClose={() => setShowTestPanel(false)} />}
+        {showTestPanel && <PromptTestPanel template={activeSource.content} onClose={() => setShowTestPanel(false)} />}
       </Box>
 
       <Box
@@ -529,35 +536,39 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         bottom={0}
         zIndex={1}
       >
-        {prompt.status === "draft" && (
+        {editorMode === "draft-edit" && (
           <>
             <Stack direction="row" gap={1}>
               <Button variant="outlined" onClick={handleSaveDraft} disabled={!isDirty}>
                 Save Draft
               </Button>
-              <Button variant="outlined" color="error" onClick={() => setDeleteDialogOpen(true)}>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={() => setDeleteDialogOpen(true)}
+                disabled={hasPublishedVersions}
+              >
                 Delete
               </Button>
             </Stack>
-            <Button variant="contained" color="primary" onClick={() => setPublishDialogOpen(true)} disabled={!content.trim()}>
+            <Button variant="contained" color="primary" onClick={() => setPublishDialogOpen(true)} disabled={!draftFormState.content.trim()}>
               Publish
             </Button>
           </>
         )}
 
-        {prompt.status === "published" && (
+        {(editorMode === "published-readonly" || editorMode === "version-readonly") && (
           <Button
             variant="contained"
             color="primary"
-            onClick={() => handleSaveAsNewVersion()}
-            disabled={!content.trim()}
+            onClick={() => handleCreateNewVersion()}
             sx={{ ml: "auto" }}
           >
             Create New Version
           </Button>
         )}
 
-        {prompt.status === "archived" && (
+        {editorMode === "archived-readonly" && (
           <Button
             variant="contained"
             color="primary"
@@ -619,30 +630,13 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         <MenuItem
           onClick={() => {
             if (selectedVersion) {
-              handleSaveAsNewVersion(selectedVersion);
+              handleCreateNewVersion(selectedVersion);
             }
             setVersionMenuAnchor(null);
           }}
         >
-          Save as new version
+          Create New Version
         </MenuItem>
-        {selectedVersion && selectedVersion.id !== prompt.publishedVersionId && (
-          <MenuItem
-            onClick={() => {
-              publishPrompt(prompt.id, {
-                title: title.trim() || "Untitled Prompt",
-                description: selectedVersion.description,
-                desiredOutcome: selectedVersion.desiredOutcome,
-                tags: prompt.tags,
-                content: selectedVersion.content,
-              });
-              setVersionMenuAnchor(null);
-              showFeedback("Prompt published.");
-            }}
-          >
-            Publish this version
-          </MenuItem>
-        )}
       </Menu>
     </Box>
   );

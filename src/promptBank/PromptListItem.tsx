@@ -9,6 +9,7 @@ type PromptListItemProps = {
   selected: boolean;
   isFavorite: boolean;
   isFavoritesView: boolean;
+  isArchived?: boolean;
   versionLabel?: string;
   insertContent?: string;
   onSelect: (id: string) => void;
@@ -33,6 +34,7 @@ export function PromptListItem({
   selected,
   isFavorite,
   isFavoritesView,
+  isArchived = false,
   versionLabel,
   insertContent,
   onSelect,
@@ -96,6 +98,7 @@ export function PromptListItem({
             <Typography variant="caption" color="text.secondary" mt={0.25}>
               by {prompt.owner} · {versionLabel ?? "Latest"}
             </Typography>
+            {isArchived && <Chip label="Archived" size="small" color="warning" variant="outlined" sx={{ mt: 0.75 }} />}
             <Stack spacing={1.5} mt={1}>
               <Typography variant="body2" color="text.secondary">
                 {prompt.description}

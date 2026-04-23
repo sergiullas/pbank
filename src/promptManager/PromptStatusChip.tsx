@@ -7,10 +7,43 @@ interface PromptStatusChipProps {
   size?: "small" | "medium";
 }
 
-const STATUS_CONFIG: Record<PromptStatus, { label: string; color: "default" | "success" | "warning" | "error" | "info" | "primary" | "secondary" }> = {
-  draft: { label: "Draft", color: "default" },
-  published: { label: "Published", color: "success" },
-  archived: { label: "Archived", color: "warning" },
+const STATUS_CONFIG: Record<
+  PromptStatus,
+  {
+    label: string;
+    color: "default" | "success" | "warning" | "error" | "info" | "primary" | "secondary";
+    sx: Record<string, string | number>;
+  }
+> = {
+  draft: {
+    label: "Draft",
+    color: "default",
+    sx: {
+      bgcolor: "#f8fafc",
+      color: "#0f172a",
+      borderColor: "#64748b",
+      fontWeight: 600,
+    },
+  },
+  published: {
+    label: "Published",
+    color: "success",
+    sx: {
+      bgcolor: "#166534",
+      color: "#ffffff",
+      fontWeight: 600,
+    },
+  },
+  archived: {
+    label: "Archived",
+    color: "warning",
+    sx: {
+      bgcolor: "#fff7ed",
+      color: "#9a3412",
+      borderColor: "#c2410c",
+      fontWeight: 600,
+    },
+  },
 };
 
 export function PromptStatusChip({ status, hasUnpublishedChanges, size = "small" }: PromptStatusChipProps) {
@@ -21,6 +54,12 @@ export function PromptStatusChip({ status, hasUnpublishedChanges, size = "small"
         color="info"
         size={size}
         variant="outlined"
+        sx={{
+          bgcolor: "#eff6ff",
+          color: "#1e3a8a",
+          borderColor: "#1d4ed8",
+          fontWeight: 600,
+        }}
       />
     );
   }
@@ -32,6 +71,7 @@ export function PromptStatusChip({ status, hasUnpublishedChanges, size = "small"
       color={config.color}
       size={size}
       variant={status === "published" ? "filled" : "outlined"}
+      sx={config.sx}
     />
   );
 }

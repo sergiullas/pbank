@@ -22,4 +22,16 @@ export const appTheme = createTheme({
   shape: {
     borderRadius: 12,
   },
+  components: {
+    MuiButtonBase: {
+      styleOverrides: {
+        root: {
+          "&:focus-visible": {
+            outline: "3px solid #005288",
+            outlineOffset: 2,
+          },
+        },
+      },
+    },
+  },
 });

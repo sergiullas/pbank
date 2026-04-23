@@ -286,6 +286,21 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
           <Box maxWidth={800} mx="auto" px={3} py={3}>
             <Stack spacing={4}>
               {savedFeedback && <Alert severity="success" sx={{ py: 0.5 }} aria-live="polite">{savedFeedback}</Alert>}
+              {editorMode === "published-readonly" && (
+                <Alert severity="info" variant="outlined">
+                  Read-only mode: published versions cannot be edited. Create a new version to make changes.
+                </Alert>
+              )}
+              {editorMode === "version-readonly" && (
+                <Alert severity="info" variant="outlined">
+                  Read-only mode: you are viewing a historical version.
+                </Alert>
+              )}
+              {editorMode === "archived-readonly" && (
+                <Alert severity="warning" variant="outlined">
+                  Archived status: this prompt is inactive until restored.
+                </Alert>
+              )}
 
               <Stack spacing={2}>
                 <Typography variant="overline" color="text.secondary" letterSpacing={1}>

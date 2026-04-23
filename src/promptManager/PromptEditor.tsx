@@ -66,14 +66,19 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(null);
 
   const publishedVersion = prompt.publishedVersionId ? getPublishedVersion(prompt) : null;
+  const latestVersion = getLatestVersion(prompt);
+  const workingDraftVersionNumber = prompt.status === "draft"
+    ? ((prompt.versions?.length ?? 0) === 0 ? 1 : latestVersion.version)
+    : null;
   const hasDraft = prompt.status === "draft";
+  const viewingWorkingDraft = viewingVersion != null && workingDraftVersionNumber != null && viewingVersion.version === workingDraftVersionNumber;
 
   const editorMode: EditorMode = useMemo(() => {
-    if (viewingVersion) return "version-readonly";
+    if (viewingVersion && !viewingWorkingDraft) return "version-readonly";
     if (prompt.status === "archived") return "archived-readonly";
     if (hasDraft) return "draft-edit";
     return "published-readonly";
-  }, [hasDraft, prompt.status, viewingVersion]);
+  }, [hasDraft, prompt.status, viewingVersion, viewingWorkingDraft]);
 
   const activeSource = viewingVersion ?? {
     id: "working-copy",
@@ -90,7 +95,6 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     [activeSource.content],
   );
 
-  const latestVersion = getLatestVersion(prompt);
   const sortedVersions = useMemo(
     () => [...(prompt.versions ?? [])].sort((a, b) => b.version - a.version),
     [prompt.versions],
@@ -182,10 +186,6 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     const withoutPublished = topVersions.filter((version) => version.id !== published?.id);
     return published ? [...withoutPublished, published] : withoutPublished;
   }, [sortedVersions, prompt.publishedVersionId]);
-
-  const workingDraftVersionNumber = prompt.status === "draft"
-    ? (versionCount === 0 ? 1 : latestVersion.version)
-    : null;
 
   const VersionRow = ({ version }: { version: PromptVersion }) => {
     const isWorkingDraft = workingDraftVersionNumber != null && version.version === workingDraftVersionNumber;
@@ -624,19 +624,43 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         anchorPosition={versionMenuAnchorPosition ?? undefined}
         MenuListProps={{ "aria-label": "Version actions" }}
       >
-        <MenuItem onClick={() => selectedVersion && handleViewVersion(selectedVersion)}>
-          View
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            if (selectedVersion) {
-              handleCreateNewVersion(selectedVersion);
-            }
-            setVersionMenuAnchorPosition(null);
-          }}
-        >
-          Create New Version
-        </MenuItem>
+        {selectedVersion && workingDraftVersionNumber != null && selectedVersion.version === workingDraftVersionNumber ? (
+          <>
+            <MenuItem
+              onClick={() => {
+                setViewingVersion(null);
+                setVersionMenuAnchorPosition(null);
+              }}
+            >
+              Edit
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                setDeleteDialogOpen(true);
+                setVersionMenuAnchorPosition(null);
+              }}
+              sx={{ color: "error.main" }}
+            >
+              Delete
+            </MenuItem>
+          </>
+        ) : (
+          <>
+            <MenuItem onClick={() => selectedVersion && handleViewVersion(selectedVersion)}>
+              View
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                if (selectedVersion) {
+                  handleCreateNewVersion(selectedVersion);
+                }
+                setVersionMenuAnchorPosition(null);
+              }}
+            >
+              Create New Version
+            </MenuItem>
+          </>
+        )}
       </Menu>
     </Box>
   );

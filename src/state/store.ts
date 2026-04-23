@@ -107,6 +107,7 @@ type StoreState = {
   archivePrompt: (promptId: string) => void;
   restorePrompt: (promptId: string) => void;
   savePromptAsNewVersion: (promptId: string, payload: NewVersionPayload) => void;
+  discardPromptDraft: (promptId: string) => void;
   deletePrompt: (promptId: string) => void;
   setPromptManagerSearch: (search: string) => void;
   setPromptManagerStatusFilter: (filter: PromptManagerStatusFilter) => void;
@@ -519,6 +520,47 @@ export const useStore = create<StoreState>((set, get) => ({
             lastUpdatedAt: now,
             // Preserve publishedVersionId — new version is not auto-published
             hasUnpublishedChanges: true,
+          };
+        }),
+      };
+    });
+  },
+
+  discardPromptDraft: (promptId) => {
+    const now = new Date().toISOString();
+    set((state) => {
+      const prompt = state.prompts.find((p) => p.id === promptId);
+      if (!prompt || prompt.status !== "draft") return state;
+
+      if (!prompt.publishedVersionId || !prompt.versions?.length) {
+        return {
+          prompts: state.prompts.filter((p) => p.id !== promptId),
+          selectedManagedPromptId: state.selectedManagedPromptId === promptId ? null : state.selectedManagedPromptId,
+          promptManagerView: state.selectedManagedPromptId === promptId ? "list" : state.promptManagerView,
+        };
+      }
+
+      const publishedVersion = prompt.versions.find((version) => version.id === prompt.publishedVersionId);
+      if (!publishedVersion) return state;
+
+      const latestVersionNumber = Math.max(...prompt.versions.map((version) => version.version));
+      const nextVersions = prompt.versions.filter((version) => {
+        if (version.id === prompt.publishedVersionId) return true;
+        return version.version !== latestVersionNumber;
+      });
+
+      return {
+        prompts: state.prompts.map((p) => {
+          if (p.id !== promptId) return p;
+          return {
+            ...p,
+            status: "published" as PromptStatus,
+            description: publishedVersion.description ?? p.description,
+            desiredOutcome: publishedVersion.desiredOutcome ?? p.desiredOutcome,
+            content: publishedVersion.content,
+            versions: nextVersions,
+            hasUnpublishedChanges: false,
+            lastUpdatedAt: now,
           };
         }),
       };

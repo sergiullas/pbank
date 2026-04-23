@@ -31,6 +31,7 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
   const archivePrompt = useStore((state) => state.archivePrompt);
   const restorePrompt = useStore((state) => state.restorePrompt);
   const savePromptAsNewVersion = useStore((state) => state.savePromptAsNewVersion);
+  const discardPromptDraft = useStore((state) => state.discardPromptDraft);
   const deletePrompt = useStore((state) => state.deletePrompt);
   const setPromptManagerNotice = useStore((state) => state.setPromptManagerNotice);
 
@@ -56,9 +57,15 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
   };
 
   const handleDeleteConfirm = () => {
-    deletePrompt(prompt.id);
+    const hasVersionHistory = (prompt.versions?.length ?? 0) > 0 || Boolean(prompt.publishedVersionId);
+    if (hasVersionHistory) {
+      discardPromptDraft(prompt.id);
+      setPromptManagerNotice("Draft deleted.");
+    } else {
+      deletePrompt(prompt.id);
+      setPromptManagerNotice("Prompt deleted.");
+    }
     setDeleteDialogOpen(false);
-    setPromptManagerNotice("Draft deleted.");
   };
 
   return (
@@ -182,7 +189,7 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
                 Publish
               </MenuItem>,
               <MenuItem key="delete" onClick={handleDeleteClick} sx={{ color: "error.main" }}>
-                Delete Draft
+                {(prompt.versions?.length ?? 0) > 0 || prompt.publishedVersionId ? "Delete Draft" : "Delete Prompt"}
               </MenuItem>,
             ]}
 
@@ -206,14 +213,17 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
         onClose={() => setDeleteDialogOpen(false)}
         onClick={(e) => e.stopPropagation()}
       >
-        <DialogTitle>Delete draft?</DialogTitle>
+        <DialogTitle>{(prompt.versions?.length ?? 0) > 0 || prompt.publishedVersionId ? "Delete draft?" : "Delete prompt?"}</DialogTitle>
         <DialogContent>
-          <DialogContentText>
-            This draft will be permanently removed.
-          </DialogContentText>
-          <DialogContentText sx={{ mt: 0.5 }}>
-            Versions inside this draft will also be removed.
-          </DialogContentText>
+          {(prompt.versions?.length ?? 0) > 0 || prompt.publishedVersionId ? (
+            <DialogContentText>
+              This will remove your current unpublished changes. Previous versions will remain available.
+            </DialogContentText>
+          ) : (
+            <DialogContentText>
+              This will permanently remove this prompt.
+            </DialogContentText>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>

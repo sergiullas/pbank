@@ -45,6 +45,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const savePromptDraft = useStore((state) => state.savePromptDraft);
   const publishPrompt = useStore((state) => state.publishPrompt);
   const savePromptAsNewVersion = useStore((state) => state.savePromptAsNewVersion);
+  const discardPromptDraft = useStore((state) => state.discardPromptDraft);
   const deletePrompt = useStore((state) => state.deletePrompt);
   const restorePrompt = useStore((state) => state.restorePrompt);
   const setPromptEditorUnsavedChanges = useStore((state) => state.setPromptEditorUnsavedChanges);
@@ -66,6 +67,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(null);
 
   const publishedVersion = prompt.publishedVersionId ? getPublishedVersion(prompt) : null;
+  const hasVersionHistory = (prompt.versions?.length ?? 0) > 0;
   const latestVersion = getLatestVersion(prompt);
   const workingDraftVersionNumber = prompt.status === "draft"
     ? ((prompt.versions?.length ?? 0) === 0 ? 1 : latestVersion.version)
@@ -161,9 +163,14 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   };
 
   const handleDeleteConfirm = () => {
-    deletePrompt(prompt.id);
+    if (hasVersionHistory || prompt.publishedVersionId) {
+      discardPromptDraft(prompt.id);
+      setPromptManagerNotice("Draft deleted.");
+    } else {
+      deletePrompt(prompt.id);
+      setPromptManagerNotice("Prompt deleted.");
+    }
     setDeleteDialogOpen(false);
-    setPromptManagerNotice("Draft deleted.");
     onBack();
   };
 
@@ -539,12 +546,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
               <Button variant="outlined" onClick={handleSaveDraft} disabled={!isDirty}>
                 Save Draft
               </Button>
-              <Button
-                variant="outlined"
-                color="error"
-                onClick={() => setDeleteDialogOpen(true)}
-              >
-                Delete
+              <Button variant="outlined" color="error" onClick={() => setDeleteDialogOpen(true)}>
+                {(hasVersionHistory || prompt.publishedVersionId) ? "Delete Draft" : "Delete Prompt"}
               </Button>
             </Stack>
             <Button variant="contained" color="primary" onClick={() => setPublishDialogOpen(true)} disabled={!draftFormState.content.trim()}>
@@ -589,10 +592,15 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
       </Dialog>
 
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>Delete prompt?</DialogTitle>
+        <DialogTitle>{(hasVersionHistory || prompt.publishedVersionId) ? "Delete draft?" : "Delete prompt?"}</DialogTitle>
         <DialogContent>
-          <DialogContentText>This prompt draft will be permanently removed.</DialogContentText>
-          <DialogContentText sx={{ mt: 0.5 }}>Versions inside this draft will also be removed.</DialogContentText>
+          {(hasVersionHistory || prompt.publishedVersionId) ? (
+            <DialogContentText>
+              This will remove your current unpublished changes. Previous versions will remain available.
+            </DialogContentText>
+          ) : (
+            <DialogContentText>This will permanently remove this prompt.</DialogContentText>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>

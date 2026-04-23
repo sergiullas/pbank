@@ -180,9 +180,12 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     return published ? [...withoutPublished, published] : withoutPublished;
   }, [sortedVersions, prompt.publishedVersionId]);
 
+  const workingDraftVersionNumber = prompt.status === "draft"
+    ? (versionCount === 0 ? 1 : latestVersion.version)
+    : null;
+
   const VersionRow = ({ version }: { version: PromptVersion }) => {
-    const isPublished = version.id === prompt.publishedVersionId;
-    const isViewing = viewingVersion?.id === version.id;
+    const isWorkingDraft = workingDraftVersionNumber != null && version.version === workingDraftVersionNumber;
 
     return (
       <Box
@@ -203,8 +206,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
             <Typography variant="body2" fontWeight={600}>
               v{version.version}
             </Typography>
-            {isPublished && <Chip label="Published" size="small" color="success" variant="outlined" />}
-            {isViewing && <Chip label="Viewing" size="small" variant="outlined" />}
+            {isWorkingDraft && <Chip label="Draft" size="small" variant="outlined" />}
           </Stack>
           {version.description && (
             <Typography variant="caption" color="text.secondary" display="block" mt={0.25}>
@@ -477,17 +479,13 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
 
                 <Stack spacing={0.5}>
                   <Typography variant="body2" color="text.secondary">
-                    <strong>Working version:</strong> {versionCount === 0 ? "v1 (unsaved)" : `v${latestVersion.version} (latest)`}
+                    <strong>Working version:</strong>{" "}
+                    {workingDraftVersionNumber == null ? "None" : (versionCount === 0 ? "v1 (unsaved)" : `v${workingDraftVersionNumber}`)}
                   </Typography>
 
                   {publishedVersion && (
                     <Typography variant="body2" color="text.secondary">
                       <strong>Published version:</strong> v{publishedVersion.version}
-                      {prompt.hasUnpublishedChanges && (
-                        <Typography component="span" variant="caption" color="info.main" ml={1}>
-                          (library is showing this version)
-                        </Typography>
-                      )}
                     </Typography>
                   )}
 

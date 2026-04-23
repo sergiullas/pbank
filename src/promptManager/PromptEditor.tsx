@@ -181,11 +181,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   };
 
   const inlineVersions = useMemo(() => {
-    const topVersions = sortedVersions.slice(0, INLINE_VERSION_COUNT);
-    const published = sortedVersions.find((version) => version.id === prompt.publishedVersionId);
-    const withoutPublished = topVersions.filter((version) => version.id !== published?.id);
-    return published ? [...withoutPublished, published] : withoutPublished;
-  }, [sortedVersions, prompt.publishedVersionId]);
+    return sortedVersions.slice(0, INLINE_VERSION_COUNT);
+  }, [sortedVersions]);
 
   const VersionRow = ({ version }: { version: PromptVersion }) => {
     const isWorkingDraft = workingDraftVersionNumber != null && version.version === workingDraftVersionNumber;

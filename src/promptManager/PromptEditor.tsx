@@ -63,6 +63,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ title?: string; template?: string }>({});
   const [viewAllVersionsOpen, setViewAllVersionsOpen] = useState(false);
   const [versionMenuAnchorPosition, setVersionMenuAnchorPosition] = useState<{ top: number; left: number } | null>(null);
   const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(null);
@@ -139,12 +140,31 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     content: draftFormState.content,
   });
 
+  const validateRequiredFields = () => {
+    const nextErrors: { title?: string; template?: string } = {};
+    if (!draftFormState.title.trim()) {
+      nextErrors.title = "Title is required.";
+    }
+    if (!draftFormState.content.trim()) {
+      nextErrors.template = "Template is required.";
+    }
+    setFieldErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
+  };
+
   const handleSaveDraft = () => {
+    if (!validateRequiredFields()) {
+      return;
+    }
     savePromptDraft(prompt.id, buildPayload());
     showFeedback("Draft saved.");
   };
 
   const handlePublishConfirm = () => {
+    if (!validateRequiredFields()) {
+      setPublishDialogOpen(false);
+      return;
+    }
     publishPrompt(prompt.id, buildPayload());
     setPublishDialogOpen(false);
     setPromptManagerNotice(prompt.status === "published" ? "Changes published." : "Prompt published.");
@@ -310,11 +330,16 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                 <TextField
                   label="Title"
                   value={draftFormState.title}
-                  onChange={(e) => setDraftFormState((prev) => ({ ...prev, title: e.target.value }))}
+                  onChange={(e) => {
+                    setDraftFormState((prev) => ({ ...prev, title: e.target.value }));
+                    setFieldErrors((prev) => ({ ...prev, title: undefined }));
+                  }}
                   disabled={isReadOnly}
                   fullWidth
                   required
                   inputProps={{ "aria-label": "Prompt title" }}
+                  error={Boolean(fieldErrors.title)}
+                  helperText={fieldErrors.title}
                 />
 
                 <TextField
@@ -363,15 +388,20 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                 <TextField
                   label="Template"
                   value={activeSource.content}
-                  onChange={(e) => setDraftFormState((prev) => ({ ...prev, content: e.target.value }))}
+                  onChange={(e) => {
+                    setDraftFormState((prev) => ({ ...prev, content: e.target.value }));
+                    setFieldErrors((prev) => ({ ...prev, template: undefined }));
+                  }}
                   disabled={isReadOnly}
                   fullWidth
+                  required
                   multiline
                   minRows={4}
                   maxRows={16}
                   placeholder="Write your prompt template here…"
                   inputProps={{ "aria-label": "Prompt template content", style: { fontFamily: "monospace", fontSize: "0.875rem" } }}
-                  error={invalidTokens.length > 0}
+                  error={invalidTokens.length > 0 || Boolean(fieldErrors.template)}
+                  helperText={fieldErrors.template}
                   sx={{
                     "& .MuiInputBase-inputMultiline": {
                       maxHeight: "40vh",
@@ -567,14 +597,18 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                 {(hasVersionHistory || prompt.publishedVersionId) ? "Delete Draft" : "Delete Prompt"}
               </Button>
             </Stack>
-            <Button variant="contained" color="primary" onClick={() => setPublishDialogOpen(true)} disabled={!draftFormState.content.trim()}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => {
+                if (!validateRequiredFields()) {
+                  return;
+                }
+                setPublishDialogOpen(true);
+              }}
+            >
               Publish
             </Button>
-            {!draftFormState.content.trim() && (
-              <Typography variant="caption" color="text.secondary">
-                Add template content to enable publishing.
-              </Typography>
-            )}
           </>
         )}
 

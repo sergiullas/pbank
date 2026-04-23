@@ -326,6 +326,10 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   Prompt Template
                 </Typography>
 
+                <Typography variant="caption" color="text.secondary" sx={{ mt: -0.5 }}>
+                  Template = structure + tokens. Prompt Instructions = response behavior.
+                </Typography>
+
                 <TextField
                   label="Template"
                   value={content}
@@ -346,6 +350,10 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   }}
                 />
 
+                <Typography variant="caption" color="text.secondary">
+                  Use <code>[TOKEN]</code> for short input, <code>[[TOKEN]]</code> for multi-line input, and <code>[CONTEXT]</code> for file context.
+                </Typography>
+
                 <TextField
                   label="Prompt Instructions"
                   value={promptInstructions}
@@ -354,7 +362,6 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   multiline
                   minRows={3}
                   maxRows={12}
-                  helperText="Define how the AI should respond (format, tone, limits)."
                   sx={{
                     "& .MuiInputBase-inputMultiline": {
                       maxHeight: "25vh",
@@ -364,12 +371,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   }}
                 />
 
-                <Typography variant="caption" color="text.secondary">
-                  Template = structure + tokens. Prompt Instructions = response behavior.
-                </Typography>
-
-                <Typography variant="caption" color="text.secondary">
-                  Use <code>[TOKEN]</code> for short input, <code>[[TOKEN]]</code> for multi-line input, and <code>[CONTEXT]</code> for file context.
+                <Typography variant="caption" color="text.secondary" sx={{ mt: -0.5 }}>
+                  Define how the AI should respond (format, tone, limits).
                 </Typography>
 
                 {invalidTokens.length > 0 && (

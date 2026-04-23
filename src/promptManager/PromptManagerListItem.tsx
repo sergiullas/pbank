@@ -116,7 +116,7 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
             </Typography>
           )}
 
-          <Typography variant="caption" color="text.disabled">
+          <Typography variant="caption" color="text.secondary">
             {getMetaLine(prompt)}
           </Typography>
         </Box>

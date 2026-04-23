@@ -243,7 +243,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
             </Typography>
           )}
           {version.createdAt && (
-            <Typography variant="caption" color="text.disabled">
+            <Typography variant="caption" color="text.secondary">
               {new Date(version.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
             </Typography>
           )}

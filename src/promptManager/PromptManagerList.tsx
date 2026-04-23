@@ -25,7 +25,7 @@ import {
 import { PromptManagerListItem } from "./PromptManagerListItem";
 import { PromptStatusChip } from "./PromptStatusChip";
 
-const MAX_DRAFT_CARDS = 4;
+const MAX_DRAFT_CARDS = 3;
 
 // ── Draft card ───────────────────────────────────────────────────────────────
 
@@ -99,8 +99,7 @@ export function PromptManagerList() {
     [prompts],
   );
   const draftCardPrompts = allDraftPrompts.slice(0, MAX_DRAFT_CARDS);
-  const totalDraftCount = allDraftPrompts.length;
-  const hasMoreDrafts = totalDraftCount > MAX_DRAFT_CARDS;
+  const hasDrafts = allDraftPrompts.length > 0;
 
   // Lower list — uses the active filter (All is genuinely all statuses)
   const listedPrompts = useMemo(
@@ -144,9 +143,9 @@ export function PromptManagerList() {
           <Box mb={4}>
             <Stack direction="row" alignItems="baseline" justifyContent="space-between" mb={1.5}>
               <Typography variant="overline" color="text.secondary" letterSpacing={1}>
-                Drafts
+                Recent Drafts
               </Typography>
-              {hasMoreDrafts && (
+              {hasDrafts && (
                 <Link
                   component="button"
                   variant="caption"
@@ -154,7 +153,7 @@ export function PromptManagerList() {
                   onClick={handleViewAllDrafts}
                   sx={{ color: "primary.main", cursor: "pointer" }}
                 >
-                  View all ({totalDraftCount})
+                  View all drafts
                 </Link>
               )}
             </Stack>
@@ -187,7 +186,7 @@ export function PromptManagerList() {
             ) : (
               <Box
                 display="grid"
-                gridTemplateColumns={{ xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(4, 1fr)" }}
+                gridTemplateColumns={{ xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }}
                 gap={1.5}
               >
                 {draftCardPrompts.map((prompt) => (

@@ -495,17 +495,8 @@ export const useStore = create<StoreState>((set, get) => ({
       const prompt = state.prompts.find((p) => p.id === promptId);
       if (!prompt) return state;
 
-      const nextVersionNumber = getNextVersionNumber(prompt);
-      const newVersion: PromptVersion = {
-        id: `${promptId}-v${nextVersionNumber}`,
-        version: nextVersionNumber,
-        createdAt: now,
-        description: payload.description,
-        desiredOutcome: payload.desiredOutcome,
-        content: payload.content,
-      };
-
-      const existingVersions = prompt.versions ?? [];
+      // Store-level one-draft rule: never create a second draft working state.
+      if (prompt.status === "draft") return state;
 
       return {
         prompts: state.prompts.map((p) => {
@@ -516,9 +507,7 @@ export const useStore = create<StoreState>((set, get) => ({
             content: payload.content,
             description: payload.description ?? p.description,
             desiredOutcome: payload.desiredOutcome ?? p.desiredOutcome,
-            versions: [...existingVersions, newVersion],
             lastUpdatedAt: now,
-            // Preserve publishedVersionId — new version is not auto-published
             hasUnpublishedChanges: true,
           };
         }),
@@ -543,12 +532,6 @@ export const useStore = create<StoreState>((set, get) => ({
       const publishedVersion = prompt.versions.find((version) => version.id === prompt.publishedVersionId);
       if (!publishedVersion) return state;
 
-      const latestVersionNumber = Math.max(...prompt.versions.map((version) => version.version));
-      const nextVersions = prompt.versions.filter((version) => {
-        if (version.id === prompt.publishedVersionId) return true;
-        return version.version !== latestVersionNumber;
-      });
-
       return {
         prompts: state.prompts.map((p) => {
           if (p.id !== promptId) return p;
@@ -558,7 +541,6 @@ export const useStore = create<StoreState>((set, get) => ({
             description: publishedVersion.description ?? p.description,
             desiredOutcome: publishedVersion.desiredOutcome ?? p.desiredOutcome,
             content: publishedVersion.content,
-            versions: nextVersions,
             hasUnpublishedChanges: false,
             lastUpdatedAt: now,
           };

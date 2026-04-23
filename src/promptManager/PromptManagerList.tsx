@@ -99,7 +99,7 @@ export function PromptManagerList() {
     [prompts],
   );
   const draftCardPrompts = allDraftPrompts.slice(0, MAX_DRAFT_CARDS);
-  const hasMoreDrafts = allDraftPrompts.length > MAX_DRAFT_CARDS;
+  const hasDrafts = allDraftPrompts.length > 0;
 
   // Lower list — uses the active filter (All is genuinely all statuses)
   const listedPrompts = useMemo(
@@ -145,7 +145,7 @@ export function PromptManagerList() {
               <Typography variant="overline" color="text.secondary" letterSpacing={1}>
                 Recent Drafts
               </Typography>
-              {hasMoreDrafts && (
+              {hasDrafts && (
                 <Link
                   component="button"
                   variant="caption"

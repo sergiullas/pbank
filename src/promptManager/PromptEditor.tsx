@@ -545,7 +545,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         </Stack>
 
         {(prompt.status === "draft" || prompt.status === "published" || prompt.status === "archived") && (
-          <Button variant="contained" color="success" onClick={() => setPublishDialogOpen(true)} disabled={!content.trim()}>
+          <Button variant="contained" color="primary" onClick={() => setPublishDialogOpen(true)} disabled={!content.trim()}>
             Publish
           </Button>
         )}
@@ -560,7 +560,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPublishDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handlePublishConfirm}>Publish</Button>
+          <Button variant="contained" color="primary" onClick={handlePublishConfirm}>Publish</Button>
         </DialogActions>
       </Dialog>
 

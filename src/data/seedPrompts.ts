@@ -201,18 +201,75 @@ Content:
     id: "user-research-plan",
     title: "User Research Plan",
     description: "Create a plan for user research, including objectives, methods, and participant criteria.",
+    desiredOutcome: "Create a practical and execution-ready plan for user research that aligns goals, methods, participants, and analysis.",
     category: "Planning",
     tags: ["research", "users", "interviews"],
     content:
       "Create a user research plan with:\n- Objectives\n- Methods\n- Participant criteria\n- Discussion guide\n- Timeline\n- Analysis approach\n\nProduct area:\n[PRODUCT AREA]",
+    versions: [
+      {
+        id: "user-research-plan-v1",
+        version: 1,
+        createdAt: "2026-01-05T12:00:00.000Z",
+        description: "Initial research plan structure.",
+        desiredOutcome: "Get a basic research plan drafted quickly.",
+        content:
+          "Create a user research plan with:\n- Objectives\n- Methods\n- Participant criteria\n\nProduct area:\n[PRODUCT AREA]",
+      },
+      {
+        id: "user-research-plan-v2",
+        version: 2,
+        createdAt: "2026-01-20T12:00:00.000Z",
+        description: "Added discussion guide expectations.",
+        desiredOutcome: "Ensure interviews are consistent and actionable.",
+        content:
+          "Create a user research plan with:\n- Objectives\n- Methods\n- Participant criteria\n- Discussion guide\n\nProduct area:\n[PRODUCT AREA]",
+      },
+      {
+        id: "user-research-plan-v3",
+        version: 3,
+        createdAt: "2026-02-02T12:00:00.000Z",
+        description: "Added timeline and analysis approach.",
+        desiredOutcome: "Improve planning realism and synthesis quality.",
+        content:
+          "Create a user research plan with:\n- Objectives\n- Methods\n- Participant criteria\n- Discussion guide\n- Timeline\n- Analysis approach\n\nProduct area:\n[PRODUCT AREA]",
+      },
+      {
+        id: "user-research-plan-v4",
+        version: 4,
+        createdAt: "2026-02-16T12:00:00.000Z",
+        description: "Clarified constraints and risks section.",
+        desiredOutcome: "Surface practical risks before execution starts.",
+        content:
+          "Create a user research plan with:\n- Objectives\n- Methods\n- Participant criteria\n- Discussion guide\n- Timeline\n- Analysis approach\n- Risks and constraints\n\nProduct area:\n[PRODUCT AREA]",
+      },
+      {
+        id: "user-research-plan-v5",
+        version: 5,
+        createdAt: "2026-03-03T12:00:00.000Z",
+        description: "Improved participant criteria and screening specificity.",
+        desiredOutcome: "Recruit participants that match research goals.",
+        content:
+          "Create a user research plan with:\n- Objectives\n- Methods\n- Participant criteria + screener notes\n- Discussion guide\n- Timeline\n- Analysis approach\n- Risks and constraints\n\nProduct area:\n[PRODUCT AREA]",
+      },
+      {
+        id: "user-research-plan-v6",
+        version: 6,
+        createdAt: "2026-03-25T12:00:00.000Z",
+        description: "Current version with analysis outputs and decision criteria.",
+        desiredOutcome: "Create a practical and execution-ready plan for user research that aligns goals, methods, participants, and analysis.",
+        content:
+          "Create a user research plan with:\n- Objectives\n- Methods\n- Participant criteria + screener notes\n- Discussion guide\n- Timeline\n- Analysis approach\n- Risks and constraints\n- Decision criteria for recommendations\n\nProduct area:\n[PRODUCT AREA]",
+      },
+    ],
     createdAt: "2026-02-19T12:00:00.000Z",
-    lastUpdatedAt: "2026-02-19T12:00:00.000Z",
+    lastUpdatedAt: "2026-03-25T12:00:00.000Z",
     owner: "James Rhodes (War Machine)",
     media: false,
     likes: 3800,
     status: "published",
-    publishedVersionId: "user-research-plan-v1",
-    publishedAt: "2026-02-19T12:00:00.000Z",
+    publishedVersionId: "user-research-plan-v6",
+    publishedAt: "2026-03-25T12:00:00.000Z",
     hasUnpublishedChanges: false,
   },
   {

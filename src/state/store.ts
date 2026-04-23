@@ -73,6 +73,7 @@ type StoreState = {
   promptManagerSearch: string;
   promptManagerStatusFilter: PromptManagerStatusFilter;
   hasPromptEditorUnsavedChanges: boolean;
+  promptManagerNotice: string | null;
 
   // Library actions
   setLibraryCollapsed: (next: boolean) => void;
@@ -106,10 +107,12 @@ type StoreState = {
   archivePrompt: (promptId: string) => void;
   restorePrompt: (promptId: string) => void;
   savePromptAsNewVersion: (promptId: string, payload: NewVersionPayload) => void;
+  discardPromptDraft: (promptId: string) => void;
   deletePrompt: (promptId: string) => void;
   setPromptManagerSearch: (search: string) => void;
   setPromptManagerStatusFilter: (filter: PromptManagerStatusFilter) => void;
   setPromptEditorUnsavedChanges: (value: boolean) => void;
+  setPromptManagerNotice: (message: string | null) => void;
 };
 
 const normalizeFavorite = (favorite: FavoriteItem): FavoriteItem => ({
@@ -126,10 +129,30 @@ const readFavorites = (): FavoriteItem[] => {
 
   if (typeof stored[0] === "string") {
     const now = new Date().toISOString();
-    return (stored as string[]).map((promptId) => ({ id: `${promptId}:latest`, promptId, createdAt: now }));
+    const migrated = (stored as string[])
+      .map((promptId) => {
+        const prompt = seedPrompts.find((candidate) => candidate.id === promptId);
+        const publishedVersion = prompt?.versions?.find((version) => version.id === prompt.publishedVersionId);
+        return publishedVersion
+          ? { id: `${promptId}:v${publishedVersion.version}`, promptId, version: publishedVersion.version, createdAt: now }
+          : null;
+      });
+    return migrated.filter(Boolean) as FavoriteItem[];
   }
 
-  return (stored as FavoriteItem[]).map((favorite) => normalizeFavorite(favorite));
+  const migrated = (stored as FavoriteItem[])
+    .map((favorite) => {
+      if (favorite.version != null) return normalizeFavorite(favorite);
+      const prompt = seedPrompts.find((candidate) => candidate.id === favorite.promptId);
+      const publishedVersion = prompt?.versions?.find((version) => version.id === prompt.publishedVersionId);
+      if (!publishedVersion) return null;
+      return normalizeFavorite({
+        ...favorite,
+        id: `${favorite.promptId}:v${publishedVersion.version}`,
+        version: publishedVersion.version,
+      });
+    });
+  return migrated.filter(Boolean) as FavoriteItem[];
 };
 
 const readLibraryCollapsed = (): boolean => readJSON<boolean>(STORAGE_KEYS.libraryCollapsed, true);
@@ -188,6 +211,7 @@ export const useStore = create<StoreState>((set, get) => ({
   promptManagerSearch: "",
   promptManagerStatusFilter: "published",
   hasPromptEditorUnsavedChanges: false,
+  promptManagerNotice: null,
 
   // Library actions
   setLibraryCollapsed: (next) => {
@@ -208,25 +232,23 @@ export const useStore = create<StoreState>((set, get) => ({
 
   closePromptDetail: () => set({ libraryView: "browse", detailInitialVersionNumber: null }),
 
-  isPromptFavorited: (promptId) => get().favorites.some((favorite) => favorite.promptId === promptId && favorite.version == null),
+  isPromptFavorited: (promptId) => get().favorites.some((favorite) => favorite.promptId === promptId),
 
   isVersionFavorited: (promptId, version) =>
     get().favorites.some((favorite) => favorite.promptId === promptId && favorite.version === version),
 
   togglePromptFavorite: (promptId) => {
-    const promptFavoriteId = `${promptId}:latest`;
-    const exists = get().favorites.some((favorite) => favorite.id === promptFavoriteId);
-    const nextFavorites = exists
-      ? get().favorites.filter((favorite) => favorite.id !== promptFavoriteId)
-      : [...get().favorites, { id: promptFavoriteId, promptId, createdAt: new Date().toISOString() }];
-
-    writeJSON(STORAGE_KEYS.favorites, nextFavorites);
-    set({ favorites: nextFavorites });
+    const prompt = get().prompts.find((candidate) => candidate.id === promptId);
+    const publishedVersion = prompt?.versions?.find((version) => version.id === prompt.publishedVersionId) ?? null;
+    if (!publishedVersion) return;
+    get().toggleVersionFavorite(promptId, publishedVersion.version);
   },
 
   toggleVersionFavorite: (promptId, version) => {
     const versionFavoriteId = `${promptId}:v${version}`;
     const exists = get().favorites.some((favorite) => favorite.id === versionFavoriteId);
+    const prompt = get().prompts.find((candidate) => candidate.id === promptId);
+    if (!exists && prompt?.status === "archived") return;
     const nextFavorites = exists
       ? get().favorites.filter((favorite) => favorite.id !== versionFavoriteId)
       : [...get().favorites, { id: versionFavoriteId, promptId, version, createdAt: new Date().toISOString() }];
@@ -322,7 +344,7 @@ export const useStore = create<StoreState>((set, get) => ({
   startNewPromptDraft: () => {
     const id = createId();
     const now = new Date().toISOString();
-    const newPrompt: Prompt = {
+      const newPrompt: Prompt = {
       id,
       title: "Untitled Prompt",
       description: "",
@@ -335,10 +357,11 @@ export const useStore = create<StoreState>((set, get) => ({
       lastUpdatedAt: now,
       owner: "User",
       media: false,
-      status: "draft",
-      publishedVersionId: null,
-      hasUnpublishedChanges: false,
-    };
+        status: "draft",
+        archivedFromStatus: null,
+        publishedVersionId: null,
+        hasUnpublishedChanges: false,
+      };
 
     set((state) => ({
       prompts: [...state.prompts, newPrompt],
@@ -398,6 +421,7 @@ export const useStore = create<StoreState>((set, get) => ({
             content: payload.content,
             versions: updatedVersions,
             status: "published" as PromptStatus,
+            archivedFromStatus: null,
             publishedVersionId: newVersion.id,
             lastUpdatedAt: now,
             publishedAt: now,
@@ -433,8 +457,7 @@ export const useStore = create<StoreState>((set, get) => ({
         return {
           ...p,
           status: "archived" as PromptStatus,
-          publishedVersionId: null,
-          publishedAt: null,
+          archivedFromStatus: p.status === "archived" ? p.archivedFromStatus ?? "draft" : p.status,
           lastUpdatedAt: now,
           hasUnpublishedChanges: false,
         };
@@ -449,7 +472,8 @@ export const useStore = create<StoreState>((set, get) => ({
         if (p.id !== promptId) return p;
         return {
           ...p,
-          status: "draft" as PromptStatus,
+          status: p.archivedFromStatus ?? "draft",
+          archivedFromStatus: null,
           lastUpdatedAt: now,
         };
       }),
@@ -458,7 +482,7 @@ export const useStore = create<StoreState>((set, get) => ({
 
   deletePrompt: (promptId) => {
     set((state) => ({
-      prompts: state.prompts.filter((p) => p.id !== promptId),
+      prompts: state.prompts.filter((p) => !(p.id === promptId && p.status === "draft")),
       // If the deleted prompt was open in the editor, go back to list
       selectedManagedPromptId: state.selectedManagedPromptId === promptId ? null : state.selectedManagedPromptId,
       promptManagerView: state.selectedManagedPromptId === promptId ? "list" : state.promptManagerView,
@@ -471,30 +495,54 @@ export const useStore = create<StoreState>((set, get) => ({
       const prompt = state.prompts.find((p) => p.id === promptId);
       if (!prompt) return state;
 
-      const nextVersionNumber = getNextVersionNumber(prompt);
-      const newVersion: PromptVersion = {
-        id: `${promptId}-v${nextVersionNumber}`,
-        version: nextVersionNumber,
-        createdAt: now,
-        description: payload.description,
-        desiredOutcome: payload.desiredOutcome,
-        content: payload.content,
-      };
-
-      const existingVersions = prompt.versions ?? [];
+      // Store-level one-draft rule: never create a second draft working state.
+      if (prompt.status === "draft") return state;
 
       return {
         prompts: state.prompts.map((p) => {
           if (p.id !== promptId) return p;
           return {
             ...p,
+            status: "draft" as PromptStatus,
             content: payload.content,
             description: payload.description ?? p.description,
             desiredOutcome: payload.desiredOutcome ?? p.desiredOutcome,
-            versions: [...existingVersions, newVersion],
             lastUpdatedAt: now,
-            // Preserve publishedVersionId — new version is not auto-published
-            hasUnpublishedChanges: p.status === "published" ? true : p.hasUnpublishedChanges,
+            hasUnpublishedChanges: true,
+          };
+        }),
+      };
+    });
+  },
+
+  discardPromptDraft: (promptId) => {
+    const now = new Date().toISOString();
+    set((state) => {
+      const prompt = state.prompts.find((p) => p.id === promptId);
+      if (!prompt || prompt.status !== "draft") return state;
+
+      if (!prompt.publishedVersionId || !prompt.versions?.length) {
+        return {
+          prompts: state.prompts.filter((p) => p.id !== promptId),
+          selectedManagedPromptId: state.selectedManagedPromptId === promptId ? null : state.selectedManagedPromptId,
+          promptManagerView: state.selectedManagedPromptId === promptId ? "list" : state.promptManagerView,
+        };
+      }
+
+      const publishedVersion = prompt.versions.find((version) => version.id === prompt.publishedVersionId);
+      if (!publishedVersion) return state;
+
+      return {
+        prompts: state.prompts.map((p) => {
+          if (p.id !== promptId) return p;
+          return {
+            ...p,
+            status: "published" as PromptStatus,
+            description: publishedVersion.description ?? p.description,
+            desiredOutcome: publishedVersion.desiredOutcome ?? p.desiredOutcome,
+            content: publishedVersion.content,
+            hasUnpublishedChanges: false,
+            lastUpdatedAt: now,
           };
         }),
       };
@@ -505,4 +553,5 @@ export const useStore = create<StoreState>((set, get) => ({
 
   setPromptManagerStatusFilter: (filter) => set({ promptManagerStatusFilter: filter }),
   setPromptEditorUnsavedChanges: (value) => set({ hasPromptEditorUnsavedChanges: value }),
+  setPromptManagerNotice: (message) => set({ promptManagerNotice: message }),
 }));

@@ -30,7 +30,7 @@ const MAX_DRAFT_CARDS = 3;
 // ── Draft card ───────────────────────────────────────────────────────────────
 
 function DraftCard({ prompt, onEdit }: { prompt: Prompt; onEdit: () => void }) {
-  const snippet = prompt.description || prompt.desiredOutcome || null;
+  const snippet = prompt.description || (prompt.content.trim() ? prompt.content : null);
 
   return (
     <Box

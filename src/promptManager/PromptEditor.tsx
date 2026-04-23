@@ -44,6 +44,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const publishPrompt = useStore((state) => state.publishPrompt);
   const savePromptAsNewVersion = useStore((state) => state.savePromptAsNewVersion);
   const deletePrompt = useStore((state) => state.deletePrompt);
+  const restorePrompt = useStore((state) => state.restorePrompt);
   const setPromptEditorUnsavedChanges = useStore((state) => state.setPromptEditorUnsavedChanges);
 
   const [title, setTitle] = useState(prompt.title);
@@ -73,13 +74,6 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     description !== (prompt.description ?? "") ||
     promptInstructions !== (prompt.desiredOutcome ?? "") ||
     content !== prompt.content;
-
-  const statusLabel = (() => {
-    if (prompt.status === "published" && prompt.hasUnpublishedChanges) return "Published with unpublished changes";
-    if (prompt.status === "published") return "Published";
-    if (prompt.status === "archived") return "Archived";
-    return "Draft";
-  })();
 
   useEffect(() => {
     setPromptEditorUnsavedChanges(isDirty);
@@ -258,22 +252,20 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
 
         <Stack direction="row" alignItems="center" gap={1} sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="subtitle1" fontWeight={600} noWrap>
-            {title || "Untitled Prompt"}
+            {(title || "Untitled Prompt")} v{latestVersion.version}
           </Typography>
-          <PromptStatusChip status={prompt.status} hasUnpublishedChanges={prompt.hasUnpublishedChanges} />
+          {(prompt.status === "draft" || prompt.status === "archived") && (
+            <PromptStatusChip status={prompt.status} hasUnpublishedChanges={prompt.hasUnpublishedChanges} />
+          )}
         </Stack>
 
         <Button
           size="small"
-          variant={showTestPanel ? "contained" : "outlined"}
+          variant="outlined"
           onClick={() => setShowTestPanel((prev) => !prev)}
         >
           Test Prompt
         </Button>
-
-        <Typography variant="caption" color="text.secondary" sx={{ whiteSpace: "nowrap" }}>
-          {statusLabel}
-        </Typography>
       </Box>
 
       <Box flex={1} minHeight={0} display="flex" flexDirection={{ xs: "column", lg: "row" }} overflow="hidden">
@@ -530,26 +522,48 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         gap={1.5}
         flexShrink={0}
         flexWrap="wrap"
+        position="sticky"
+        bottom={0}
+        zIndex={1}
       >
-        <Stack direction="row" gap={1}>
-          {prompt.status !== "archived" && (
-            <Button variant="outlined" onClick={handleSaveDraft} disabled={!isDirty && prompt.status !== "draft"}>
-              Save Draft
+        {prompt.status === "draft" && (
+          <>
+            <Stack direction="row" gap={1}>
+              <Button variant="outlined" onClick={handleSaveDraft} disabled={!isDirty}>
+                Save Draft
+              </Button>
+              <Button variant="outlined" color="error" onClick={() => setDeleteDialogOpen(true)}>
+                Delete
+              </Button>
+            </Stack>
+            <Button variant="contained" color="primary" onClick={() => setPublishDialogOpen(true)} disabled={!content.trim()}>
+              Publish
             </Button>
-          )}
-          {prompt.status === "draft" && (
-            <Button variant="outlined" color="error" onClick={() => setDeleteDialogOpen(true)}>
-              Delete
-            </Button>
-          )}
-        </Stack>
+          </>
+        )}
 
-        {(prompt.status === "draft" || prompt.status === "published" || prompt.status === "archived") && (
-          <Button variant="contained" color="primary" onClick={() => setPublishDialogOpen(true)} disabled={!content.trim()}>
-            Publish
+        {prompt.status === "published" && (
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => handleSaveAsNewVersion()}
+            disabled={!content.trim()}
+            sx={{ ml: "auto" }}
+          >
+            Create New Version
           </Button>
         )}
 
+        {prompt.status === "archived" && (
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => restorePrompt(prompt.id)}
+            sx={{ ml: "auto" }}
+          >
+            Restore
+          </Button>
+        )}
       </Box>
 
       <Dialog open={publishDialogOpen} onClose={() => setPublishDialogOpen(false)}>

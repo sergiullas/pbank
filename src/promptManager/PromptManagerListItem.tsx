@@ -32,6 +32,7 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
   const restorePrompt = useStore((state) => state.restorePrompt);
   const savePromptAsNewVersion = useStore((state) => state.savePromptAsNewVersion);
   const deletePrompt = useStore((state) => state.deletePrompt);
+  const setPromptManagerNotice = useStore((state) => state.setPromptManagerNotice);
 
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -57,6 +58,7 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
   const handleDeleteConfirm = () => {
     deletePrompt(prompt.id);
     setDeleteDialogOpen(false);
+    setPromptManagerNotice("Draft deleted.");
   };
 
   return (
@@ -146,7 +148,14 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
               </MenuItem>
             )}
             {prompt.status === "published" && (
-              <MenuItem onClick={() => handleMenuAction(() => archivePrompt(prompt.id))}>
+              <MenuItem
+                onClick={() =>
+                  handleMenuAction(() => {
+                    archivePrompt(prompt.id);
+                    setPromptManagerNotice("Prompt archived.");
+                  })
+                }
+              >
                 Archive
               </MenuItem>
             )}
@@ -158,15 +167,16 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
               <MenuItem
                 key="publish"
                 onClick={() =>
-                  handleMenuAction(() =>
+                  handleMenuAction(() => {
                     publishPrompt(prompt.id, {
                       title: prompt.title,
                       description: prompt.description,
                       desiredOutcome: prompt.desiredOutcome,
                       tags: prompt.tags,
                       content: prompt.content,
-                    }),
-                  )
+                    });
+                    setPromptManagerNotice("Prompt published.");
+                  })
                 }
               >
                 Publish

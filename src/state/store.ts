@@ -73,6 +73,7 @@ type StoreState = {
   promptManagerSearch: string;
   promptManagerStatusFilter: PromptManagerStatusFilter;
   hasPromptEditorUnsavedChanges: boolean;
+  promptManagerNotice: string | null;
 
   // Library actions
   setLibraryCollapsed: (next: boolean) => void;
@@ -110,6 +111,7 @@ type StoreState = {
   setPromptManagerSearch: (search: string) => void;
   setPromptManagerStatusFilter: (filter: PromptManagerStatusFilter) => void;
   setPromptEditorUnsavedChanges: (value: boolean) => void;
+  setPromptManagerNotice: (message: string | null) => void;
 };
 
 const normalizeFavorite = (favorite: FavoriteItem): FavoriteItem => ({
@@ -208,6 +210,7 @@ export const useStore = create<StoreState>((set, get) => ({
   promptManagerSearch: "",
   promptManagerStatusFilter: "published",
   hasPromptEditorUnsavedChanges: false,
+  promptManagerNotice: null,
 
   // Library actions
   setLibraryCollapsed: (next) => {
@@ -526,4 +529,5 @@ export const useStore = create<StoreState>((set, get) => ({
 
   setPromptManagerStatusFilter: (filter) => set({ promptManagerStatusFilter: filter }),
   setPromptEditorUnsavedChanges: (value) => set({ hasPromptEditorUnsavedChanges: value }),
+  setPromptManagerNotice: (message) => set({ promptManagerNotice: message }),
 }));

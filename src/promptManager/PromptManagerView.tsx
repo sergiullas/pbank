@@ -1,4 +1,4 @@
-import { Box, Typography } from "@mui/material";
+import { Alert, Box, Snackbar, Typography } from "@mui/material";
 import { useMemo } from "react";
 import { useStore } from "../state/store";
 import { PromptManagerList } from "./PromptManagerList";
@@ -9,6 +9,8 @@ export function PromptManagerView() {
   const selectedManagedPromptId = useStore((state) => state.selectedManagedPromptId);
   const prompts = useStore((state) => state.prompts);
   const setPromptManagerView = useStore((state) => state.selectManagedPrompt);
+  const promptManagerNotice = useStore((state) => state.promptManagerNotice);
+  const setPromptManagerNotice = useStore((state) => state.setPromptManagerNotice);
 
   const selectedPrompt = useMemo(
     () => (selectedManagedPromptId ? prompts.find((p) => p.id === selectedManagedPromptId) ?? null : null),
@@ -38,6 +40,16 @@ export function PromptManagerView() {
       ) : (
         <PromptManagerList />
       )}
+      <Snackbar
+        open={Boolean(promptManagerNotice)}
+        autoHideDuration={3000}
+        onClose={() => setPromptManagerNotice(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert onClose={() => setPromptManagerNotice(null)} severity="success" variant="filled" sx={{ width: "100%" }}>
+          {promptManagerNotice}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

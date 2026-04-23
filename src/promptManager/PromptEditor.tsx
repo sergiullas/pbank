@@ -48,6 +48,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const deletePrompt = useStore((state) => state.deletePrompt);
   const restorePrompt = useStore((state) => state.restorePrompt);
   const setPromptEditorUnsavedChanges = useStore((state) => state.setPromptEditorUnsavedChanges);
+  const setPromptManagerNotice = useStore((state) => state.setPromptManagerNotice);
 
   const [draftFormState, setDraftFormState] = useState(() => ({
     title: prompt.title,
@@ -139,7 +140,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const handlePublishConfirm = () => {
     publishPrompt(prompt.id, buildPayload());
     setPublishDialogOpen(false);
-    showFeedback(prompt.status === "published" ? "Changes published." : "Prompt published.");
+    setPromptManagerNotice(prompt.status === "published" ? "Changes published." : "Prompt published.");
+    onBack();
   };
 
   const handleCreateNewVersion = (version?: PromptVersion) => {
@@ -157,6 +159,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const handleDeleteConfirm = () => {
     deletePrompt(prompt.id);
     setDeleteDialogOpen(false);
+    setPromptManagerNotice("Draft deleted.");
     onBack();
   };
 

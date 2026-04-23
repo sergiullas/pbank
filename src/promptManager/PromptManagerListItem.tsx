@@ -30,6 +30,7 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
   const publishPrompt = useStore((state) => state.publishPrompt);
   const archivePrompt = useStore((state) => state.archivePrompt);
   const restorePrompt = useStore((state) => state.restorePrompt);
+  const savePromptAsNewVersion = useStore((state) => state.savePromptAsNewVersion);
   const deletePrompt = useStore((state) => state.deletePrompt);
 
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
@@ -56,20 +57,6 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
   const handleDeleteConfirm = () => {
     deletePrompt(prompt.id);
     setDeleteDialogOpen(false);
-  };
-
-  const primaryActionLabel = prompt.status === "draft"
-    ? "Continue editing"
-    : prompt.status === "published"
-      ? "Edit"
-      : "Restore";
-
-  const handlePrimaryAction = () => {
-    if (prompt.status === "archived") {
-      restorePrompt(prompt.id);
-      return;
-    }
-    onEdit();
   };
 
   return (
@@ -116,10 +103,6 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
           flexShrink={0}
           onClick={(e) => e.stopPropagation()}
         >
-          <Button size="small" variant="outlined" onClick={handlePrimaryAction}>
-            {primaryActionLabel}
-          </Button>
-
           <Tooltip title="More actions">
             <IconButton
               size="small"
@@ -142,12 +125,35 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
             MenuListProps={{ "aria-label": "Prompt actions" }}
           >
             {prompt.status === "published" && (
+              <MenuItem onClick={() => handleMenuAction(onEdit)}>
+                View
+              </MenuItem>
+            )}
+            {prompt.status === "published" && (
+              <MenuItem
+                onClick={() =>
+                  handleMenuAction(() =>
+                    savePromptAsNewVersion(prompt.id, {
+                      description: prompt.description,
+                      desiredOutcome: prompt.desiredOutcome,
+                      content: prompt.content,
+                    }),
+                  )
+                }
+              >
+                Create New Version
+              </MenuItem>
+            )}
+            {prompt.status === "published" && (
               <MenuItem onClick={() => handleMenuAction(() => archivePrompt(prompt.id))}>
                 Archive
               </MenuItem>
             )}
 
             {prompt.status === "draft" && [
+              <MenuItem key="edit" onClick={() => handleMenuAction(onEdit)}>
+                Edit
+              </MenuItem>,
               <MenuItem
                 key="publish"
                 onClick={() =>
@@ -169,6 +175,11 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
               </MenuItem>,
             ]}
 
+            {prompt.status === "archived" && (
+              <MenuItem onClick={() => handleMenuAction(onEdit)}>
+                View
+              </MenuItem>
+            )}
             {prompt.status === "archived" && (
               <MenuItem onClick={() => handleMenuAction(() => restorePrompt(prompt.id))}>
                 Restore

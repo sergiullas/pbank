@@ -478,11 +478,7 @@ export const useStore = create<StoreState>((set, get) => ({
 
   deletePrompt: (promptId) => {
     set((state) => ({
-      prompts: state.prompts.filter((p) => {
-        if (p.id !== promptId) return true;
-        if (p.status !== "draft") return true;
-        return Boolean(p.publishedVersionId);
-      }),
+      prompts: state.prompts.filter((p) => !(p.id === promptId && p.status === "draft")),
       // If the deleted prompt was open in the editor, go back to list
       selectedManagedPromptId: state.selectedManagedPromptId === promptId ? null : state.selectedManagedPromptId,
       promptManagerView: state.selectedManagedPromptId === promptId ? "list" : state.promptManagerView,

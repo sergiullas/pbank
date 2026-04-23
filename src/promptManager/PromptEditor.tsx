@@ -61,11 +61,10 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [viewAllVersionsOpen, setViewAllVersionsOpen] = useState(false);
-  const [versionMenuAnchor, setVersionMenuAnchor] = useState<null | HTMLElement>(null);
+  const [versionMenuAnchorPosition, setVersionMenuAnchorPosition] = useState<{ top: number; left: number } | null>(null);
   const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(null);
 
   const publishedVersion = prompt.publishedVersionId ? getPublishedVersion(prompt) : null;
-  const hasPublishedVersions = Boolean(prompt.publishedVersionId);
   const hasDraft = prompt.status === "draft";
 
   const editorMode: EditorMode = useMemo(() => {
@@ -170,7 +169,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
 
   const handleViewVersion = (version: PromptVersion) => {
     setViewingVersion(version);
-    setVersionMenuAnchor(null);
+    setVersionMenuAnchorPosition(null);
     setViewAllVersionsOpen(false);
   };
 
@@ -224,7 +223,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
           aria-label={`Version ${version.version} actions`}
           onClick={(event) => {
             setSelectedVersion(version);
-            setVersionMenuAnchor(event.currentTarget);
+            setVersionMenuAnchorPosition({ top: event.clientY, left: event.clientX });
           }}
         >
           <MoreVertIcon fontSize="small" />
@@ -546,7 +545,6 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                 variant="outlined"
                 color="error"
                 onClick={() => setDeleteDialogOpen(true)}
-                disabled={hasPublishedVersions}
               >
                 Delete
               </Button>
@@ -619,9 +617,10 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
       </Dialog>
 
       <Menu
-        anchorEl={versionMenuAnchor}
-        open={Boolean(versionMenuAnchor)}
-        onClose={() => setVersionMenuAnchor(null)}
+        open={Boolean(versionMenuAnchorPosition)}
+        onClose={() => setVersionMenuAnchorPosition(null)}
+        anchorReference="anchorPosition"
+        anchorPosition={versionMenuAnchorPosition ?? undefined}
         MenuListProps={{ "aria-label": "Version actions" }}
       >
         <MenuItem onClick={() => selectedVersion && handleViewVersion(selectedVersion)}>
@@ -632,7 +631,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
             if (selectedVersion) {
               handleCreateNewVersion(selectedVersion);
             }
-            setVersionMenuAnchor(null);
+            setVersionMenuAnchorPosition(null);
           }}
         >
           Create New Version

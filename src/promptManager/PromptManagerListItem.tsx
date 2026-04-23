@@ -171,11 +171,9 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
               >
                 Publish
               </MenuItem>,
-              !prompt.publishedVersionId && (
-                <MenuItem key="delete" onClick={handleDeleteClick} sx={{ color: "error.main" }}>
-                  Delete Draft
-                </MenuItem>
-              ),
+              <MenuItem key="delete" onClick={handleDeleteClick} sx={{ color: "error.main" }}>
+                Delete Draft
+              </MenuItem>,
             ]}
 
             {prompt.status === "archived" && (

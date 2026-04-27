@@ -94,6 +94,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   };
 
   const isReadOnly = editorMode !== "draft-edit";
+  const useReadOnlyControls = editorMode === "published-readonly" || editorMode === "version-readonly";
+  const disableControls = editorMode === "archived-readonly";
   const { variables: templateVariables, invalidTokens } = useMemo(
     () => parseTemplateVariables(activeSource.content),
     [activeSource.content],
@@ -334,10 +336,11 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                     setDraftFormState((prev) => ({ ...prev, title: e.target.value }));
                     setFieldErrors((prev) => ({ ...prev, title: undefined }));
                   }}
-                  disabled={isReadOnly}
+                  disabled={disableControls}
                   fullWidth
                   required
                   inputProps={{ "aria-label": "Prompt title" }}
+                  InputProps={{ readOnly: useReadOnlyControls }}
                   error={Boolean(fieldErrors.title)}
                   helperText={fieldErrors.title}
                 />
@@ -346,7 +349,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   label="Description"
                   value={isReadOnly ? (activeSource.description ?? "") : draftFormState.description}
                   onChange={(e) => setDraftFormState((prev) => ({ ...prev, description: e.target.value }))}
-                  disabled={isReadOnly}
+                  disabled={disableControls}
+                  InputProps={{ readOnly: useReadOnlyControls }}
                   fullWidth
                   multiline
                   minRows={2}
@@ -392,7 +396,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                     setDraftFormState((prev) => ({ ...prev, content: e.target.value }));
                     setFieldErrors((prev) => ({ ...prev, template: undefined }));
                   }}
-                  disabled={isReadOnly}
+                  disabled={disableControls}
+                  InputProps={{ readOnly: useReadOnlyControls }}
                   fullWidth
                   required
                   multiline
@@ -419,7 +424,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   label="Prompt Instructions"
                   value={isReadOnly ? (activeSource.desiredOutcome ?? "") : draftFormState.promptInstructions}
                   onChange={(e) => setDraftFormState((prev) => ({ ...prev, promptInstructions: e.target.value }))}
-                  disabled={isReadOnly}
+                  disabled={disableControls}
+                  InputProps={{ readOnly: useReadOnlyControls }}
                   fullWidth
                   multiline
                   minRows={3}

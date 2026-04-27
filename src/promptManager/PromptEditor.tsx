@@ -1,5 +1,7 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
+import CheckIcon from "@mui/icons-material/Check";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ShortTextIcon from "@mui/icons-material/ShortText";
 import SubjectIcon from "@mui/icons-material/Subject";
@@ -63,8 +65,11 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
+  const [unsavedDialogAction, setUnsavedDialogAction] = useState<"back" | "switch-version">("back");
+  const [pendingVersionSelection, setPendingVersionSelection] = useState<PromptVersion | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ title?: string; template?: string }>({});
   const [viewAllVersionsOpen, setViewAllVersionsOpen] = useState(false);
+  const [headerVersionMenuAnchor, setHeaderVersionMenuAnchor] = useState<null | HTMLElement>(null);
   const [versionMenuAnchorPosition, setVersionMenuAnchorPosition] = useState<{ top: number; left: number } | null>(null);
   const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(null);
 
@@ -197,23 +202,40 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     onBack();
   };
 
+  const applyVersionSelection = (version: PromptVersion | null) => {
+    setViewingVersion(version);
+    setPendingVersionSelection(null);
+    setHeaderVersionMenuAnchor(null);
+    setVersionMenuAnchorPosition(null);
+    setViewAllVersionsOpen(false);
+  };
+
+  const requestVersionSelection = (version: PromptVersion | null) => {
+    if (!isReadOnly && isDirty) {
+      setPendingVersionSelection(version);
+      setUnsavedDialogAction("switch-version");
+      setUnsavedDialogOpen(true);
+      setHeaderVersionMenuAnchor(null);
+      setVersionMenuAnchorPosition(null);
+      return;
+    }
+    applyVersionSelection(version);
+  };
+
   const handleBack = () => {
     if (!isReadOnly && isDirty) {
+      setUnsavedDialogAction("back");
       setUnsavedDialogOpen(true);
       return;
     }
     onBack();
   };
 
-  const handleViewVersion = (version: PromptVersion) => {
-    setViewingVersion(version);
-    setVersionMenuAnchorPosition(null);
-    setViewAllVersionsOpen(false);
-  };
-
   const inlineVersions = useMemo(() => {
     return sortedVersions.slice(0, INLINE_VERSION_COUNT);
   }, [sortedVersions]);
+  const versionMenuOpen = Boolean(headerVersionMenuAnchor);
+  const canSelectVersionFromHeader = prompt.status !== "archived";
 
   const VersionRow = ({ version }: { version: PromptVersion }) => {
     const isWorkingDraft = workingDraftVersionNumber != null && version.version === workingDraftVersionNumber;
@@ -286,8 +308,31 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
 
         <Stack direction="row" alignItems="center" gap={1} sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="subtitle1" fontWeight={600} noWrap>
-            {(draftFormState.title || "Untitled Prompt")} v{activeSource.version}
+            {draftFormState.title || "Untitled Prompt"}
           </Typography>
+          <Button
+            size="small"
+            variant="text"
+            onClick={(event) => setHeaderVersionMenuAnchor(event.currentTarget)}
+            aria-haspopup="menu"
+            aria-expanded={versionMenuOpen ? "true" : undefined}
+            aria-label={`Select version, currently v${activeSource.version}`}
+            disabled={!canSelectVersionFromHeader}
+            endIcon={<ExpandMoreIcon fontSize="small" />}
+            sx={{
+              minWidth: 0,
+              px: 1,
+              py: 0.25,
+              borderRadius: 999,
+              bgcolor: "action.hover",
+              color: "text.primary",
+              fontWeight: 600,
+              textTransform: "none",
+              "&:hover": { bgcolor: "action.selected" },
+            }}
+          >
+            v{activeSource.version}
+          </Button>
           {(editorMode === "draft-edit" || editorMode === "archived-readonly") && (
             <PromptStatusChip status={prompt.status} hasUnpublishedChanges={prompt.hasUnpublishedChanges} />
           )}
@@ -695,8 +740,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
           <>
             <MenuItem
               onClick={() => {
-                setViewingVersion(null);
-                setVersionMenuAnchorPosition(null);
+                applyVersionSelection(null);
               }}
             >
               Edit
@@ -713,7 +757,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
           </>
         ) : (
           <>
-            <MenuItem onClick={() => selectedVersion && handleViewVersion(selectedVersion)}>
+            <MenuItem onClick={() => selectedVersion && requestVersionSelection(selectedVersion)}>
               View
             </MenuItem>
             <MenuItem
@@ -730,6 +774,36 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         )}
       </Menu>
 
+      <Menu
+        anchorEl={headerVersionMenuAnchor}
+        open={versionMenuOpen}
+        onClose={() => setHeaderVersionMenuAnchor(null)}
+        MenuListProps={{ "aria-label": "Prompt versions" }}
+      >
+        {sortedVersions.map((version) => {
+          const isActiveVersion = activeSource.version === version.version;
+          return (
+            <MenuItem
+              key={`header-version-${version.id}`}
+              selected={isActiveVersion}
+              onClick={() => requestVersionSelection(version)}
+              sx={{ minWidth: 180, display: "flex", justifyContent: "space-between", gap: 1 }}
+            >
+              <span>v{version.version}</span>
+              {isActiveVersion ? <CheckIcon fontSize="small" color="primary" /> : null}
+            </MenuItem>
+          );
+        })}
+        <MenuItem
+          onClick={() => {
+            setHeaderVersionMenuAnchor(null);
+            setViewAllVersionsOpen(true);
+          }}
+        >
+          View all versions
+        </MenuItem>
+      </Menu>
+
       <Dialog open={unsavedDialogOpen} onClose={() => setUnsavedDialogOpen(false)} aria-labelledby="unsaved-dialog-title">
         <DialogTitle id="unsaved-dialog-title">Discard unsaved changes?</DialogTitle>
         <DialogContent>
@@ -744,6 +818,10 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
             variant="contained"
             onClick={() => {
               setUnsavedDialogOpen(false);
+              if (unsavedDialogAction === "switch-version") {
+                applyVersionSelection(pendingVersionSelection);
+                return;
+              }
               onBack();
             }}
           >

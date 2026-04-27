@@ -499,7 +499,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                 </Typography>
 
                 {invalidTokens.length > 0 && (
-                  <Alert severity="error" role="alert" aria-live="polite">
+                  <Alert severity="error" role="status" aria-live="polite">
                     {invalidTokens.map((invalidToken) => (
                       <Typography key={`${invalidToken.raw}-${invalidToken.message}`} variant="body2">
                         <code>{invalidToken.raw}</code> — {invalidToken.message}

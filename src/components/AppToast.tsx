@@ -30,13 +30,13 @@ export function AppToast({
         role={role}
         aria-live={ariaLive}
         message={message}
-        sx={{
-          bgcolor: "#2f2d36",
-          color: "common.white",
+        sx={(theme) => ({
+          bgcolor: theme.palette.mode === "dark" ? theme.palette.grey[800] : theme.palette.grey[900],
+          color: theme.palette.common.white,
           borderRadius: 1.5,
           fontSize: "1.05rem",
           px: 1,
-        }}
+        })}
       />
     </Snackbar>
   );

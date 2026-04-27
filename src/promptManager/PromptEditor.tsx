@@ -236,6 +236,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   }, [sortedVersions]);
   const versionMenuOpen = Boolean(headerVersionMenuAnchor);
   const canSelectVersionFromHeader = prompt.status !== "archived";
+  const showHeaderVersionDropdown = canSelectVersionFromHeader && versionCount > 1;
+  const headerVersionOptions = useMemo(() => sortedVersions.slice(0, 5), [sortedVersions]);
 
   const VersionRow = ({ version }: { version: PromptVersion }) => {
     const isWorkingDraft = workingDraftVersionNumber != null && version.version === workingDraftVersionNumber;
@@ -310,29 +312,44 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
           <Typography variant="subtitle1" fontWeight={600} noWrap>
             {draftFormState.title || "Untitled Prompt"}
           </Typography>
-          <Button
-            size="small"
-            variant="text"
-            onClick={(event) => setHeaderVersionMenuAnchor(event.currentTarget)}
-            aria-haspopup="menu"
-            aria-expanded={versionMenuOpen ? "true" : undefined}
-            aria-label={`Select version, currently v${activeSource.version}`}
-            disabled={!canSelectVersionFromHeader}
-            endIcon={<ExpandMoreIcon fontSize="small" />}
-            sx={{
-              minWidth: 0,
-              px: 1,
-              py: 0.25,
-              borderRadius: 999,
-              bgcolor: "action.hover",
-              color: "text.primary",
-              fontWeight: 600,
-              textTransform: "none",
-              "&:hover": { bgcolor: "action.selected" },
-            }}
-          >
-            v{activeSource.version}
-          </Button>
+          {showHeaderVersionDropdown ? (
+            <Button
+              size="small"
+              variant="text"
+              onClick={(event) => setHeaderVersionMenuAnchor(event.currentTarget)}
+              aria-haspopup="menu"
+              aria-expanded={versionMenuOpen ? "true" : undefined}
+              aria-label={`Select version, currently v${activeSource.version}`}
+              endIcon={<ExpandMoreIcon fontSize="small" />}
+              sx={{
+                minWidth: 0,
+                px: 1,
+                py: 0.25,
+                borderRadius: 999,
+                bgcolor: "action.hover",
+                color: "text.primary",
+                fontWeight: 600,
+                textTransform: "none",
+                "&:hover": { bgcolor: "action.selected" },
+              }}
+            >
+              v{activeSource.version}
+            </Button>
+          ) : (
+            <Typography
+              variant="body2"
+              sx={{
+                px: 1,
+                py: 0.25,
+                borderRadius: 999,
+                bgcolor: "action.hover",
+                color: "text.primary",
+                fontWeight: 600,
+              }}
+            >
+              v{activeSource.version}
+            </Typography>
+          )}
           {(editorMode === "draft-edit" || editorMode === "archived-readonly") && (
             <PromptStatusChip status={prompt.status} hasUnpublishedChanges={prompt.hasUnpublishedChanges} />
           )}
@@ -780,7 +797,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         onClose={() => setHeaderVersionMenuAnchor(null)}
         MenuListProps={{ "aria-label": "Prompt versions" }}
       >
-        {sortedVersions.map((version) => {
+        {headerVersionOptions.map((version) => {
           const isActiveVersion = activeSource.version === version.version;
           return (
             <MenuItem

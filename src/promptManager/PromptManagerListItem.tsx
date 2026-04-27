@@ -60,10 +60,10 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
     const hasVersionHistory = (prompt.versions?.length ?? 0) > 0 || Boolean(prompt.publishedVersionId);
     if (hasVersionHistory) {
       discardPromptDraft(prompt.id);
-      setPromptManagerNotice("Draft deleted.");
+      setPromptManagerNotice("Draft deleted");
     } else {
       deletePrompt(prompt.id);
-      setPromptManagerNotice("Prompt deleted.");
+      setPromptManagerNotice("Prompt deleted");
     }
     setDeleteDialogOpen(false);
   };
@@ -164,6 +164,7 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
                       desiredOutcome: prompt.desiredOutcome,
                       content: prompt.content,
                     });
+                    setPromptManagerNotice("New version created");
                     onEdit();
                   })
                 }
@@ -176,7 +177,7 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
                 onClick={() =>
                   handleMenuAction(() => {
                     archivePrompt(prompt.id);
-                    setPromptManagerNotice("Prompt archived.");
+                    setPromptManagerNotice("Prompt archived");
                   })
                 }
               >
@@ -199,7 +200,7 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
                       tags: prompt.tags,
                       content: prompt.content,
                     });
-                    setPromptManagerNotice("Prompt published.");
+                    setPromptManagerNotice("Prompt published");
                   })
                 }
               >
@@ -216,7 +217,10 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
               </MenuItem>
             )}
             {prompt.status === "archived" && (
-              <MenuItem onClick={() => handleMenuAction(() => restorePrompt(prompt.id))}>
+              <MenuItem onClick={() => handleMenuAction(() => {
+                restorePrompt(prompt.id);
+                setPromptManagerNotice("Prompt restored");
+              })}>
                 Restore
               </MenuItem>
             )}
@@ -234,11 +238,11 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
         <DialogContent>
           {(prompt.versions?.length ?? 0) > 0 || prompt.publishedVersionId ? (
             <DialogContentText>
-              This will remove your current unpublished changes. Previous versions will remain available.
+              Delete draft removes current unpublished changes only.
             </DialogContentText>
           ) : (
             <DialogContentText>
-              This will permanently remove this prompt.
+              Delete prompt removes the entire prompt and all versions.
             </DialogContentText>
           )}
         </DialogContent>

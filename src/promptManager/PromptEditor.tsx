@@ -60,7 +60,6 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     content: prompt.content,
   }));
   const [viewingVersion, setViewingVersion] = useState<PromptVersion | null>(null);
-  const [savedFeedback, setSavedFeedback] = useState<string | null>(null);
   const [showTestPanel, setShowTestPanel] = useState(false);
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -134,11 +133,6 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isDirty, isReadOnly]);
 
-  const showFeedback = (msg: string) => {
-    setSavedFeedback(msg);
-    setTimeout(() => setSavedFeedback(null), 3000);
-  };
-
   const buildPayload = () => ({
     title: draftFormState.title.trim() || "Untitled Prompt",
     description: draftFormState.description.trim() || undefined,
@@ -164,7 +158,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
       return;
     }
     savePromptDraft(prompt.id, buildPayload());
-    showFeedback("Draft saved.");
+    setPromptManagerNotice("Draft saved");
   };
 
   const handlePublishConfirm = () => {
@@ -174,7 +168,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     }
     publishPrompt(prompt.id, buildPayload());
     setPublishDialogOpen(false);
-    setPromptManagerNotice(prompt.status === "published" ? "Changes published." : "Prompt published.");
+    setPromptManagerNotice("Prompt published");
     onBack();
   };
 
@@ -187,16 +181,16 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
       content: baseVersion.content,
     });
     setViewingVersion(null);
-    showFeedback("Draft opened from selected version.");
+    setPromptManagerNotice("New version created");
   };
 
   const handleDeleteConfirm = () => {
     if (hasVersionHistory || prompt.publishedVersionId) {
       discardPromptDraft(prompt.id);
-      setPromptManagerNotice("Draft deleted.");
+      setPromptManagerNotice("Draft deleted");
     } else {
       deletePrompt(prompt.id);
-      setPromptManagerNotice("Prompt deleted.");
+      setPromptManagerNotice("Prompt deleted");
     }
     setDeleteDialogOpen(false);
     onBack();
@@ -369,7 +363,6 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         <Box flex={1} minWidth={0} overflow="auto">
           <Box maxWidth={800} mx="auto" px={3} py={3}>
             <Stack spacing={4}>
-              {savedFeedback && <Alert severity="success" sx={{ py: 0.5 }} aria-live="polite">{savedFeedback}</Alert>}
               {editorMode === "published-readonly" && (
                 <Alert severity="info" variant="outlined">
                   Read-only mode: published versions cannot be edited. Create a new version to make changes.
@@ -695,7 +688,10 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
           <Button
             variant="contained"
             color="primary"
-            onClick={() => restorePrompt(prompt.id)}
+            onClick={() => {
+              restorePrompt(prompt.id);
+              setPromptManagerNotice("Prompt restored");
+            }}
             sx={{ ml: "auto" }}
           >
             Restore
@@ -720,10 +716,10 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         <DialogContent>
           {(hasVersionHistory || prompt.publishedVersionId) ? (
             <DialogContentText>
-              This will remove your current unpublished changes. Previous versions will remain available.
+              Delete draft removes current unpublished changes only.
             </DialogContentText>
           ) : (
-            <DialogContentText>This will permanently remove this prompt.</DialogContentText>
+            <DialogContentText>Delete prompt removes the entire prompt and all versions.</DialogContentText>
           )}
         </DialogContent>
         <DialogActions>

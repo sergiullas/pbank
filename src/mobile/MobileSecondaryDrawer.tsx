@@ -1,4 +1,5 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import StarIcon from "@mui/icons-material/Star";
@@ -6,6 +7,10 @@ import {
   Box,
   Button,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   FormControl,
   FormControlLabel,
@@ -144,6 +149,7 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
   const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null);
   const [selectedVersionNumber, setSelectedVersionNumber] = useState<number | null>(null);
   const [versionMenuAnchor, setVersionMenuAnchor] = useState<null | HTMLElement>(null);
+  const [allVersionsOpen, setAllVersionsOpen] = useState(false);
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [useAttachedFileForContext, setUseAttachedFileForContext] = useState(false);
 
@@ -151,6 +157,7 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
     setSelectedPromptId(null);
     setSelectedVersionNumber(null);
     setVersionMenuAnchor(null);
+    setAllVersionsOpen(false);
     setVariableValues({});
     setUseAttachedFileForContext(false);
   };
@@ -232,8 +239,8 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
       ? favoriteItems.length
       : visiblePrompts.length;
 
-  const latestVersionNumber = selectedPrompt ? getLatestVersion(selectedPrompt).version : null;
-  const isLatestVersion = latestVersionNumber != null && activeVersion?.version === latestVersionNumber;
+  const sortedPromptVersions = selectedPrompt?.versions ? [...selectedPrompt.versions].sort(byVersionDesc) : [];
+  const menuPromptVersions = sortedPromptVersions.slice(0, 5);
   const activeVersionFavorited = selectedPrompt && activeVersion
     ? favorites.some((favorite) => favorite.promptId === selectedPrompt.id && favorite.version === activeVersion.version)
     : false;
@@ -508,7 +515,7 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
                           onClick={(event) => setVersionMenuAnchor(event.currentTarget)}
                           sx={{ textTransform: "none", minWidth: 0, p: 0, color: "text.secondary" }}
                         >
-                          v{activeVersion.version}{isLatestVersion ? " (Latest)" : ""}
+                          v{activeVersion.version}
                         </Button>
                         <Menu
                           anchorEl={versionMenuAnchor}
@@ -516,7 +523,7 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
                           onClose={() => setVersionMenuAnchor(null)}
                           MenuListProps={{ "aria-label": "Prompt versions" }}
                         >
-                          {[...selectedPrompt.versions].sort(byVersionDesc).map((version) => (
+                          {menuPromptVersions.map((version) => (
                             <MenuItem
                               key={version.id}
                               selected={version.version === activeVersion.version}
@@ -526,10 +533,22 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
                                 setVariableValues({});
                                 setUseAttachedFileForContext(false);
                               }}
+                              sx={{ display: "flex", justifyContent: "space-between", minWidth: 140, gap: 1 }}
                             >
-                              v{version.version}{version.version === latestVersionNumber ? " (Latest)" : ""}
+                              <span>v{version.version}</span>
+                              {version.version === activeVersion.version ? <CheckIcon fontSize="small" color="primary" /> : null}
                             </MenuItem>
                           ))}
+                          {sortedPromptVersions.length > 5 && (
+                            <MenuItem
+                              onClick={() => {
+                                setVersionMenuAnchor(null);
+                                setAllVersionsOpen(true);
+                              }}
+                            >
+                              View all versions
+                            </MenuItem>
+                          )}
                         </Menu>
                       </>
                     ) : null}
@@ -634,6 +653,41 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
                 </Stack>
               )}
             </Box>
+            <Dialog
+              open={allVersionsOpen}
+              onClose={() => setAllVersionsOpen(false)}
+              fullWidth
+              maxWidth="xs"
+              aria-labelledby="mobile-all-versions-title"
+            >
+              <DialogTitle id="mobile-all-versions-title">All Versions</DialogTitle>
+              <DialogContent>
+                <Stack spacing={0.5}>
+                  {sortedPromptVersions.map((version) => {
+                    const isActiveVersion = version.version === activeVersion?.version;
+                    return (
+                      <Button
+                        key={`mobile-all-version-${version.id}`}
+                        variant={isActiveVersion ? "contained" : "text"}
+                        onClick={() => {
+                          setSelectedVersionNumber(version.version);
+                          setAllVersionsOpen(false);
+                          setVariableValues({});
+                          setUseAttachedFileForContext(false);
+                        }}
+                        sx={{ justifyContent: "space-between", textTransform: "none" }}
+                        endIcon={isActiveVersion ? <CheckIcon fontSize="small" /> : undefined}
+                      >
+                        v{version.version}
+                      </Button>
+                    );
+                  })}
+                </Stack>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => setAllVersionsOpen(false)}>Close</Button>
+              </DialogActions>
+            </Dialog>
 
             <Divider />
             <Box p={2} bgcolor="background.paper" position="sticky" bottom={0}>

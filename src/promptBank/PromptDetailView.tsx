@@ -1,10 +1,15 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CheckIcon from "@mui/icons-material/Check";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import StarIcon from "@mui/icons-material/Star";
 import {
   Box,
   Button,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   IconButton,
   Menu,
@@ -42,6 +47,7 @@ export function PromptDetailView() {
   });
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [allVersionsOpen, setAllVersionsOpen] = useState(false);
   const [variableValues, setVariableValues] = useState<Record<string, string>>({});
   const [useAttachedFileForContext, setUseAttachedFileForContext] = useState(false);
 
@@ -86,31 +92,12 @@ export function PromptDetailView() {
   }
 
   const sortedVersions = prompt.versions ? [...prompt.versions].sort(byVersionDesc) : [];
-  const latestVersionNumber = getLatestVersion(prompt).version;
+  const menuVersions = sortedVersions.slice(0, 5);
   const menuOpen = Boolean(anchorEl);
-
-  // The version number that is officially published for this prompt in the library
-  const publishedVersionNumber = prompt.publishedVersionId
-    ? (prompt.versions?.find((v) => v.id === prompt.publishedVersionId)?.version ?? null)
-    : null;
-
-  // Set of version numbers the user has specifically favorited
-  const favoritedVersionNumbers = new Set<number>(
-    favorites
-      .filter((f) => f.promptId === prompt.id && f.version != null)
-      .map((f) => f.version as number),
-  );
 
   const activeVersionFavorited = favorites.some((fav) => fav.promptId === prompt.id && fav.version === activeVersion.version);
 
-  // Build a readable label for the active version shown in the trigger button
-  const activeVersionLabel = (() => {
-    const badges: string[] = [];
-    if (activeVersion.version === publishedVersionNumber) badges.push("Published");
-    if (favoritedVersionNumbers.has(activeVersion.version)) badges.push("Favorited");
-    if (badges.length === 0 && activeVersion.version === latestVersionNumber) badges.push("Latest");
-    return badges.length > 0 ? `v${activeVersion.version} (${badges.join(", ")})` : `v${activeVersion.version}`;
-  })();
+  const activeVersionLabel = `v${activeVersion.version}`;
 
   return (
     <Box display="flex" flexDirection="column" height="100%" minHeight={0}>
@@ -171,36 +158,33 @@ export function PromptDetailView() {
                     onClose={() => setAnchorEl(null)}
                     MenuListProps={{ "aria-label": "Prompt versions" }}
                   >
-                    {sortedVersions.map((version) => {
-                      const isPublished = version.version === publishedVersionNumber;
-                      const isFavorited = favoritedVersionNumbers.has(version.version);
-                      const isLatest = version.version === latestVersionNumber;
+                    {menuVersions.map((version) => {
+                      const isActiveVersion = version.version === activeVersion.version;
                       return (
                         <MenuItem
                           key={version.id}
-                          selected={version.version === activeVersion.version}
+                          selected={isActiveVersion}
                           onClick={() => {
                             setSelectedVersionNumber(version.version);
                             setAnchorEl(null);
                           }}
+                          sx={{ display: "flex", justifyContent: "space-between", gap: 1, minWidth: 140 }}
                         >
-                          <Box display="flex" alignItems="center" gap={0.75}>
-                            <Typography variant="body2" sx={{ mr: 0.5 }}>
-                              v{version.version}
-                            </Typography>
-                            {isPublished && (
-                              <Chip label="Published" size="small" color="success" variant="outlined" />
-                            )}
-                            {isFavorited && (
-                              <Chip label="Favorited" size="small" color="warning" variant="outlined" />
-                            )}
-                            {isLatest && !isPublished && !isFavorited && (
-                              <Chip label="Latest" size="small" variant="outlined" />
-                            )}
-                          </Box>
+                          <span>v{version.version}</span>
+                          {isActiveVersion ? <CheckIcon fontSize="small" color="primary" /> : null}
                         </MenuItem>
                       );
                     })}
+                    {sortedVersions.length > 5 && (
+                      <MenuItem
+                        onClick={() => {
+                          setAnchorEl(null);
+                          setAllVersionsOpen(true);
+                        }}
+                      >
+                        View all versions
+                      </MenuItem>
+                    )}
                   </Menu>
                 </>
               ) : null}
@@ -358,6 +342,34 @@ export function PromptDetailView() {
           ← INSERT PROMPT
         </Button>
       </Box>
+
+      <Dialog open={allVersionsOpen} onClose={() => setAllVersionsOpen(false)} fullWidth maxWidth="xs" aria-labelledby="library-all-versions-title">
+        <DialogTitle id="library-all-versions-title">All Versions</DialogTitle>
+        <DialogContent>
+          <Stack spacing={0.5}>
+            {sortedVersions.map((version) => {
+              const isActiveVersion = version.version === activeVersion.version;
+              return (
+                <Button
+                  key={`all-version-${version.id}`}
+                  variant={isActiveVersion ? "contained" : "text"}
+                  onClick={() => {
+                    setSelectedVersionNumber(version.version);
+                    setAllVersionsOpen(false);
+                  }}
+                  sx={{ justifyContent: "space-between", textTransform: "none" }}
+                  endIcon={isActiveVersion ? <CheckIcon fontSize="small" /> : undefined}
+                >
+                  v{version.version}
+                </Button>
+              );
+            })}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAllVersionsOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

@@ -73,7 +73,7 @@ type StoreState = {
   promptManagerSearch: string;
   promptManagerStatusFilter: PromptManagerStatusFilter;
   hasPromptEditorUnsavedChanges: boolean;
-  promptManagerNotice: string | null;
+  promptManagerNotice: string[];
 
   // Library actions
   setLibraryCollapsed: (next: boolean) => void;
@@ -211,7 +211,7 @@ export const useStore = create<StoreState>((set, get) => ({
   promptManagerSearch: "",
   promptManagerStatusFilter: "published",
   hasPromptEditorUnsavedChanges: false,
-  promptManagerNotice: null,
+  promptManagerNotice: [],
 
   // Library actions
   setLibraryCollapsed: (next) => {
@@ -553,5 +553,10 @@ export const useStore = create<StoreState>((set, get) => ({
 
   setPromptManagerStatusFilter: (filter) => set({ promptManagerStatusFilter: filter }),
   setPromptEditorUnsavedChanges: (value) => set({ hasPromptEditorUnsavedChanges: value }),
-  setPromptManagerNotice: (message) => set({ promptManagerNotice: message }),
+  setPromptManagerNotice: (message) => set((state) => {
+    if (message == null) {
+      return { promptManagerNotice: state.promptManagerNotice.slice(1) };
+    }
+    return { promptManagerNotice: [...state.promptManagerNotice, message] };
+  }),
 }));

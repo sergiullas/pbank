@@ -51,11 +51,7 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
     aiResponseHeadingRef.current?.focus();
   }, [hasRunOnce, runStatus]);
 
-  const hasMissingVariables = nonContextVariables.some(
-    (variable) => !(values[variable.token] ?? "").trim(),
-  );
-  const contextRequiredAndMissing = hasContextVariable && (!useContext || !file);
-  const runDisabled = runStatus === "loading" || hasMissingVariables || contextRequiredAndMissing || invalidTokens.length > 0;
+  const runDisabled = runStatus === "loading" || invalidTokens.length > 0;
 
   const handleRun = async () => {
     setHasRunOnce(true);
@@ -109,7 +105,7 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
 
       <Box p={2} flex={1} minHeight={0} display="flex" flexDirection="column" gap={2} sx={{ overflowY: "auto" }}>
         {invalidTokens.length > 0 && (
-          <Alert severity="error">
+          <Alert severity="error" role="status" aria-live="polite">
             {invalidTokens.map((invalidToken) => (
               <Typography key={`${invalidToken.raw}-${invalidToken.message}`} variant="body2">
                 <code>{invalidToken.raw}</code> — {invalidToken.message}
@@ -141,7 +137,6 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
                 }
                 fullWidth
                 size="small"
-                required
                 disabled={runStatus === "loading"}
                 multiline={variable.type === "textarea"}
                 minRows={variable.type === "textarea" ? 2 : 1}

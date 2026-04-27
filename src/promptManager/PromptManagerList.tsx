@@ -75,7 +75,7 @@ function DraftCard({ prompt, onEdit }: { prompt: Prompt; onEdit: () => void }) {
         </Typography>
       )}
 
-      <Typography variant="caption" color="text.disabled">
+      <Typography variant="caption" color="text.secondary">
         Updated {formatLastUpdated(prompt)}
       </Typography>
     </Box>

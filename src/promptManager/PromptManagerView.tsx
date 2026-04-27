@@ -1,5 +1,6 @@
-import { Alert, Box, Snackbar, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { useMemo } from "react";
+import { AppToast } from "../components/AppToast";
 import { useStore } from "../state/store";
 import { PromptManagerList } from "./PromptManagerList";
 import { PromptEditor } from "./PromptEditor";
@@ -21,6 +22,8 @@ export function PromptManagerView() {
     setPromptManagerView(null);
   };
 
+  const activeToast = promptManagerNotice[0] ?? null;
+
   return (
     <Box display="flex" flexDirection="column" height="100%" minHeight={0} overflow="hidden">
       {promptManagerView === "editor" && selectedPrompt ? (
@@ -40,16 +43,16 @@ export function PromptManagerView() {
       ) : (
         <PromptManagerList />
       )}
-      <Snackbar
-        open={Boolean(promptManagerNotice)}
-        autoHideDuration={3000}
-        onClose={() => setPromptManagerNotice(null)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert onClose={() => setPromptManagerNotice(null)} severity="success" variant="filled" sx={{ width: "100%" }}>
-          {promptManagerNotice}
-        </Alert>
-      </Snackbar>
+      <AppToast
+        open={Boolean(activeToast)}
+        message={activeToast ?? ""}
+        severity="success"
+        autoHideDuration={5000}
+        onClose={(reason) => {
+          if (reason === "clickaway") return;
+          setPromptManagerNotice(null);
+        }}
+      />
     </Box>
   );
 }

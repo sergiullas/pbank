@@ -22,7 +22,7 @@ export function PromptStatusChip({ status, hasUnpublishedChanges, size = "small"
         size={size}
         variant="outlined"
         sx={(theme) => ({
-          bgcolor: theme.palette.info.light,
+          bgcolor: theme.palette.background.paper,
           color: theme.palette.info.dark,
           borderColor: theme.palette.info.main,
           fontWeight: 600,
@@ -56,7 +56,7 @@ export function PromptStatusChip({ status, hasUnpublishedChanges, size = "small"
         }
         return {
           bgcolor: theme.palette.warning.light,
-          color: theme.palette.warning.dark,
+          color: theme.palette.text.primary,
           borderColor: theme.palette.warning.main,
           fontWeight: 600,
         };

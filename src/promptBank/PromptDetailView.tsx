@@ -227,7 +227,7 @@ export function PromptDetailView() {
             <Typography variant="overline" color="text.secondary" sx={{ letterSpacing: 1 }}>
               Prompt Template
             </Typography>
-            <Box p={2} bgcolor="grey.100" borderRadius={2}>
+            <Box p={2} bgcolor="background.surface" borderRadius={2}>
               <Typography variant="body2" whiteSpace="pre-wrap">
                 {activeVersion.content}
               </Typography>

@@ -4,6 +4,12 @@ import "@fontsource/lato/700.css";
 import "@fontsource/lato/900.css";
 import { createTheme } from "@mui/material";
 
+declare module "@mui/material/styles" {
+  interface TypeBackground {
+    surface: string;
+  }
+}
+
 export const appTheme = createTheme({
   palette: {
     mode: "light",
@@ -15,6 +21,8 @@ export const appTheme = createTheme({
     },
     background: {
       default: "#f8fafc",
+      paper: "#ffffff",
+      surface: "#FAF9FC",
     },
     text: {
       primary: "#0f172a",

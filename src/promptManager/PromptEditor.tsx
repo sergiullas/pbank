@@ -24,7 +24,6 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import { useEffect, useMemo, useState } from "react";
 import { getLatestVersion, getNextVersionNumber, getPublishedVersion } from "../promptBank/versioning";
 import { parseTemplateVariables } from "../promptBank/templateVariables";
@@ -563,7 +562,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                     </Stack>
 
                     {templateVariables.some((v) => v.isContext) && (
-                      <Box p={1.5} borderRadius={1.5} sx={{ bgcolor: (theme) => alpha(theme.palette.info.main, 0.08) }}>
+                      <Box p={1.5} borderRadius={1.5} bgcolor="background.surface">
                         <Typography variant="caption" color="text.secondary">
                           <strong>[CONTEXT]</strong> — When inserted into chat, this token lets users attach a file as context before sending.
                         </Typography>

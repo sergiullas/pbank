@@ -3,7 +3,6 @@ import { seedPrompts } from "../data/seedPrompts";
 import { CURRENT_TENANT_ID, CURRENT_USER_ID } from "../data/mockDirectory";
 import type { FavoriteItem, Message, Prompt, PromptShareState, PromptStatus, PromptVersion, PromptVisibility } from "../types";
 import { getNextVersionNumber } from "../promptBank/versioning";
-import { userHasPromptAccess } from "../promptBank/access";
 import { readJSON, writeJSON } from "./persist";
 import { executePrompt } from "../chat/executePrompt";
 
@@ -145,6 +144,17 @@ const ownerToCreatorId: Record<string, string> = {
   User: CURRENT_USER_ID,
 };
 
+const seedVisibilityOverrides: Record<string, PromptVisibility> = {
+  "structured-summary": "organization",
+  "email-draft": "organization",
+  "strategy-framework": "organization",
+  "meeting-notes": "organization",
+  "root-cause-analysis": "organization",
+  "user-research-plan": "organization",
+  "release-notes": "organization",
+  "competitive-analysis": "organization",
+};
+
 const normalizePromptModel = (prompt: Prompt): Prompt => {
   const sharedWith: PromptShareState = {
     users: Array.isArray(prompt.sharedWith?.users) ? prompt.sharedWith.users : [],
@@ -155,7 +165,7 @@ const normalizePromptModel = (prompt: Prompt): Prompt => {
     ...prompt,
     creatorId: prompt.creatorId ?? ownerToCreatorId[prompt.owner] ?? CURRENT_USER_ID,
     tenantId: prompt.tenantId ?? CURRENT_TENANT_ID,
-    visibility: prompt.visibility ?? (prompt.status === "published" ? "organization" : "private"),
+    visibility: prompt.visibility ?? seedVisibilityOverrides[prompt.id] ?? "private",
     sharedWith,
   };
 };
@@ -498,15 +508,6 @@ export const useStore = create<StoreState>((set, get) => ({
           }
           : prompt
       )),
-      favorites: state.favorites.filter((favorite) => {
-        const favoritePrompt = state.prompts.find((prompt) => prompt.id === favorite.promptId);
-        if (!favoritePrompt || favoritePrompt.id !== promptId) return true;
-        const updatedPrompt: Prompt = {
-          ...favoritePrompt,
-          sharedWith: { users: uniqueUserIds, groups: favoritePrompt.sharedWith?.groups ?? [] },
-        };
-        return userHasPromptAccess(updatedPrompt);
-      }),
     }));
   },
 

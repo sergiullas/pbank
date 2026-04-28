@@ -137,7 +137,11 @@ const ownerToCreatorId: Record<string, string> = {
   "Clint Barton (Hawkeye)": "user-clint",
   "Wanda Maximoff (Scarlet Witch)": "user-wanda",
   Vision: "user-vision",
+  "Sam Wilson (Falcon)": "user-sam",
   "James Rhodes (War Machine)": "user-rhodes",
+  "Scott Lang (Ant-Man)": "user-scott",
+  "Carol Danvers (Captain Marvel)": "user-carol",
+  "Guardians of the Galaxy": "user-guardians",
   User: CURRENT_USER_ID,
 };
 
@@ -151,7 +155,7 @@ const normalizePromptModel = (prompt: Prompt): Prompt => {
     ...prompt,
     creatorId: prompt.creatorId ?? ownerToCreatorId[prompt.owner] ?? CURRENT_USER_ID,
     tenantId: prompt.tenantId ?? CURRENT_TENANT_ID,
-    visibility: prompt.visibility ?? "private",
+    visibility: prompt.visibility ?? (prompt.status === "published" ? "organization" : "private"),
     sharedWith,
   };
 };

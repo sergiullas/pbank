@@ -19,6 +19,10 @@ export const mockDirectoryUsers: DirectoryUser[] = [
   { id: "user-wanda", name: "Wanda Maximoff", email: "wanda@avengers.example", tenantId: CURRENT_TENANT_ID, active: true },
   { id: "user-vision", name: "Vision", email: "vision@avengers.example", tenantId: CURRENT_TENANT_ID, active: true },
   { id: "user-rhodes", name: "James Rhodes", email: "rhodes@avengers.example", tenantId: CURRENT_TENANT_ID, active: true },
+  { id: "user-sam", name: "Sam Wilson", email: "sam@avengers.example", tenantId: CURRENT_TENANT_ID, active: true },
+  { id: "user-scott", name: "Scott Lang", email: "scott@avengers.example", tenantId: CURRENT_TENANT_ID, active: true },
+  { id: "user-carol", name: "Carol Danvers", email: "carol@avengers.example", tenantId: CURRENT_TENANT_ID, active: true },
+  { id: "user-guardians", name: "Guardians of the Galaxy", email: "guardians@avengers.example", tenantId: CURRENT_TENANT_ID, active: true },
   { id: "user-inactive", name: "Peter Parker", email: "peter@avengers.example", tenantId: CURRENT_TENANT_ID, active: false },
   { id: "user-external", name: "Nick Fury", email: "nick@shield.example", tenantId: "tenant-shield", active: true },
 ];

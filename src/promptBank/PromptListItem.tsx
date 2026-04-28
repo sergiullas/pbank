@@ -7,6 +7,7 @@ import { Box, Button, Chip, IconButton, ListItem, ListItemButton, ListItemText, 
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import type { Prompt } from "../types";
 import { getPromptVisibilityTooltip, isPromptMine } from "./access";
+import { getPublishedVersion } from "./versioning";
 
 type PromptListItemProps = {
   prompt: Prompt;
@@ -51,6 +52,12 @@ export function PromptListItem({
     : visibility === "shared"
       ? <GroupOutlinedIcon fontSize="inherit" />
       : <PublicOutlinedIcon fontSize="inherit" />;
+  const publishedVersion = getPublishedVersion(prompt);
+  const defaultVersionLabel = `v${publishedVersion.version}`;
+  const metadataDate = new Date(prompt.publishedAt ?? publishedVersion.createdAt ?? prompt.createdAt).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
 
   if (isFavoritesView) {
     return (
@@ -108,7 +115,7 @@ export function PromptListItem({
             <Typography fontWeight={600} pr={4}>{prompt.title}</Typography>
             <Stack direction="row" alignItems="center" justifyContent="space-between" mt={0.25}>
               <Typography variant="caption" color="text.secondary">
-                {isPromptMine(prompt) ? "Mine • " : ""}{versionLabel ?? "Latest"} • {new Date(prompt.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                {isPromptMine(prompt) ? "Mine • " : ""}{versionLabel ?? defaultVersionLabel} • {metadataDate}
               </Typography>
               <Tooltip title={getPromptVisibilityTooltip(prompt)}>
                 <Box component="span" aria-label={getPromptVisibilityTooltip(prompt)} sx={{ display: "inline-flex", fontSize: "1rem" }}>
@@ -165,7 +172,7 @@ export function PromptListItem({
             <Typography fontWeight={600}>{prompt.title}</Typography>
             <Stack direction="row" alignItems="center" justifyContent="space-between">
               <Typography variant="caption" color="text.secondary">
-                {isPromptMine(prompt) ? "Mine • " : ""}{versionLabel ?? `v${prompt.versions?.length ? Math.max(...prompt.versions.map((v) => v.version)) : 1}`} • {new Date(prompt.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                {isPromptMine(prompt) ? "Mine • " : ""}{versionLabel ?? defaultVersionLabel} • {metadataDate}
               </Typography>
               <Tooltip title={getPromptVisibilityTooltip(prompt)}>
                 <Box component="span" aria-label={getPromptVisibilityTooltip(prompt)} sx={{ display: "inline-flex", fontSize: "1rem" }}>

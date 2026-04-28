@@ -4,7 +4,8 @@ import type { Prompt } from "../types";
 export const isPromptArchived = (prompt: Prompt): boolean => prompt.status === "archived";
 
 export const userHasPromptAccess = (prompt: Prompt, userId = CURRENT_USER_ID): boolean => {
-  if (prompt.status !== "published" || isPromptArchived(prompt)) return false;
+  const archived = (prompt as Prompt & { archived?: boolean }).archived === true;
+  if (prompt.status !== "published" || isPromptArchived(prompt) || archived) return false;
   if (prompt.creatorId === userId) return true;
 
   if (prompt.visibility === "organization") {

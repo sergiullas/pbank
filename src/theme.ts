@@ -36,6 +36,8 @@ export const appTheme = createTheme({
   },
   typography: {
     fontFamily: '"Lato", sans-serif',
+    caption: { fontSize: "0.8125rem" },   // 13px — enforced minimum
+    overline: { fontSize: "0.8125rem" },  // 13px — enforced minimum
   },
   shape: {
     borderRadius: 12,

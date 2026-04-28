@@ -453,11 +453,11 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                     px: 1.25,
                     py: 1,
                     borderRadius: 1.25,
-                    bgcolor: "action.hover",
+                    bgcolor: "action.selected",
                   }}
                 >
-                  <InfoOutlinedIcon fontSize="small" color="info" aria-hidden="true" />
-                  <Typography component="div" variant="body2" color="text.secondary">
+                  <InfoOutlinedIcon fontSize="small" color="primary" aria-hidden="true" />
+                  <Typography component="div" variant="body2" color="text.primary">
                     <strong>Template</strong> is the prompt sent to the AI. <strong>Prompt Instructions</strong> tells the AI how to respond.{" "}
                     {!isReadOnly && (
                       <Button
@@ -476,10 +476,10 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   <Box
                     sx={{
                       border: "1px solid",
-                      borderColor: "divider",
+                      borderColor: "action.selected",
                       borderRadius: 1.5,
-                      p: 1.5,
-                      bgcolor: "background.paper",
+                      p: 1.25,
+                      bgcolor: "background.default",
                     }}
                   >
                     <Stack spacing={1}>
@@ -582,7 +582,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   }}
                 />
 
-                <Stack direction={{ xs: "column", md: "row" }} alignItems={{ xs: "flex-start", md: "center" }} justifyContent="space-between" gap={1}>
+                <Stack direction={{ xs: "column", md: "row" }} alignItems={{ xs: "flex-start", md: "center" }} justifyContent="space-between" gap={0.5}>
                   <Stack direction="row" gap={1} flexWrap="wrap">
                     {[
                       { token: "[VARIABLE]", description: "short input" },
@@ -603,6 +603,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                             bgcolor: "action.hover",
                             fontFamily: "monospace",
                             fontSize: "0.75rem",
+                            fontWeight: 700,
                           }}
                         >
                           {tokenItem.token}
@@ -613,7 +614,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                       </Stack>
                     ))}
                   </Stack>
-                  <Typography variant="caption" color="text.secondary" aria-live="polite">
+                  <Typography variant="caption" color="text.secondary" aria-live="polite" sx={{ lineHeight: 1.2, alignSelf: "center" }}>
                     {templateVariables.length === 0
                       ? "No variables yet"
                       : templateVariables.length === 1
@@ -660,9 +661,11 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   }}
                 />
 
-                <Typography id="prompt-instructions-helper" variant="caption" color="text.secondary" sx={{ mt: -0.5 }}>
-                  Examples: "Use bullet points, max 5." · "Professional tone." · "Keep it under 200 words."
-                </Typography>
+                <Box sx={{ mt: -0.5, px: 1, py: 0.75, borderRadius: 1, bgcolor: "action.hover" }}>
+                  <Typography id="prompt-instructions-helper" variant="caption" color="text.secondary">
+                    Examples: "Use bullet points, max 5." · "Professional tone." · "Keep it under 200 words."
+                  </Typography>
+                </Box>
 
                 {invalidTokens.length > 0 && (
                   <Alert severity="error" role="status" aria-live="polite">

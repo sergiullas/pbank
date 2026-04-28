@@ -1,6 +1,7 @@
 import { Box, List, Typography } from "@mui/material";
 import { useMemo } from "react";
 import { useStore } from "../state/store";
+import { userHasPromptAccess } from "./access";
 import { PromptListItem } from "./PromptListItem";
 
 export function PromptList() {
@@ -25,8 +26,7 @@ export function PromptList() {
           .toLowerCase()
           .includes(query);
       const matchesFilter = filterMode === "all" || (filterMode === "favorites" && isPromptFavorited(prompt.id));
-
-      return matchesQuery && matchesFilter;
+      return matchesQuery && matchesFilter && userHasPromptAccess(prompt);
     });
   }, [prompts, promptQuery, filterMode, isPromptFavorited]);
 

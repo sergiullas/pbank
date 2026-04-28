@@ -2,6 +2,7 @@ import { Box, FormControl, InputLabel, List, MenuItem, Select, Tab, Tabs, TextFi
 import { useMemo } from "react";
 import { type SortMode, useStore } from "../state/store";
 import type { FavoriteItem, Prompt } from "../types";
+import { userHasPromptAccess } from "./access";
 import { PromptListItem } from "./PromptListItem";
 import { getPublishedVersion, resolveFavoritePromptVersion } from "./versioning";
 
@@ -111,8 +112,7 @@ export function PromptBrowseView() {
     const normalizedQuery = query.trim().toLowerCase();
 
     const filtered = prompts.filter((prompt) => {
-      // Only show published prompts in the library
-      if (prompt.status !== "published") return false;
+      if (!userHasPromptAccess(prompt)) return false;
 
       const matchesFilter =
         filterMode === "all" ||
@@ -143,6 +143,7 @@ export function PromptBrowseView() {
     const rows: FavoriteListItem[] = favorites
       .map((favorite) => {
         const prompt = prompts.find((candidate) => candidate.id === favorite.promptId);
+        if (!prompt || !userHasPromptAccess(prompt)) return null;
         return prompt ? { favorite, prompt } : null;
       })
       .filter((value): value is FavoriteListItem => Boolean(value));

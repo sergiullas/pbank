@@ -1,8 +1,12 @@
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import StarIcon from "@mui/icons-material/Star";
-import { Box, Button, Chip, IconButton, ListItem, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
+import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
+import { Box, Button, Chip, IconButton, ListItem, ListItemButton, ListItemText, Stack, Tooltip, Typography } from "@mui/material";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import type { Prompt } from "../types";
+import { getPromptVisibilityTooltip, isPromptMine } from "./access";
 
 type PromptListItemProps = {
   prompt: Prompt;
@@ -41,6 +45,13 @@ export function PromptListItem({
   onToggleFavorite,
   onInsert,
 }: PromptListItemProps) {
+  const visibility = prompt.visibility ?? "private";
+  const visibilityIcon = visibility === "private"
+    ? <LockOutlinedIcon fontSize="inherit" />
+    : visibility === "shared"
+      ? <GroupOutlinedIcon fontSize="inherit" />
+      : <PublicOutlinedIcon fontSize="inherit" />;
+
   if (isFavoritesView) {
     return (
       <ListItem
@@ -95,9 +106,17 @@ export function PromptListItem({
             }}
           >
             <Typography fontWeight={600} pr={4}>{prompt.title}</Typography>
-            <Typography variant="caption" color="text.secondary" mt={0.25}>
-              by {prompt.owner} · {versionLabel ?? "Latest"}
-            </Typography>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" mt={0.25}>
+              <Typography variant="caption" color="text.secondary">
+                {isPromptMine(prompt) ? "Mine • " : ""}{versionLabel ?? "Latest"} • {new Date(prompt.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+              </Typography>
+              <Tooltip title={getPromptVisibilityTooltip(prompt)}>
+                <Box component="span" aria-label={getPromptVisibilityTooltip(prompt)} sx={{ display: "inline-flex", fontSize: "1rem" }}>
+                  {visibilityIcon}
+                </Box>
+              </Tooltip>
+            </Stack>
+            <Typography variant="caption" color="text.secondary">by {prompt.owner}</Typography>
             {isArchived && <Chip label="Archived" size="small" color="warning" variant="outlined" sx={{ mt: 0.75 }} />}
             <Stack spacing={1.5} mt={1}>
               <Typography variant="body2" color="text.secondary">
@@ -144,9 +163,17 @@ export function PromptListItem({
         primary={
           <Box>
             <Typography fontWeight={600}>{prompt.title}</Typography>
-            <Typography variant="caption" color="text.secondary">
-              by {prompt.owner} · {versionLabel ?? `v${prompt.versions?.length ? Math.max(...prompt.versions.map((v) => v.version)) : 1}`}
-            </Typography>
+            <Stack direction="row" alignItems="center" justifyContent="space-between">
+              <Typography variant="caption" color="text.secondary">
+                {isPromptMine(prompt) ? "Mine • " : ""}{versionLabel ?? `v${prompt.versions?.length ? Math.max(...prompt.versions.map((v) => v.version)) : 1}`} • {new Date(prompt.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+              </Typography>
+              <Tooltip title={getPromptVisibilityTooltip(prompt)}>
+                <Box component="span" aria-label={getPromptVisibilityTooltip(prompt)} sx={{ display: "inline-flex", fontSize: "1rem" }}>
+                  {visibilityIcon}
+                </Box>
+              </Tooltip>
+            </Stack>
+            <Typography variant="caption" color="text.secondary">by {prompt.owner}</Typography>
           </Box>
         }
         secondaryTypographyProps={{ component: "div" }}

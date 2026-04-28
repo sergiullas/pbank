@@ -36,6 +36,7 @@ import { useMemo, useState } from "react";
 import type { FavoriteItem, Prompt, PromptVersion } from "../types";
 import { type SortMode, useStore } from "../state/store";
 import { getLatestVersion, getPublishedVersion, resolveFavoritePromptVersion } from "../promptBank/versioning";
+import { userHasPromptAccess } from "../promptBank/access";
 import { extractTemplateVariables, substituteTemplateVariables } from "../promptBank/templateVariables";
 
 interface MobileSecondaryDrawerProps {
@@ -189,8 +190,7 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
     const normalizedQuery = promptQuery.trim().toLowerCase();
 
     const filtered = prompts.filter((prompt) => {
-      // Only show published prompts in the library
-      if (prompt.status !== "published") return false;
+      if (!userHasPromptAccess(prompt)) return false;
 
       const matchesFilter = filterMode === "all" || (filterMode === "favorites" && isPromptFavorited(prompt.id));
       if (!matchesFilter) return false;
@@ -219,6 +219,7 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
     const rows: FavoriteListItem[] = favorites
       .map((favorite) => {
         const prompt = prompts.find((candidate) => candidate.id === favorite.promptId);
+        if (!prompt || !userHasPromptAccess(prompt)) return null;
         return prompt ? { favorite, prompt } : null;
       })
       .filter((value): value is FavoriteListItem => Boolean(value));

@@ -19,6 +19,13 @@ export type PromptVersion = {
   changelog?: string[];
 };
 
+export type PromptVisibility = "private" | "shared" | "organization";
+
+export type PromptShareState = {
+  users: string[];
+  groups: string[];
+};
+
 export type Prompt = {
   id: string;
   title: string;
@@ -30,7 +37,11 @@ export type Prompt = {
   likes: number;
   createdAt: string;
   owner: string;
+  creatorId?: string;
+  tenantId?: string;
   media: boolean;
+  visibility?: PromptVisibility;
+  sharedWith?: PromptShareState;
   versions?: PromptVersion[];
   // Lifecycle fields
   status: PromptStatus;

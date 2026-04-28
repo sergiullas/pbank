@@ -1,7 +1,9 @@
 import { create } from "zustand";
 import { seedPrompts } from "../data/seedPrompts";
-import type { FavoriteItem, Message, Prompt, PromptStatus, PromptVersion } from "../types";
+import { CURRENT_TENANT_ID, CURRENT_USER_ID } from "../data/mockDirectory";
+import type { FavoriteItem, Message, Prompt, PromptShareState, PromptStatus, PromptVersion, PromptVisibility } from "../types";
 import { getNextVersionNumber } from "../promptBank/versioning";
+import { userHasPromptAccess } from "../promptBank/access";
 import { readJSON, writeJSON } from "./persist";
 import { executePrompt } from "../chat/executePrompt";
 
@@ -34,6 +36,10 @@ export type NewVersionPayload = {
   description?: string;
   desiredOutcome?: string;
   content: string;
+};
+
+type UpdateVisibilityPayload = {
+  visibility: PromptVisibility;
 };
 
 type StoreState = {
@@ -103,6 +109,8 @@ type StoreState = {
   startNewPromptDraft: () => void;
   savePromptDraft: (promptId: string, payload: PromptDraftPayload) => void;
   publishPrompt: (promptId: string, payload: PromptDraftPayload) => void;
+  updatePromptVisibility: (promptId: string, payload: UpdateVisibilityPayload) => void;
+  updatePromptSharedUsers: (promptId: string, userIds: string[]) => void;
   unpublishPrompt: (promptId: string) => void;
   archivePrompt: (promptId: string) => void;
   restorePrompt: (promptId: string) => void;
@@ -120,6 +128,33 @@ const normalizeFavorite = (favorite: FavoriteItem): FavoriteItem => ({
   id: favorite.version == null ? `${favorite.promptId}:latest` : `${favorite.promptId}:v${favorite.version}`,
   createdAt: favorite.createdAt ?? new Date().toISOString(),
 });
+
+const ownerToCreatorId: Record<string, string> = {
+  "Natasha Romanoff (Black Widow)": "user-natasha",
+  "Tony Stark (Iron Man)": "user-tony",
+  "Steve Rogers (Captain America)": "user-steve",
+  "Bruce Banner (Hulk)": "user-bruce",
+  "Clint Barton (Hawkeye)": "user-clint",
+  "Wanda Maximoff (Scarlet Witch)": "user-wanda",
+  Vision: "user-vision",
+  "James Rhodes (War Machine)": "user-rhodes",
+  User: CURRENT_USER_ID,
+};
+
+const normalizePromptModel = (prompt: Prompt): Prompt => {
+  const sharedWith: PromptShareState = {
+    users: Array.isArray(prompt.sharedWith?.users) ? prompt.sharedWith.users : [],
+    groups: Array.isArray(prompt.sharedWith?.groups) ? prompt.sharedWith.groups : [],
+  };
+
+  return {
+    ...prompt,
+    creatorId: prompt.creatorId ?? ownerToCreatorId[prompt.owner] ?? CURRENT_USER_ID,
+    tenantId: prompt.tenantId ?? CURRENT_TENANT_ID,
+    visibility: prompt.visibility ?? "private",
+    sharedWith,
+  };
+};
 
 const readFavorites = (): FavoriteItem[] => {
   const stored = readJSON<FavoriteItem[] | string[]>(STORAGE_KEYS.favorites, []);
@@ -188,7 +223,7 @@ export const useStore = create<StoreState>((set, get) => ({
   // Library state
   libraryCollapsed: readLibraryCollapsed(),
   libraryView: "browse",
-  prompts: seedPrompts,
+  prompts: seedPrompts.map(normalizePromptModel),
   promptQuery: "",
   selectedPromptId: null,
   detailInitialVersionNumber: null,
@@ -356,7 +391,11 @@ export const useStore = create<StoreState>((set, get) => ({
       createdAt: now,
       lastUpdatedAt: now,
       owner: "User",
+      creatorId: CURRENT_USER_ID,
+      tenantId: CURRENT_TENANT_ID,
       media: false,
+      visibility: "private",
+      sharedWith: { users: [], groups: [] },
         status: "draft",
         archivedFromStatus: null,
         publishedVersionId: null,
@@ -394,6 +433,7 @@ export const useStore = create<StoreState>((set, get) => ({
     set((state) => {
       const prompt = state.prompts.find((p) => p.id === promptId);
       if (!prompt) return state;
+      if (prompt.visibility === "shared" && (prompt.sharedWith?.users.length ?? 0) === 0) return state;
 
       // Build a new version snapshot from the payload
       const nextVersionNumber = getNextVersionNumber(prompt);
@@ -430,6 +470,40 @@ export const useStore = create<StoreState>((set, get) => ({
         }),
       };
     });
+  },
+
+  updatePromptVisibility: (promptId, payload) => {
+    set((state) => ({
+      prompts: state.prompts.map((prompt) => (
+        prompt.id === promptId
+          ? { ...prompt, visibility: payload.visibility, lastUpdatedAt: new Date().toISOString() }
+          : prompt
+      )),
+    }));
+  },
+
+  updatePromptSharedUsers: (promptId, userIds) => {
+    const uniqueUserIds = [...new Set(userIds.filter(Boolean))];
+    set((state) => ({
+      prompts: state.prompts.map((prompt) => (
+        prompt.id === promptId
+          ? {
+            ...prompt,
+            sharedWith: { users: uniqueUserIds, groups: prompt.sharedWith?.groups ?? [] },
+            lastUpdatedAt: new Date().toISOString(),
+          }
+          : prompt
+      )),
+      favorites: state.favorites.filter((favorite) => {
+        const favoritePrompt = state.prompts.find((prompt) => prompt.id === favorite.promptId);
+        if (!favoritePrompt || favoritePrompt.id !== promptId) return true;
+        const updatedPrompt: Prompt = {
+          ...favoritePrompt,
+          sharedWith: { users: uniqueUserIds, groups: favoritePrompt.sharedWith?.groups ?? [] },
+        };
+        return userHasPromptAccess(updatedPrompt);
+      }),
+    }));
   },
 
   unpublishPrompt: (promptId) => {

@@ -11,6 +11,7 @@ import {
   Box,
   Button,
   Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -20,12 +21,18 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  List,
+  ListItem,
+  ListItemText,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Tooltip,
   Typography,
 } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
+import { searchDirectoryUsers, findDirectoryUserById } from "../data/mockDirectory";
 import { getLatestVersion, getNextVersionNumber, getPublishedVersion } from "../promptBank/versioning";
 import { parseTemplateVariables } from "../promptBank/templateVariables";
 import { useStore } from "../state/store";
@@ -48,6 +55,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const savePromptDraft = useStore((state) => state.savePromptDraft);
   const publishPrompt = useStore((state) => state.publishPrompt);
   const savePromptAsNewVersion = useStore((state) => state.savePromptAsNewVersion);
+  const updatePromptVisibility = useStore((state) => state.updatePromptVisibility);
+  const updatePromptSharedUsers = useStore((state) => state.updatePromptSharedUsers);
   const discardPromptDraft = useStore((state) => state.discardPromptDraft);
   const deletePrompt = useStore((state) => state.deletePrompt);
   const restorePrompt = useStore((state) => state.restorePrompt);
@@ -74,12 +83,19 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(null);
   const [templateExampleDismissed, setTemplateExampleDismissed] = useState<boolean>(() => localStorage.getItem(TEMPLATE_EXAMPLE_DISMISSED_KEY) === "true");
   const [showTemplateExampleForSession, setShowTemplateExampleForSession] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareQuery, setShareQuery] = useState("");
+  const [shareResults, setShareResults] = useState<{ id: string; name: string; email: string }[]>([]);
+  const [shareSearchLoading, setShareSearchLoading] = useState(false);
 
   const publishedVersion = prompt.publishedVersionId ? getPublishedVersion(prompt) : null;
   const hasVersionHistory = (prompt.versions?.length ?? 0) > 0;
   const latestVersion = getLatestVersion(prompt);
   const workingDraftVersionNumber = prompt.status === "draft" ? getNextVersionNumber(prompt) : null;
   const hasDraft = prompt.status === "draft";
+  const promptVisibility = prompt.visibility ?? "private";
+  const sharedUsers = prompt.sharedWith?.users ?? [];
+  const isSharedWithNoUsers = promptVisibility === "shared" && sharedUsers.length === 0;
   const viewingWorkingDraft = viewingVersion != null && workingDraftVersionNumber != null && viewingVersion.version === workingDraftVersionNumber;
 
   const editorMode: EditorMode = useMemo(() => {
@@ -123,6 +139,23 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     setPromptEditorUnsavedChanges(isDirty);
     return () => setPromptEditorUnsavedChanges(false);
   }, [isDirty, setPromptEditorUnsavedChanges]);
+
+  useEffect(() => {
+    if (!shareModalOpen) return;
+    const normalized = shareQuery.trim();
+    if (normalized.length < 2) {
+      setShareResults([]);
+      setShareSearchLoading(false);
+      return;
+    }
+    setShareSearchLoading(true);
+    const timeoutId = window.setTimeout(() => {
+      searchDirectoryUsers(normalized)
+        .then((results) => setShareResults(results))
+        .finally(() => setShareSearchLoading(false));
+    }, 300);
+    return () => window.clearTimeout(timeoutId);
+  }, [shareModalOpen, shareQuery]);
 
   useEffect(() => {
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -417,6 +450,44 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   maxRows={4}
                   helperText="A brief summary of what this prompt does."
                 />
+
+                <Stack spacing={1}>
+                  <Typography variant="body2" fontWeight={600}>
+                    Visibility
+                  </Typography>
+                  <ToggleButtonGroup
+                    exclusive
+                    size="small"
+                    value={promptVisibility}
+                    onChange={(_, next) => {
+                      if (!next || disableControls) return;
+                      updatePromptVisibility(prompt.id, { visibility: next });
+                    }}
+                    aria-label="Visibility"
+                  >
+                    <ToggleButton value="private" aria-label="Private">Private</ToggleButton>
+                    <ToggleButton value="shared" aria-label="Shared">Shared</ToggleButton>
+                    <ToggleButton value="organization" aria-label="Organization">Organization</ToggleButton>
+                  </ToggleButtonGroup>
+                  {promptVisibility === "shared" && (
+                    <Stack spacing={1}>
+                      <Stack direction="row" alignItems="center" justifyContent="space-between">
+                        <Typography variant="body2" color="text.secondary">
+                          Shared with
+                        </Typography>
+                        <Button size="small" onClick={() => setShareModalOpen(true)} disabled={disableControls}>
+                          Manage
+                        </Button>
+                      </Stack>
+                      <Typography variant="body2">{sharedUsers.length} people</Typography>
+                      {isSharedWithNoUsers && (
+                        <Alert severity="warning" variant="outlined">
+                          Add at least one person or change visibility to Private.
+                        </Alert>
+                      )}
+                    </Stack>
+                  )}
+                </Stack>
               </Stack>
 
               <Divider />
@@ -820,6 +891,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
               <Button
                 variant="contained"
                 color="primary"
+                disabled={isSharedWithNoUsers}
                 onClick={() => {
                   if (!validateRequiredFields()) {
                     return;
@@ -875,7 +947,79 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPublishDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" color="primary" onClick={handlePublishConfirm}>Publish</Button>
+          <Button variant="contained" color="primary" disabled={isSharedWithNoUsers} onClick={handlePublishConfirm}>Publish</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        fullWidth
+        maxWidth="sm"
+        aria-labelledby="share-prompt-title"
+      >
+        <DialogTitle id="share-prompt-title">Share Prompt</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2}>
+            <TextField
+              autoFocus
+              label="Search people or email"
+              value={shareQuery}
+              onChange={(event) => setShareQuery(event.target.value)}
+              inputProps={{ "aria-label": "Search people or email" }}
+            />
+            <Typography variant="caption" color="text.secondary">Results</Typography>
+            {shareSearchLoading ? <CircularProgress size={20} /> : (
+              <List dense sx={{ border: 1, borderColor: "divider", borderRadius: 1 }}>
+                {shareResults.map((result) => {
+                  const alreadyAdded = sharedUsers.includes(result.id);
+                  return (
+                    <ListItem
+                      key={result.id}
+                      secondaryAction={(
+                        <Button
+                          size="small"
+                          disabled={alreadyAdded}
+                          onClick={() => updatePromptSharedUsers(prompt.id, [...sharedUsers, result.id])}
+                        >
+                          {alreadyAdded ? "Added" : "Add"}
+                        </Button>
+                      )}
+                    >
+                      <ListItemText primary={result.name} secondary={result.email} />
+                    </ListItem>
+                  );
+                })}
+              </List>
+            )}
+
+            <Typography variant="caption" color="text.secondary">Shared with ({sharedUsers.length})</Typography>
+            <List dense sx={{ border: 1, borderColor: "divider", borderRadius: 1 }}>
+              {sharedUsers.map((userId) => {
+                const user = findDirectoryUserById(userId);
+                if (!user) return null;
+                return (
+                  <ListItem
+                    key={userId}
+                    secondaryAction={(
+                      <Button
+                        size="small"
+                        color="error"
+                        onClick={() => updatePromptSharedUsers(prompt.id, sharedUsers.filter((id) => id !== userId))}
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  >
+                    <ListItemText primary={user.name} secondary={user.email} />
+                  </ListItem>
+                );
+              })}
+            </List>
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShareModalOpen(false)}>Done</Button>
         </DialogActions>
       </Dialog>
 

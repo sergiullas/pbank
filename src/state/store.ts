@@ -521,7 +521,8 @@ export const useStore = create<StoreState>((set, get) => ({
       const prompt = state.prompts.find((p) => p.id === promptId);
       if (!prompt || prompt.status !== "draft") return state;
 
-      if (!prompt.publishedVersionId || !prompt.versions?.length) {
+      // No published history at all → delete the prompt entirely
+      if (!prompt.publishedVersionId) {
         return {
           prompts: state.prompts.filter((p) => p.id !== promptId),
           selectedManagedPromptId: state.selectedManagedPromptId === promptId ? null : state.selectedManagedPromptId,
@@ -529,18 +530,35 @@ export const useStore = create<StoreState>((set, get) => ({
         };
       }
 
-      const publishedVersion = prompt.versions.find((version) => version.id === prompt.publishedVersionId);
-      if (!publishedVersion) return state;
+      // Published version exists in the versions array → revert content from the snapshot
+      if (prompt.versions?.length) {
+        const publishedVersion = prompt.versions.find((version) => version.id === prompt.publishedVersionId);
+        if (!publishedVersion) return state;
 
+        return {
+          prompts: state.prompts.map((p) => {
+            if (p.id !== promptId) return p;
+            return {
+              ...p,
+              status: "published" as PromptStatus,
+              description: publishedVersion.description ?? p.description,
+              desiredOutcome: publishedVersion.desiredOutcome ?? p.desiredOutcome,
+              content: publishedVersion.content,
+              hasUnpublishedChanges: false,
+              lastUpdatedAt: now,
+            };
+          }),
+        };
+      }
+
+      // Synthesized-v1 case: publishedVersionId is set but no versions array exists.
+      // No separate content snapshot is available; restore lifecycle status only.
       return {
         prompts: state.prompts.map((p) => {
           if (p.id !== promptId) return p;
           return {
             ...p,
             status: "published" as PromptStatus,
-            description: publishedVersion.description ?? p.description,
-            desiredOutcome: publishedVersion.desiredOutcome ?? p.desiredOutcome,
-            content: publishedVersion.content,
             hasUnpublishedChanges: false,
             lastUpdatedAt: now,
           };

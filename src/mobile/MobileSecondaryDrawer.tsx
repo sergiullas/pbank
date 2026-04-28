@@ -32,7 +32,6 @@ import {
   Drawer,
   useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import { useMemo, useState } from "react";
 import type { FavoriteItem, Prompt, PromptVersion } from "../types";
 import { type SortMode, useStore } from "../state/store";
@@ -565,7 +564,7 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
                   </Stack>
 
                   {templateVariables.length > 0 && (
-                    <Box p={1.5} borderRadius={2} sx={{ bgcolor: (paletteTheme) => alpha(paletteTheme.palette.info.main, 0.1) }}>
+                    <Box p={1.5} borderRadius={2} bgcolor="background.surface">
                       <Typography variant="caption" color="text.secondary">
                         Contains variables · Requires input before sending
                       </Typography>
@@ -573,12 +572,12 @@ export function MobileSecondaryDrawer({ open, onClose }: MobileSecondaryDrawerPr
                   )}
 
                   {templateVariables.some((variable) => variable.isContext) && (
-                    <Box p={1.5} borderRadius={2} sx={{ bgcolor: (paletteTheme) => alpha(paletteTheme.palette.warning.main, 0.1) }}>
+                    <Box p={1.5} borderRadius={2} bgcolor="background.surface">
                       <Typography variant="caption" color="text.secondary">Includes [CONTEXT]</Typography>
                     </Box>
                   )}
 
-                  <Box p={2} borderRadius={2} bgcolor="grey.100" maxHeight={260} overflow="auto">
+                  <Box p={2} borderRadius={2} bgcolor="background.surface" maxHeight={260} overflow="auto">
                     <Typography variant="body2" whiteSpace="pre-wrap">{activeVersion.content}</Typography>
                   </Box>
 

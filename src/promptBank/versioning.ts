@@ -97,6 +97,6 @@ export function getPublishedVersion(prompt: Prompt): PromptVersionLike {
  * Returns the next available version number for a prompt.
  */
 export function getNextVersionNumber(prompt: Prompt): number {
-  if (!prompt.versions?.length) return 2;
+  if (!prompt.versions?.length) return 1;
   return Math.max(...prompt.versions.map((v) => v.version)) + 1;
 }

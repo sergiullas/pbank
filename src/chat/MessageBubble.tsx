@@ -15,7 +15,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         p: 1.5,
         maxWidth: "80ch",
         wordBreak: "break-word",
-        bgcolor: isUser ? "primary.main" : "grey.100",
+        bgcolor: isUser ? "primary.main" : "background.surface",
         color: isUser ? "primary.contrastText" : "text.primary",
       }}
     >

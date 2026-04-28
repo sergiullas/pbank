@@ -1,5 +1,4 @@
 import { Avatar, Box, IconButton, Tooltip, Typography } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import AutoStoriesOutlinedIcon from "@mui/icons-material/AutoStoriesOutlined";
@@ -55,7 +54,7 @@ function NavItem({ icon, label, active = false, isRail, onClick }: NavItemProps)
         },
         outline: "none",
         "&:focus-visible": {
-          outline: `2px solid ${alpha(theme.palette.primary.main, 0.35)}`,
+          outline: `2px solid ${theme.palette.primary.main}`,
           outlineOffset: -2,
         },
       })}

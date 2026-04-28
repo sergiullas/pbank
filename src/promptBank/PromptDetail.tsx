@@ -63,7 +63,7 @@ export function PromptDetail() {
         ))}
       </Stack>
 
-      <Box p={1.5} bgcolor="grey.100" borderRadius={2} maxHeight={220} overflow="auto">
+      <Box p={1.5} bgcolor="background.surface" borderRadius={2} maxHeight={220} overflow="auto">
         <Typography variant="body2" whiteSpace="pre-wrap">
           {prompt.content}
         </Typography>

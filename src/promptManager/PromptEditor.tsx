@@ -24,9 +24,8 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import { useEffect, useMemo, useState } from "react";
-import { getLatestVersion, getPublishedVersion } from "../promptBank/versioning";
+import { getLatestVersion, getNextVersionNumber, getPublishedVersion } from "../promptBank/versioning";
 import { parseTemplateVariables } from "../promptBank/templateVariables";
 import { useStore } from "../state/store";
 import type { Prompt, PromptVersion } from "../types";
@@ -75,9 +74,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const publishedVersion = prompt.publishedVersionId ? getPublishedVersion(prompt) : null;
   const hasVersionHistory = (prompt.versions?.length ?? 0) > 0;
   const latestVersion = getLatestVersion(prompt);
-  const workingDraftVersionNumber = prompt.status === "draft"
-    ? ((prompt.versions?.length ?? 0) === 0 ? 1 : latestVersion.version)
-    : null;
+  const workingDraftVersionNumber = prompt.status === "draft" ? getNextVersionNumber(prompt) : null;
   const hasDraft = prompt.status === "draft";
   const viewingWorkingDraft = viewingVersion != null && workingDraftVersionNumber != null && viewingVersion.version === workingDraftVersionNumber;
 
@@ -90,7 +87,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
 
   const activeSource = viewingVersion ?? {
     id: "working-copy",
-    version: getLatestVersion(prompt).version,
+    version: workingDraftVersionNumber ?? getLatestVersion(prompt).version,
     content: draftFormState.content,
     description: draftFormState.description || undefined,
     desiredOutcome: draftFormState.promptInstructions || undefined,
@@ -350,13 +347,6 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
           {editorMode === "version-readonly" && <Chip label="Read-only" size="small" variant="outlined" />}
         </Stack>
 
-        <Button
-          size="small"
-          variant="outlined"
-          onClick={() => setShowTestPanel((prev) => !prev)}
-        >
-          Test Prompt
-        </Button>
       </Box>
 
       <Box flex={1} minHeight={0} display="flex" flexDirection={{ xs: "column", lg: "row" }} overflow="hidden">
@@ -565,7 +555,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                     </Stack>
 
                     {templateVariables.some((v) => v.isContext) && (
-                      <Box p={1.5} borderRadius={1.5} sx={{ bgcolor: (theme) => alpha(theme.palette.info.main, 0.08) }}>
+                      <Box p={1.5} borderRadius={1.5} bgcolor="background.surface">
                         <Typography variant="caption" color="text.secondary">
                           <strong>[CONTEXT]</strong> — When inserted into chat, this token lets users attach a file as context before sending.
                         </Typography>
@@ -650,52 +640,63 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
       >
         {editorMode === "draft-edit" && (
           <>
-            <Stack direction="row" gap={1}>
+            <Button variant="outlined" color="error" onClick={() => setDeleteDialogOpen(true)}>
+              {(hasVersionHistory || prompt.publishedVersionId) ? "Delete Draft" : "Delete Prompt"}
+            </Button>
+            <Stack direction="row" gap={1.5} ml="auto" flexWrap="wrap">
               <Button variant="outlined" onClick={handleSaveDraft} disabled={!isDirty}>
                 Save Draft
               </Button>
-              <Button variant="outlined" color="error" onClick={() => setDeleteDialogOpen(true)}>
-                {(hasVersionHistory || prompt.publishedVersionId) ? "Delete Draft" : "Delete Prompt"}
+              <Button variant="outlined" onClick={() => setShowTestPanel((prev) => !prev)}>
+                Test Prompt
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => {
+                  if (!validateRequiredFields()) {
+                    return;
+                  }
+                  setPublishDialogOpen(true);
+                }}
+              >
+                Publish
               </Button>
             </Stack>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => {
-                if (!validateRequiredFields()) {
-                  return;
-                }
-                setPublishDialogOpen(true);
-              }}
-            >
-              Publish
-            </Button>
           </>
         )}
 
         {(editorMode === "published-readonly" || editorMode === "version-readonly") && (
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => handleCreateNewVersion()}
-            sx={{ ml: "auto" }}
-          >
-            Create New Version
-          </Button>
+          <Stack direction="row" gap={1.5} ml="auto" flexWrap="wrap">
+            <Button variant="outlined" onClick={() => setShowTestPanel((prev) => !prev)}>
+              Test Prompt
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => handleCreateNewVersion()}
+            >
+              Create New Version
+            </Button>
+          </Stack>
         )}
 
         {editorMode === "archived-readonly" && (
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => {
-              restorePrompt(prompt.id);
-              setPromptManagerNotice("Prompt restored");
-            }}
-            sx={{ ml: "auto" }}
-          >
-            Restore
-          </Button>
+          <Stack direction="row" gap={1.5} ml="auto" flexWrap="wrap">
+            <Button variant="outlined" onClick={() => setShowTestPanel((prev) => !prev)}>
+              Test Prompt
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => {
+                restorePrompt(prompt.id);
+                setPromptManagerNotice("Prompt restored");
+              }}
+            >
+              Restore
+            </Button>
+          </Stack>
         )}
       </Box>
 
@@ -793,6 +794,16 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         onClose={() => setHeaderVersionMenuAnchor(null)}
         MenuListProps={{ "aria-label": "Prompt versions" }}
       >
+        {hasDraft && workingDraftVersionNumber != null && (
+          <MenuItem
+            selected={!viewingVersion}
+            onClick={() => requestVersionSelection(null)}
+            sx={{ minWidth: 180, display: "flex", justifyContent: "space-between", gap: 1 }}
+          >
+            <span>v{workingDraftVersionNumber} — Draft</span>
+            {!viewingVersion ? <CheckIcon fontSize="small" color="primary" /> : null}
+          </MenuItem>
+        )}
         {headerVersionOptions.map((version) => {
           const isActiveVersion = activeSource.version === version.version;
           return (

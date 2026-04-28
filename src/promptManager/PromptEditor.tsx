@@ -26,7 +26,7 @@ import {
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { useEffect, useMemo, useState } from "react";
-import { getLatestVersion, getPublishedVersion } from "../promptBank/versioning";
+import { getLatestVersion, getNextVersionNumber, getPublishedVersion } from "../promptBank/versioning";
 import { parseTemplateVariables } from "../promptBank/templateVariables";
 import { useStore } from "../state/store";
 import type { Prompt, PromptVersion } from "../types";
@@ -75,9 +75,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const publishedVersion = prompt.publishedVersionId ? getPublishedVersion(prompt) : null;
   const hasVersionHistory = (prompt.versions?.length ?? 0) > 0;
   const latestVersion = getLatestVersion(prompt);
-  const workingDraftVersionNumber = prompt.status === "draft"
-    ? ((prompt.versions?.length ?? 0) === 0 ? 1 : latestVersion.version)
-    : null;
+  const workingDraftVersionNumber = prompt.status === "draft" ? getNextVersionNumber(prompt) : null;
   const hasDraft = prompt.status === "draft";
   const viewingWorkingDraft = viewingVersion != null && workingDraftVersionNumber != null && viewingVersion.version === workingDraftVersionNumber;
 
@@ -90,7 +88,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
 
   const activeSource = viewingVersion ?? {
     id: "working-copy",
-    version: getLatestVersion(prompt).version,
+    version: workingDraftVersionNumber ?? getLatestVersion(prompt).version,
     content: draftFormState.content,
     description: draftFormState.description || undefined,
     desiredOutcome: draftFormState.promptInstructions || undefined,
@@ -793,6 +791,16 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         onClose={() => setHeaderVersionMenuAnchor(null)}
         MenuListProps={{ "aria-label": "Prompt versions" }}
       >
+        {hasDraft && workingDraftVersionNumber != null && (
+          <MenuItem
+            selected={!viewingVersion}
+            onClick={() => requestVersionSelection(null)}
+            sx={{ minWidth: 180, display: "flex", justifyContent: "space-between", gap: 1 }}
+          >
+            <span>v{workingDraftVersionNumber} — Draft</span>
+            {!viewingVersion ? <CheckIcon fontSize="small" color="primary" /> : null}
+          </MenuItem>
+        )}
         {headerVersionOptions.map((version) => {
           const isActiveVersion = activeSource.version === version.version;
           return (

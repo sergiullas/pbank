@@ -1,3 +1,7 @@
+import "@fontsource/lato/300.css";
+import "@fontsource/lato/400.css";
+import "@fontsource/lato/700.css";
+import "@fontsource/lato/900.css";
 import { createTheme } from "@mui/material";
 
 export const appTheme = createTheme({
@@ -5,6 +9,9 @@ export const appTheme = createTheme({
     mode: "light",
     primary: {
       main: "#005288",
+    },
+    secondary: {
+      main: "#0078ae",
     },
     background: {
       default: "#f8fafc",
@@ -19,18 +26,21 @@ export const appTheme = createTheme({
     },
     divider: "#e2e8f0",
   },
+  typography: {
+    fontFamily: '"Lato", sans-serif',
+  },
   shape: {
     borderRadius: 12,
   },
   components: {
     MuiButtonBase: {
       styleOverrides: {
-        root: {
+        root: ({ theme }) => ({
           "&:focus-visible": {
-            outline: "3px solid #005288",
+            outline: `3px solid ${theme.palette.primary.main}`,
             outlineOffset: 2,
           },
-        },
+        }),
       },
     },
   },

@@ -53,5 +53,22 @@ export const appTheme = createTheme({
         }),
       },
     },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: ({ theme }) => ({
+          backgroundColor: theme.palette.common.white,
+          "&.Mui-disabled": {
+            backgroundColor: theme.palette.common.white,
+          },
+        }),
+      },
+    },
+    MuiInputBase: {
+      styleOverrides: {
+        input: ({ theme }) => ({
+          backgroundColor: theme.palette.common.white,
+        }),
+      },
+    },
   },
 });

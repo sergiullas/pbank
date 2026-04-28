@@ -1,6 +1,7 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import CheckIcon from "@mui/icons-material/Check";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ShortTextIcon from "@mui/icons-material/ShortText";
@@ -41,6 +42,7 @@ interface PromptEditorProps {
 type EditorMode = "draft-edit" | "published-readonly" | "version-readonly" | "archived-readonly";
 
 const INLINE_VERSION_COUNT = 4;
+const TEMPLATE_EXAMPLE_DISMISSED_KEY = "prompt-manager-template-example-dismissed";
 
 export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const savePromptDraft = useStore((state) => state.savePromptDraft);
@@ -70,6 +72,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const [headerVersionMenuAnchor, setHeaderVersionMenuAnchor] = useState<null | HTMLElement>(null);
   const [versionMenuAnchorPosition, setVersionMenuAnchorPosition] = useState<{ top: number; left: number } | null>(null);
   const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(null);
+  const [templateExampleDismissed, setTemplateExampleDismissed] = useState<boolean>(() => localStorage.getItem(TEMPLATE_EXAMPLE_DISMISSED_KEY) === "true");
+  const [showTemplateExampleForSession, setShowTemplateExampleForSession] = useState(false);
 
   const publishedVersion = prompt.publishedVersionId ? getPublishedVersion(prompt) : null;
   const hasVersionHistory = (prompt.versions?.length ?? 0) > 0;
@@ -97,6 +101,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const isReadOnly = editorMode !== "draft-edit";
   const useReadOnlyControls = editorMode === "published-readonly" || editorMode === "version-readonly";
   const disableControls = editorMode === "archived-readonly";
+  const showTemplateExample = !isReadOnly && (!templateExampleDismissed || showTemplateExampleForSession);
   const { variables: templateVariables, invalidTokens } = useMemo(
     () => parseTemplateVariables(activeSource.content),
     [activeSource.content],
@@ -220,6 +225,16 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
       return;
     }
     onBack();
+  };
+
+  const handleDismissTemplateExample = () => {
+    setTemplateExampleDismissed(true);
+    setShowTemplateExampleForSession(false);
+    localStorage.setItem(TEMPLATE_EXAMPLE_DISMISSED_KEY, "true");
+  };
+
+  const handleShowTemplateExample = () => {
+    setShowTemplateExampleForSession(true);
   };
 
   const inlineVersions = useMemo(() => {
@@ -430,12 +445,107 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   Prompt Template
                 </Typography>
 
-                <Typography variant="caption" color="text.secondary" sx={{ mt: -0.5 }}>
-                  Template = structure + tokens. Prompt Instructions = response behavior.
-                </Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                    px: 1.25,
+                    py: 1,
+                    borderRadius: 1.25,
+                    bgcolor: "action.selected",
+                  }}
+                >
+                  <InfoOutlinedIcon fontSize="small" color="primary" aria-hidden="true" />
+                  <Typography component="div" variant="body2" color="text.primary">
+                    <strong>Template</strong> is the prompt sent to the AI. <strong>Prompt Instructions</strong> tells the AI how to respond.{" "}
+                    {!isReadOnly && (
+                      <Button
+                        variant="text"
+                        size="small"
+                        onClick={handleShowTemplateExample}
+                        sx={{ p: 0, minWidth: 0, textTransform: "none", fontWeight: 600, verticalAlign: "baseline" }}
+                      >
+                        See example
+                      </Button>
+                    )}
+                  </Typography>
+                </Box>
+
+                {showTemplateExample && (
+                  <Box
+                    sx={{
+                      border: "1px solid",
+                      borderColor: "action.selected",
+                      borderRadius: 1.5,
+                      p: 1.25,
+                      bgcolor: "background.default",
+                    }}
+                  >
+                    <Stack spacing={1}>
+                      <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+                        <Typography variant="overline" color="text.secondary" letterSpacing={1}>
+                          Example
+                        </Typography>
+                        <Button
+                          variant="text"
+                          size="small"
+                          onClick={handleDismissTemplateExample}
+                          sx={{ p: 0, minWidth: 0, textTransform: "none" }}
+                          aria-label="Dismiss template example"
+                        >
+                          Dismiss
+                        </Button>
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary">
+                        Template
+                      </Typography>
+                      <Box
+                        sx={{
+                          border: "1px solid",
+                          borderColor: "divider",
+                          borderRadius: 1,
+                          px: 1.25,
+                          py: 0.875,
+                          bgcolor: "background.default",
+                          fontFamily: "monospace",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Summarize [[ARTICLE]] in plain language.
+                      </Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Prompt Instructions
+                      </Typography>
+                      <Box
+                        sx={{
+                          border: "1px solid",
+                          borderColor: "divider",
+                          borderRadius: 1,
+                          px: 1.25,
+                          py: 0.875,
+                          bgcolor: "background.default",
+                          fontFamily: "monospace",
+                          fontSize: "0.875rem",
+                        }}
+                      >
+                        Use 3 bullets max. Avoid jargon.
+                      </Box>
+                    </Stack>
+                  </Box>
+                )}
+
+                <Stack direction="row" alignItems="baseline" spacing={0.75}>
+                  <Typography component="label" htmlFor="prompt-template-field" variant="body2" fontWeight={600}>
+                    Template *
+                  </Typography>
+                  <Typography id="template-sub-label" variant="caption" color="text.secondary">
+                    — the prompt sent to the AI
+                  </Typography>
+                </Stack>
 
                 <TextField
-                  label="Template"
+                  id="prompt-template-field"
                   value={activeSource.content}
                   onChange={(e) => {
                     setDraftFormState((prev) => ({ ...prev, content: e.target.value }));
@@ -446,14 +556,25 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   fullWidth
                   required
                   multiline
-                  minRows={4}
+                  minRows={6}
                   maxRows={16}
                   placeholder="Write your prompt template here…"
-                  inputProps={{ "aria-label": "Prompt template content", style: { fontFamily: "monospace", fontSize: "0.875rem" } }}
+                  inputProps={{
+                    "aria-label": "Prompt template content",
+                    "aria-describedby": "template-sub-label",
+                    "aria-required": true,
+                    style: { fontFamily: "monospace", fontSize: "0.875rem" },
+                  }}
                   error={invalidTokens.length > 0 || Boolean(fieldErrors.template)}
                   helperText={fieldErrors.template}
                   sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 1.5,
+                      "& fieldset": { borderColor: "secondary.main" },
+                      "&.Mui-focused fieldset": { borderWidth: 2 },
+                    },
                     "& .MuiInputBase-inputMultiline": {
+                      minHeight: "140px",
                       maxHeight: "40vh",
                       overflowY: "auto !important",
                       resize: "none",
@@ -461,12 +582,58 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   }}
                 />
 
-                <Typography variant="caption" color="text.secondary">
-                  Use <code>[TOKEN]</code> for short input, <code>[[TOKEN]]</code> for multi-line input, and <code>[CONTEXT]</code> for file context.
-                </Typography>
+                <Stack direction={{ xs: "column", md: "row" }} alignItems={{ xs: "flex-start", md: "center" }} justifyContent="space-between" gap={0.5}>
+                  <Stack direction="row" gap={1} flexWrap="wrap">
+                    {[
+                      { token: "[VARIABLE]", description: "short input" },
+                      { token: "[[VARIABLE]]", description: "multi-line" },
+                      { token: "[CONTEXT]", description: "file attachment" },
+                    ].map((tokenItem) => (
+                      <Stack key={tokenItem.token} direction="row" spacing={0.5} alignItems="center">
+                        <Box
+                          component="span"
+                          sx={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            px: 0.75,
+                            py: 0.25,
+                            borderRadius: 999,
+                            border: "1px solid",
+                            borderColor: "divider",
+                            bgcolor: "action.hover",
+                            fontFamily: "monospace",
+                            fontSize: "0.75rem",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {tokenItem.token}
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                          {tokenItem.description}
+                        </Typography>
+                      </Stack>
+                    ))}
+                  </Stack>
+                  <Typography variant="caption" color="text.secondary" aria-live="polite" sx={{ lineHeight: 1.2, alignSelf: "center" }}>
+                    {templateVariables.length === 0
+                      ? "No variables yet"
+                      : templateVariables.length === 1
+                        ? "1 variable detected"
+                        : `${templateVariables.length} variables detected`}
+                  </Typography>
+                </Stack>
+
+                <Stack direction="row" alignItems="baseline" spacing={0.75}>
+                  <Typography component="label" htmlFor="prompt-instructions-field" variant="body2" fontWeight={600}>
+                    Prompt Instructions
+                  </Typography>
+                  <Typography id="prompt-instructions-sub-label" variant="caption" color="text.secondary">
+                    — optional, how the AI should respond
+                  </Typography>
+                </Stack>
 
                 <TextField
-                  label="Prompt Instructions"
+                  id="prompt-instructions-field"
                   value={isReadOnly ? (activeSource.desiredOutcome ?? "") : draftFormState.promptInstructions}
                   onChange={(e) => setDraftFormState((prev) => ({ ...prev, promptInstructions: e.target.value }))}
                   disabled={disableControls}
@@ -475,8 +642,18 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   multiline
                   minRows={3}
                   maxRows={12}
+                  inputProps={{
+                    "aria-label": "Prompt instructions",
+                    "aria-describedby": "prompt-instructions-sub-label prompt-instructions-helper",
+                    style: { fontFamily: "inherit" },
+                  }}
                   sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 1.5,
+                      "& fieldset": { borderColor: "divider" },
+                    },
                     "& .MuiInputBase-inputMultiline": {
+                      minHeight: "72px",
                       maxHeight: "25vh",
                       overflowY: "auto !important",
                       resize: "none",
@@ -484,8 +661,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   }}
                 />
 
-                <Typography variant="caption" color="text.secondary" sx={{ mt: -0.5 }}>
-                  Define how the AI should respond (format, tone, limits).
+                <Typography id="prompt-instructions-helper" variant="caption" color="text.secondary" sx={{ mt: -0.5 }}>
+                  Examples: "Use bullet points, max 5." · "Professional tone." · "Keep it under 200 words."
                 </Typography>
 
                 {invalidTokens.length > 0 && (
@@ -554,23 +731,13 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                       ))}
                     </Stack>
 
-                    {templateVariables.some((v) => v.isContext) && (
-                      <Box p={1.5} borderRadius={1.5} bgcolor="background.surface">
-                        <Typography variant="caption" color="text.secondary">
-                          <strong>[CONTEXT]</strong> — When inserted into chat, this token lets users attach a file as context before sending.
-                        </Typography>
-                      </Box>
-                    )}
-
-                    {templateVariables.every((v) => !v.isContext) && (
-                      <Typography variant="caption" color="text.secondary">
-                        These variables will appear as input fields when users insert this prompt into chat.
-                      </Typography>
-                    )}
+                    <Typography variant="caption" color="text.secondary">
+                      These variables will appear as input fields when users insert this prompt into chat.
+                    </Typography>
                   </>
                 ) : (
                   <Typography variant="body2" color="text.secondary">
-                    No variables detected. Add <code>[TOKEN]</code> or <code>[[TOKEN]]</code> placeholders to make this prompt dynamic.
+                    No variables detected.
                   </Typography>
                 )}
               </Stack>

@@ -244,6 +244,11 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     setShowTemplateExampleForSession(true);
   };
 
+  const toggleSettingsPanel = () => {
+    setShowSettingsPanel((prev) => !prev);
+    setShowTestPanel(false);
+  };
+
   const inlineVersions = useMemo(() => {
     return sortedVersions.slice(0, INLINE_VERSION_COUNT);
   }, [sortedVersions]);
@@ -825,14 +830,6 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
               <Button variant="outlined" onClick={() => setShowTestPanel((prev) => !prev)}>
                 Test Prompt
               </Button>
-              {canManageSettings && (
-                <Button variant="outlined" onClick={() => {
-                  setShowSettingsPanel((prev) => !prev);
-                  setShowTestPanel(false);
-                }}>
-                  Settings
-                </Button>
-              )}
               <Button
                 variant="contained"
                 color="primary"
@@ -855,14 +852,6 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
             <Button variant="outlined" onClick={() => setShowTestPanel((prev) => !prev)}>
               Test Prompt
             </Button>
-            {canManageSettings && (
-              <Button variant="outlined" onClick={() => {
-                setShowSettingsPanel((prev) => !prev);
-                setShowTestPanel(false);
-              }}>
-                Settings
-              </Button>
-            )}
             <Button
               variant="contained"
               color="primary"
@@ -878,14 +867,6 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
             <Button variant="outlined" onClick={() => setShowTestPanel((prev) => !prev)}>
               Test Prompt
             </Button>
-            {canManageSettings && (
-              <Button variant="outlined" onClick={() => {
-                setShowSettingsPanel((prev) => !prev);
-                setShowTestPanel(false);
-              }}>
-                Settings
-              </Button>
-            )}
             <Button
               variant="contained"
               color="primary"
@@ -897,6 +878,12 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
               Restore
             </Button>
           </Stack>
+        )}
+
+        {canManageSettings && (
+          <Button variant="outlined" onClick={toggleSettingsPanel}>
+            Settings
+          </Button>
         )}
       </Box>
 

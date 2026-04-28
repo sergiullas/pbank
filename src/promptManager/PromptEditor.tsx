@@ -347,13 +347,6 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
           {editorMode === "version-readonly" && <Chip label="Read-only" size="small" variant="outlined" />}
         </Stack>
 
-        <Button
-          size="small"
-          variant="outlined"
-          onClick={() => setShowTestPanel((prev) => !prev)}
-        >
-          Test Prompt
-        </Button>
       </Box>
 
       <Box flex={1} minHeight={0} display="flex" flexDirection={{ xs: "column", lg: "row" }} overflow="hidden">
@@ -647,52 +640,63 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
       >
         {editorMode === "draft-edit" && (
           <>
-            <Stack direction="row" gap={1}>
+            <Button variant="outlined" color="error" onClick={() => setDeleteDialogOpen(true)}>
+              {(hasVersionHistory || prompt.publishedVersionId) ? "Delete Draft" : "Delete Prompt"}
+            </Button>
+            <Stack direction="row" gap={1.5} ml="auto" flexWrap="wrap">
               <Button variant="outlined" onClick={handleSaveDraft} disabled={!isDirty}>
                 Save Draft
               </Button>
-              <Button variant="outlined" color="error" onClick={() => setDeleteDialogOpen(true)}>
-                {(hasVersionHistory || prompt.publishedVersionId) ? "Delete Draft" : "Delete Prompt"}
+              <Button variant="outlined" onClick={() => setShowTestPanel((prev) => !prev)}>
+                Test Prompt
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => {
+                  if (!validateRequiredFields()) {
+                    return;
+                  }
+                  setPublishDialogOpen(true);
+                }}
+              >
+                Publish
               </Button>
             </Stack>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => {
-                if (!validateRequiredFields()) {
-                  return;
-                }
-                setPublishDialogOpen(true);
-              }}
-            >
-              Publish
-            </Button>
           </>
         )}
 
         {(editorMode === "published-readonly" || editorMode === "version-readonly") && (
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => handleCreateNewVersion()}
-            sx={{ ml: "auto" }}
-          >
-            Create New Version
-          </Button>
+          <Stack direction="row" gap={1.5} ml="auto" flexWrap="wrap">
+            <Button variant="outlined" onClick={() => setShowTestPanel((prev) => !prev)}>
+              Test Prompt
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => handleCreateNewVersion()}
+            >
+              Create New Version
+            </Button>
+          </Stack>
         )}
 
         {editorMode === "archived-readonly" && (
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => {
-              restorePrompt(prompt.id);
-              setPromptManagerNotice("Prompt restored");
-            }}
-            sx={{ ml: "auto" }}
-          >
-            Restore
-          </Button>
+          <Stack direction="row" gap={1.5} ml="auto" flexWrap="wrap">
+            <Button variant="outlined" onClick={() => setShowTestPanel((prev) => !prev)}>
+              Test Prompt
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => {
+                restorePrompt(prompt.id);
+                setPromptManagerNotice("Prompt restored");
+              }}
+            >
+              Restore
+            </Button>
+          </Stack>
         )}
       </Box>
 

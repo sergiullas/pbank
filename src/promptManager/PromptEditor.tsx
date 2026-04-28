@@ -661,11 +661,9 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   }}
                 />
 
-                <Box sx={{ mt: -0.5, px: 1, py: 0.75, borderRadius: 1, bgcolor: "action.hover" }}>
-                  <Typography id="prompt-instructions-helper" variant="caption" color="text.secondary">
-                    Examples: "Use bullet points, max 5." · "Professional tone." · "Keep it under 200 words."
-                  </Typography>
-                </Box>
+                <Typography id="prompt-instructions-helper" variant="caption" color="text.secondary" sx={{ mt: -0.5 }}>
+                  Examples: "Use bullet points, max 5." · "Professional tone." · "Keep it under 200 words."
+                </Typography>
 
                 {invalidTokens.length > 0 && (
                   <Alert severity="error" role="status" aria-live="polite">

@@ -94,6 +94,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const [shareSearchLoading, setShareSearchLoading] = useState(false);
   const [shareHasUnsavedChanges, setShareHasUnsavedChanges] = useState(false);
   const [showShareDiscardWarning, setShowShareDiscardWarning] = useState(false);
+  const [downgradeConfirmOpen, setDowngradeConfirmOpen] = useState(false);
 
   const publishedVersion = prompt.publishedVersionId ? getPublishedVersion(prompt) : null;
   const hasVersionHistory = (prompt.versions?.length ?? 0) > 0;
@@ -302,11 +303,21 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     setShowShareDiscardWarning(true);
   };
   const commitShareChanges = () => {
-    updatePromptVisibility(prompt.id, { visibility: shareDraftVisibility });
-    updatePromptSharedUsers(prompt.id, shareDraftVisibility === "shared" ? shareDraftUsers : []);
+    const finalizedVisibility = shareDraftVisibility === "shared" && shareDraftUsers.length === 0 ? "private" : shareDraftVisibility;
+    updatePromptVisibility(prompt.id, { visibility: finalizedVisibility });
+    updatePromptSharedUsers(prompt.id, finalizedVisibility === "shared" ? shareDraftUsers : []);
     setPromptManagerNotice("Visibility updated");
     closeShareModal();
   };
+  const isVisibilityReduction = (
+    (promptVisibility === "organization" && (shareDraftVisibility === "shared" || shareDraftVisibility === "private"))
+    || (promptVisibility === "shared" && shareDraftVisibility === "private")
+  );
+  const shareLifecycleHelperText = prompt.status === "archived"
+    ? "This prompt is archived and hidden from the Library. Shared users only retain access if they previously favorited a version."
+    : prompt.status === "published"
+      ? "Changes to sharing take effect immediately. Shared users can use all versions of this prompt, but cannot edit them."
+      : "Shared users will only gain access once you Publish. Sharing applies to all historical versions.";
   const shareButtonIcon = promptVisibility === "shared"
     ? <GroupOutlinedIcon fontSize="small" />
     : promptVisibility === "organization"
@@ -990,6 +1001,9 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         <DialogContent sx={{ overflow: "hidden" }}>
           <Stack spacing={2}>
             <Typography variant="body2" fontWeight={600}>Who can find this prompt?</Typography>
+            <Alert severity="info" variant="outlined">
+              Sharing grants read-only access to all versions of this prompt.
+            </Alert>
             <ToggleButtonGroup
               exclusive
               size="small"
@@ -1005,6 +1019,9 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
               <ToggleButton value="shared" aria-label="Shared">Shared</ToggleButton>
               <ToggleButton value="organization" aria-label="Organization">Organization</ToggleButton>
             </ToggleButtonGroup>
+            <Typography variant="caption" color="text.secondary">
+              {shareLifecycleHelperText}
+            </Typography>
 
             {shareDraftVisibility === "shared" && (
               <>
@@ -1114,7 +1131,35 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         </DialogContent>
         <DialogActions>
           <Button onClick={requestShareModalClose}>Cancel</Button>
-          <Button variant="contained" onClick={commitShareChanges}>Done</Button>
+          <Button
+            variant="contained"
+            onClick={() => {
+              if (isVisibilityReduction) {
+                setDowngradeConfirmOpen(true);
+                return;
+              }
+              commitShareChanges();
+            }}
+          >
+            Done
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={downgradeConfirmOpen} onClose={() => setDowngradeConfirmOpen(false)} aria-labelledby="downgrade-confirm-title">
+        <DialogTitle id="downgrade-confirm-title">
+          {promptVisibility === "shared" && shareDraftVisibility === "private"
+            ? `Make prompt Private? This will instantly remove this prompt from the Prompt Library and Favorites for ${sharedUsers.length} users.`
+            : "Reduce prompt visibility? This will instantly remove this prompt from Prompt Library and Favorites for some users."}
+        </DialogTitle>
+        <DialogActions>
+          <Button onClick={() => setDowngradeConfirmOpen(false)}>Cancel</Button>
+          <Button color="warning" variant="contained" onClick={() => {
+            setDowngradeConfirmOpen(false);
+            commitShareChanges();
+          }}>
+            Confirm
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -1123,6 +1168,13 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         <DialogContent>
           <DialogContentText>This will create a new immutable version.</DialogContentText>
           <DialogContentText>Published versions cannot be edited or deleted.</DialogContentText>
+          {(promptVisibility === "shared" || promptVisibility === "organization") && (
+            <DialogContentText>
+              {promptVisibility === "shared"
+                ? `Because this prompt is Shared, this new version will immediately be available to ${sharedUsers.length} people.`
+                : "Because this prompt is Organization-wide, this new version will immediately be available to everyone in your tenant."}
+            </DialogContentText>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setPublishDialogOpen(false)}>Cancel</Button>

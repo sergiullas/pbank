@@ -1,9 +1,13 @@
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import AttachFileIcon from "@mui/icons-material/AttachFile";
 import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
+import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
 import ShortTextIcon from "@mui/icons-material/ShortText";
 import SubjectIcon from "@mui/icons-material/Subject";
 import {
@@ -18,21 +22,26 @@ import {
   DialogTitle,
   Divider,
   IconButton,
+  List,
+  ListItem,
+  ListItemText,
   Menu,
   MenuItem,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Tooltip,
   Typography,
 } from "@mui/material";
 import { useEffect, useMemo, useState } from "react";
+import { findDirectoryUserById, searchDirectoryUsers } from "../data/mockDirectory";
 import { isPromptMine } from "../promptBank/access";
 import { getLatestVersion, getNextVersionNumber, getPublishedVersion } from "../promptBank/versioning";
 import { parseTemplateVariables } from "../promptBank/templateVariables";
 import { useStore } from "../state/store";
-import type { Prompt, PromptVersion } from "../types";
+import type { Prompt, PromptVersion, PromptVisibility } from "../types";
 import { formatLastUpdated } from "./promptManagerSelectors";
-import { PromptSettingsPanel } from "./PromptSettingsPanel";
 import { PromptStatusChip } from "./PromptStatusChip";
 import { PromptTestPanel } from "./PromptTestPanel";
 
@@ -50,6 +59,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const savePromptDraft = useStore((state) => state.savePromptDraft);
   const publishPrompt = useStore((state) => state.publishPrompt);
   const savePromptAsNewVersion = useStore((state) => state.savePromptAsNewVersion);
+  const updatePromptVisibility = useStore((state) => state.updatePromptVisibility);
+  const updatePromptSharedUsers = useStore((state) => state.updatePromptSharedUsers);
   const discardPromptDraft = useStore((state) => state.discardPromptDraft);
   const deletePrompt = useStore((state) => state.deletePrompt);
   const restorePrompt = useStore((state) => state.restorePrompt);
@@ -76,7 +87,14 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(null);
   const [templateExampleDismissed, setTemplateExampleDismissed] = useState<boolean>(() => localStorage.getItem(TEMPLATE_EXAMPLE_DISMISSED_KEY) === "true");
   const [showTemplateExampleForSession, setShowTemplateExampleForSession] = useState(false);
-  const [showSettingsPanel, setShowSettingsPanel] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareDraftVisibility, setShareDraftVisibility] = useState<PromptVisibility>("private");
+  const [shareDraftUsers, setShareDraftUsers] = useState<string[]>([]);
+  const [shareQuery, setShareQuery] = useState("");
+  const [shareResults, setShareResults] = useState<{ id: string; name: string; email: string }[]>([]);
+  const [shareSearchLoading, setShareSearchLoading] = useState(false);
+  const [shareHasUnsavedChanges, setShareHasUnsavedChanges] = useState(false);
+  const [showShareDiscardWarning, setShowShareDiscardWarning] = useState(false);
 
   const publishedVersion = prompt.publishedVersionId ? getPublishedVersion(prompt) : null;
   const hasVersionHistory = (prompt.versions?.length ?? 0) > 0;
@@ -141,6 +159,23 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isDirty, isReadOnly]);
+
+  useEffect(() => {
+    if (!shareModalOpen) return;
+    const normalized = shareQuery.trim();
+    if (normalized.length < 2) {
+      setShareResults([]);
+      setShareSearchLoading(false);
+      return;
+    }
+    setShareSearchLoading(true);
+    const timeoutId = window.setTimeout(() => {
+      searchDirectoryUsers(normalized)
+        .then((results) => setShareResults(results.slice(0, 8)))
+        .finally(() => setShareSearchLoading(false));
+    }, 250);
+    return () => window.clearTimeout(timeoutId);
+  }, [shareModalOpen, shareQuery]);
 
   const buildPayload = () => ({
     title: draftFormState.title.trim() || "Untitled Prompt",
@@ -244,10 +279,45 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     setShowTemplateExampleForSession(true);
   };
 
-  const toggleSettingsPanel = () => {
-    setShowSettingsPanel((prev) => !prev);
-    setShowTestPanel(false);
+  const openShareModal = () => {
+    setShareDraftVisibility(promptVisibility);
+    setShareDraftUsers(sharedUsers);
+    setShareQuery("");
+    setShareResults([]);
+    setShareHasUnsavedChanges(false);
+    setShowShareDiscardWarning(false);
+    setShareModalOpen(true);
   };
+  const closeShareModal = () => {
+    setShareModalOpen(false);
+    setShareQuery("");
+    setShareResults([]);
+    setShareHasUnsavedChanges(false);
+    setShowShareDiscardWarning(false);
+  };
+  const requestShareModalClose = () => {
+    if (!shareHasUnsavedChanges) {
+      closeShareModal();
+      return;
+    }
+    setShowShareDiscardWarning(true);
+  };
+  const commitShareChanges = () => {
+    updatePromptVisibility(prompt.id, { visibility: shareDraftVisibility });
+    updatePromptSharedUsers(prompt.id, shareDraftVisibility === "shared" ? shareDraftUsers : []);
+    setPromptManagerNotice("Visibility updated");
+    closeShareModal();
+  };
+  const shareButtonIcon = promptVisibility === "shared"
+    ? <GroupOutlinedIcon fontSize="small" />
+    : promptVisibility === "organization"
+      ? <PublicOutlinedIcon fontSize="small" />
+      : <LockOutlinedIcon fontSize="small" />;
+  const shareAriaLabel = promptVisibility === "shared"
+    ? `Share — currently Shared with ${sharedUsers.length} people`
+    : promptVisibility === "organization"
+      ? "Share — currently Organization-wide"
+      : "Share — currently Private";
 
   const inlineVersions = useMemo(() => {
     return sortedVersions.slice(0, INLINE_VERSION_COUNT);
@@ -372,6 +442,23 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
             <PromptStatusChip status={prompt.status} hasUnpublishedChanges={prompt.hasUnpublishedChanges} />
           )}
           {editorMode === "version-readonly" && <Chip label="Read-only" size="small" variant="outlined" />}
+        </Stack>
+
+        <Stack direction="row" alignItems="center" spacing={1}>
+          {canManageSettings && (
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={shareButtonIcon}
+              onClick={openShareModal}
+              aria-label={shareAriaLabel}
+            >
+              Share
+            </Button>
+          )}
+          <Button variant="outlined" size="small" onClick={() => setShowTestPanel((prev) => !prev)}>
+            Test Prompt
+          </Button>
         </Stack>
 
       </Box>
@@ -799,7 +886,6 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
           </Box>
         </Box>
         {showTestPanel && <PromptTestPanel template={activeSource.content} onClose={() => setShowTestPanel(false)} />}
-        {canManageSettings && showSettingsPanel && <PromptSettingsPanel prompt={prompt} onClose={() => setShowSettingsPanel(false)} />}
       </Box>
 
       <Box
@@ -827,9 +913,6 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
               <Button variant="outlined" onClick={handleSaveDraft} disabled={!isDirty}>
                 Save Draft
               </Button>
-              <Button variant="outlined" onClick={() => setShowTestPanel((prev) => !prev)}>
-                Test Prompt
-              </Button>
               <Button
                 variant="contained"
                 color="primary"
@@ -849,9 +932,6 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
 
         {(editorMode === "published-readonly" || editorMode === "version-readonly") && (
           <Stack direction="row" gap={1.5} ml="auto" flexWrap="wrap">
-            <Button variant="outlined" onClick={() => setShowTestPanel((prev) => !prev)}>
-              Test Prompt
-            </Button>
             <Button
               variant="contained"
               color="primary"
@@ -864,9 +944,6 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
 
         {editorMode === "archived-readonly" && (
           <Stack direction="row" gap={1.5} ml="auto" flexWrap="wrap">
-            <Button variant="outlined" onClick={() => setShowTestPanel((prev) => !prev)}>
-              Test Prompt
-            </Button>
             <Button
               variant="contained"
               color="primary"
@@ -880,12 +957,133 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
           </Stack>
         )}
 
-        {canManageSettings && (
-          <Button variant="outlined" onClick={toggleSettingsPanel}>
-            Settings
-          </Button>
-        )}
       </Box>
+
+      <Dialog
+        open={shareModalOpen}
+        onClose={requestShareModalClose}
+        fullWidth
+        maxWidth="sm"
+        aria-labelledby="share-modal-title"
+      >
+        <DialogTitle id="share-modal-title">Share "{prompt.title}"</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2}>
+            <Typography variant="body2" fontWeight={600}>Who can find this prompt?</Typography>
+            <ToggleButtonGroup
+              exclusive
+              size="small"
+              value={shareDraftVisibility}
+              onChange={(_, next: PromptVisibility | null) => {
+                if (!next) return;
+                setShareDraftVisibility(next);
+                setShareHasUnsavedChanges(true);
+              }}
+              aria-label="Who can find this prompt?"
+            >
+              <ToggleButton value="private" aria-label="Private">Private</ToggleButton>
+              <ToggleButton value="shared" aria-label="Shared">Shared</ToggleButton>
+              <ToggleButton value="organization" aria-label="Organization">Organization</ToggleButton>
+            </ToggleButtonGroup>
+
+            {shareDraftVisibility === "shared" && (
+              <>
+                <TextField
+                  label="Search people by name or email"
+                  value={shareQuery}
+                  onChange={(event) => setShareQuery(event.target.value)}
+                  inputProps={{ "aria-label": "Search people by name or email" }}
+                  helperText={shareDraftUsers.length === 0 ? "Nobody added yet. Search above to share with people." : undefined}
+                />
+                <Typography variant="caption" color="text.secondary" aria-live="polite">
+                  {shareQuery.trim().length >= 2 ? `${shareResults.length} result${shareResults.length === 1 ? "" : "s"}` : "Type at least 2 characters"}
+                </Typography>
+                <List role="listbox" dense sx={{ border: 1, borderColor: "divider", borderRadius: 1, maxHeight: 220, overflowY: "auto" }}>
+                  {shareSearchLoading ? (
+                    <ListItem><ListItemText primary="Searching..." /></ListItem>
+                  ) : shareQuery.trim().length >= 2 && shareResults.length === 0 ? (
+                    <ListItem><ListItemText primary={`No people found matching '${shareQuery.trim()}'.`} /></ListItem>
+                  ) : (
+                    shareResults.map((result) => {
+                      const alreadyAdded = shareDraftUsers.includes(result.id);
+                      return (
+                        <ListItem
+                          key={result.id}
+                          role="option"
+                          aria-disabled={alreadyAdded}
+                          secondaryAction={(
+                            <Button
+                              size="small"
+                              disabled={alreadyAdded}
+                              onClick={() => {
+                                setShareDraftUsers((prev) => [...prev, result.id]);
+                                setShareHasUnsavedChanges(true);
+                              }}
+                            >
+                              {alreadyAdded ? "Added" : "Add"}
+                            </Button>
+                          )}
+                        >
+                          <ListItemText primary={result.name} secondary={result.email} />
+                        </ListItem>
+                      );
+                    })
+                  )}
+                </List>
+                <Typography variant="body2">Shared with {shareDraftUsers.length} people.</Typography>
+                <Box component="ul" sx={{ m: 0, p: 0, listStyle: "none", border: 1, borderColor: "divider", borderRadius: 1 }}>
+                  {shareDraftUsers.map((userId) => {
+                    const user = findDirectoryUserById(userId);
+                    if (!user) return null;
+                    return (
+                      <Box component="li" key={userId} sx={{ px: 1.5, py: 1, borderBottom: "1px solid", borderColor: "divider", "&:last-child": { borderBottom: "none" } }}>
+                        <Stack direction="row" alignItems="center" justifyContent="space-between">
+                          <Typography variant="body2">{user.name} ({user.email})</Typography>
+                          <IconButton
+                            size="small"
+                            aria-label={`Remove ${user.name} from sharing`}
+                            onClick={() => {
+                              setShareDraftUsers((prev) => prev.filter((id) => id !== userId));
+                              setShareHasUnsavedChanges(true);
+                            }}
+                          >
+                            <CloseIcon fontSize="small" />
+                          </IconButton>
+                        </Stack>
+                      </Box>
+                    );
+                  })}
+                </Box>
+                <Typography variant="caption" color="text.secondary">creator: you</Typography>
+              </>
+            )}
+
+            {shareDraftVisibility === "organization" && (
+              <Typography variant="body2" color="text.secondary">
+                Everyone in your tenant can find this prompt.
+              </Typography>
+            )}
+
+            {showShareDiscardWarning && (
+              <Alert
+                severity="warning"
+                action={(
+                  <Stack direction="row" spacing={1}>
+                    <Button size="small" color="warning" onClick={closeShareModal}>Discard</Button>
+                    <Button size="small" onClick={() => setShowShareDiscardWarning(false)}>Keep editing</Button>
+                  </Stack>
+                )}
+              >
+                Discard changes?
+              </Alert>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={requestShareModalClose}>Cancel</Button>
+          <Button variant="contained" onClick={commitShareChanges}>Done</Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog open={publishDialogOpen} onClose={() => setPublishDialogOpen(false)} aria-labelledby="publish-dialog-title">
         <DialogTitle id="publish-dialog-title">Publish new version?</DialogTitle>

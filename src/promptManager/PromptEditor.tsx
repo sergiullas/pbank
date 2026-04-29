@@ -453,24 +453,26 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
               aria-label={shareAriaLabel}
             >
               Share
-              <Box
-                component="span"
-                sx={{
-                  ml: 0.75,
-                  minWidth: 18,
-                  height: 18,
-                  px: 0.5,
-                  borderRadius: 999,
-                  bgcolor: "action.selected",
-                  color: "text.secondary",
-                  fontSize: "0.7rem",
-                  lineHeight: "18px",
-                  fontWeight: 700,
-                  textAlign: "center",
-                }}
-              >
-                {sharedUsers.length}
-              </Box>
+              {promptVisibility === "shared" && (
+                <Box
+                  component="span"
+                  sx={{
+                    ml: 0.75,
+                    minWidth: 18,
+                    height: 18,
+                    px: 0.5,
+                    borderRadius: 999,
+                    bgcolor: "action.selected",
+                    color: "text.secondary",
+                    fontSize: "0.7rem",
+                    lineHeight: "18px",
+                    fontWeight: 700,
+                    textAlign: "center",
+                  }}
+                >
+                  {sharedUsers.length}
+                </Box>
+              )}
             </Button>
           )}
           <Button variant="outlined" size="small" onClick={() => setShowTestPanel((prev) => !prev)}>

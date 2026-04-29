@@ -70,6 +70,7 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
 
   const rowLabel = `Open prompt ${prompt.title}`;
   const menuButtonLabel = `More actions for ${prompt.title}`;
+  const publishBlocked = (prompt.visibility ?? "private") === "shared" && (prompt.sharedWith?.users.length ?? 0) === 0;
 
   return (
     <>
@@ -191,6 +192,7 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
               </MenuItem>,
               <MenuItem
                 key="publish"
+                disabled={publishBlocked}
                 onClick={() =>
                   handleMenuAction(() => {
                     publishPrompt(prompt.id, {

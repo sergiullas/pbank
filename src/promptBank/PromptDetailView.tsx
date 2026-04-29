@@ -24,6 +24,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import type { PromptVersion } from "../types";
 import { useStore } from "../state/store";
+import { userHasPromptAccess } from "./access";
 import { getLatestVersion, resolveInitialLibraryVersion } from "./versioning";
 import { extractTemplateVariables, substituteTemplateVariables } from "./templateVariables";
 
@@ -69,6 +70,8 @@ export function PromptDetailView() {
     return getLatestVersion(prompt);
   }, [prompt, selectedVersionNumber]);
 
+  const hasAccess = prompt ? userHasPromptAccess(prompt) : false;
+
 
   const templateVariables = useMemo(
     () => (activeVersion ? extractTemplateVariables(activeVersion.content) : []),
@@ -86,6 +89,16 @@ export function PromptDetailView() {
       <Box p={2}>
         <Typography variant="body2" color="text.secondary">
           Select a prompt to preview its details.
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (!hasAccess) {
+    return (
+      <Box p={2}>
+        <Typography variant="body2" color="text.secondary">
+          You no longer have access to this prompt.
         </Typography>
       </Box>
     );

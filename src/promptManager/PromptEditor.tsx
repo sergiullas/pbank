@@ -453,6 +453,24 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
               aria-label={shareAriaLabel}
             >
               Share
+              <Box
+                component="span"
+                sx={{
+                  ml: 0.75,
+                  minWidth: 18,
+                  height: 18,
+                  px: 0.5,
+                  borderRadius: 999,
+                  bgcolor: "action.selected",
+                  color: "text.secondary",
+                  fontSize: "0.7rem",
+                  lineHeight: "18px",
+                  fontWeight: 700,
+                  textAlign: "center",
+                }}
+              >
+                {sharedUsers.length}
+              </Box>
             </Button>
           )}
           <Button variant="outlined" size="small" onClick={() => setShowTestPanel((prev) => !prev)}>
@@ -964,9 +982,10 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         fullWidth
         maxWidth="sm"
         aria-labelledby="share-modal-title"
+        PaperProps={{ sx: { overflow: "hidden" } }}
       >
-        <DialogTitle id="share-modal-title">Share "{prompt.title}"</DialogTitle>
-        <DialogContent>
+        <DialogTitle id="share-modal-title">Share "{draftFormState.title || "Untitled Prompt"}"</DialogTitle>
+        <DialogContent sx={{ overflow: "hidden" }}>
           <Stack spacing={2}>
             <Typography variant="body2" fontWeight={600}>Who can find this prompt?</Typography>
             <ToggleButtonGroup
@@ -1040,7 +1059,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                     />
                   )}
                 />
-                <Box sx={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }} aria-live="polite">
+                <Box sx={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)", pointerEvents: "none" }} aria-live="polite">
                   {shareQuery.trim().length >= 2 ? `${shareResults.length} results` : ""}
                 </Box>
                 <Typography variant="body2">Shared with {shareDraftUsers.length} people.</Typography>
@@ -1067,7 +1086,6 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                     );
                   })}
                 </Box>
-                <Typography variant="caption" color="text.secondary">creator: you</Typography>
               </>
             )}
 

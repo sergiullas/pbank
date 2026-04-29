@@ -12,8 +12,10 @@ import ShortTextIcon from "@mui/icons-material/ShortText";
 import SubjectIcon from "@mui/icons-material/Subject";
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
+  CircularProgress,
   Chip,
   Dialog,
   DialogActions,
@@ -22,9 +24,6 @@ import {
   DialogTitle,
   Divider,
   IconButton,
-  List,
-  ListItem,
-  ListItemText,
   Menu,
   MenuItem,
   Stack,
@@ -988,48 +987,62 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
 
             {shareDraftVisibility === "shared" && (
               <>
-                <TextField
-                  label="Search people by name or email"
-                  value={shareQuery}
-                  onChange={(event) => setShareQuery(event.target.value)}
-                  inputProps={{ "aria-label": "Search people by name or email" }}
-                  helperText={shareDraftUsers.length === 0 ? "Nobody added yet. Search above to share with people." : undefined}
-                />
-                <Typography variant="caption" color="text.secondary" aria-live="polite">
-                  {shareQuery.trim().length >= 2 ? `${shareResults.length} result${shareResults.length === 1 ? "" : "s"}` : "Type at least 2 characters"}
-                </Typography>
-                <List role="listbox" dense sx={{ border: 1, borderColor: "divider", borderRadius: 1, maxHeight: 220, overflowY: "auto" }}>
-                  {shareSearchLoading ? (
-                    <ListItem><ListItemText primary="Searching..." /></ListItem>
-                  ) : shareQuery.trim().length >= 2 && shareResults.length === 0 ? (
-                    <ListItem><ListItemText primary={`No people found matching '${shareQuery.trim()}'.`} /></ListItem>
-                  ) : (
-                    shareResults.map((result) => {
-                      const alreadyAdded = shareDraftUsers.includes(result.id);
-                      return (
-                        <ListItem
-                          key={result.id}
-                          role="option"
-                          aria-disabled={alreadyAdded}
-                          secondaryAction={(
-                            <Button
-                              size="small"
-                              disabled={alreadyAdded}
-                              onClick={() => {
-                                setShareDraftUsers((prev) => [...prev, result.id]);
-                                setShareHasUnsavedChanges(true);
-                              }}
-                            >
-                              {alreadyAdded ? "Added" : "Add"}
-                            </Button>
-                          )}
-                        >
-                          <ListItemText primary={result.name} secondary={result.email} />
-                        </ListItem>
-                      );
-                    })
+                <Autocomplete
+                  options={shareResults}
+                  filterOptions={(options) => options}
+                  loading={shareSearchLoading}
+                  inputValue={shareQuery}
+                  onInputChange={(_, value, reason) => {
+                    if (reason === "input" || reason === "clear") setShareQuery(value);
+                  }}
+                  getOptionLabel={(option) => `${option.name} (${option.email})`}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                  noOptionsText={shareQuery.trim().length >= 2 ? `No people found matching '${shareQuery.trim()}'.` : "Type at least 2 characters"}
+                  onChange={(_, selected) => {
+                    if (!selected) return;
+                    if (shareDraftUsers.includes(selected.id)) return;
+                    setShareDraftUsers((prev) => [...prev, selected.id]);
+                    setShareHasUnsavedChanges(true);
+                    setShareQuery("");
+                  }}
+                  renderOption={(props, option) => {
+                    const alreadyAdded = shareDraftUsers.includes(option.id);
+                    return (
+                      <Box component="li" {...props} aria-disabled={alreadyAdded} sx={{ opacity: alreadyAdded ? 0.6 : 1 }}>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body2">{option.name}</Typography>
+                          <Typography variant="caption" color="text.secondary">{option.email}</Typography>
+                        </Box>
+                        <Typography variant="caption" color={alreadyAdded ? "text.disabled" : "text.secondary"}>
+                          {alreadyAdded ? "Added" : ""}
+                        </Typography>
+                      </Box>
+                    );
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Search people by name or email"
+                      inputProps={{
+                        ...params.inputProps,
+                        "aria-label": "Search people by name or email",
+                      }}
+                      helperText={shareDraftUsers.length === 0 ? "Nobody added yet. Search above to share with people." : undefined}
+                      InputProps={{
+                        ...params.InputProps,
+                        endAdornment: (
+                          <>
+                            {shareSearchLoading ? <CircularProgress color="inherit" size={16} /> : null}
+                            {params.InputProps.endAdornment}
+                          </>
+                        ),
+                      }}
+                    />
                   )}
-                </List>
+                />
+                <Box sx={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }} aria-live="polite">
+                  {shareQuery.trim().length >= 2 ? `${shareResults.length} results` : ""}
+                </Box>
                 <Typography variant="body2">Shared with {shareDraftUsers.length} people.</Typography>
                 <Box component="ul" sx={{ m: 0, p: 0, listStyle: "none", border: 1, borderColor: "divider", borderRadius: 1 }}>
                   {shareDraftUsers.map((userId) => {

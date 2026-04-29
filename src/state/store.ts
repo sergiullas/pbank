@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { seedPrompts } from "../data/seedPrompts";
-import type { FavoriteItem, Message, Prompt, PromptStatus, PromptVersion } from "../types";
+import type { FavoriteItem, Message, Prompt, PromptStatus, PromptVersion, VisibilityLevel, SharedWith } from "../types";
+import { CURRENT_USER_ID } from "../data/mockUsers";
 import { getNextVersionNumber } from "../promptBank/versioning";
 import { readJSON, writeJSON } from "./persist";
 import { executePrompt } from "../chat/executePrompt";
@@ -113,6 +114,7 @@ type StoreState = {
   setPromptManagerStatusFilter: (filter: PromptManagerStatusFilter) => void;
   setPromptEditorUnsavedChanges: (value: boolean) => void;
   setPromptManagerNotice: (message: string | null) => void;
+  setPromptVisibility: (promptId: string, visibility: VisibilityLevel, sharedWith: SharedWith) => void;
 };
 
 const normalizeFavorite = (favorite: FavoriteItem): FavoriteItem => ({
@@ -355,12 +357,15 @@ export const useStore = create<StoreState>((set, get) => ({
       likes: 0,
       createdAt: now,
       lastUpdatedAt: now,
-      owner: "User",
+      owner: "You",
+      ownerId: CURRENT_USER_ID,
       media: false,
         status: "draft",
         archivedFromStatus: null,
         publishedVersionId: null,
         hasUnpublishedChanges: false,
+        visibility: "private" as VisibilityLevel,
+        sharedWith: { users: [], groups: [] },
       };
 
     set((state) => ({
@@ -565,6 +570,15 @@ export const useStore = create<StoreState>((set, get) => ({
         }),
       };
     });
+  },
+
+  setPromptVisibility: (promptId, visibility, sharedWith) => {
+    set((state) => ({
+      prompts: state.prompts.map((p) => {
+        if (p.id !== promptId) return p;
+        return { ...p, visibility, sharedWith };
+      }),
+    }));
   },
 
   setPromptManagerSearch: (search) => set({ promptManagerSearch: search }),

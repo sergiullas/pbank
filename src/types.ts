@@ -9,6 +9,13 @@ export type Message = {
 
 export type PromptStatus = "draft" | "published" | "archived";
 
+export type VisibilityLevel = "private" | "shared" | "organization";
+
+export type SharedWith = {
+  users: string[];
+  groups: string[];
+};
+
 export type PromptVersion = {
   id: string;
   version: number;
@@ -30,6 +37,7 @@ export type Prompt = {
   likes: number;
   createdAt: string;
   owner: string;
+  ownerId?: string;
   media: boolean;
   versions?: PromptVersion[];
   // Lifecycle fields
@@ -39,6 +47,8 @@ export type Prompt = {
   lastUpdatedAt?: string;
   publishedAt?: string | null;
   hasUnpublishedChanges?: boolean;
+  visibility?: VisibilityLevel;
+  sharedWith?: SharedWith;
 };
 
 export type FavoriteItem = {

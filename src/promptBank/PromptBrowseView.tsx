@@ -4,6 +4,7 @@ import { type SortMode, useStore } from "../state/store";
 import type { FavoriteItem, Prompt } from "../types";
 import { PromptListItem } from "./PromptListItem";
 import { getPublishedVersion, resolveFavoritePromptVersion } from "./versioning";
+import { userHasLibraryAccess, isOwnPrompt } from "./visibility";
 
 const SORT_LABELS: Record<SortMode, string> = {
   popular: "Most Popular",
@@ -111,8 +112,9 @@ export function PromptBrowseView() {
     const normalizedQuery = query.trim().toLowerCase();
 
     const filtered = prompts.filter((prompt) => {
-      // Only show published prompts in the library
+      // Only show published prompts the user has access to
       if (prompt.status !== "published") return false;
+      if (!userHasLibraryAccess(prompt)) return false;
 
       const matchesFilter =
         filterMode === "all" ||
@@ -246,6 +248,7 @@ export function PromptBrowseView() {
                     isFavorite
                     isFavoritesView
                     isArchived={prompt.status === "archived"}
+                    isOwnPrompt={isOwnPrompt(prompt)}
                     versionLabel={versionLabel}
                     insertContent={resolvedVersion.content}
                     onSelect={() => openPromptDetail(prompt.id, resolvedVersion.version)}
@@ -278,6 +281,7 @@ export function PromptBrowseView() {
                   selected={selectedPromptId === prompt.id}
                   isFavorite={isPromptFavorited(prompt.id)}
                   isFavoritesView={false}
+                  isOwnPrompt={isOwnPrompt(prompt)}
                   versionLabel={`v${publishedVersion.version}`}
                   insertContent={publishedVersion.content}
                   onSelect={openPromptDetail}

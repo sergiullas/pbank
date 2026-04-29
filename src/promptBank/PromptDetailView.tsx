@@ -26,6 +26,7 @@ import type { PromptVersion } from "../types";
 import { useStore } from "../state/store";
 import { getLatestVersion, resolveInitialLibraryVersion } from "./versioning";
 import { extractTemplateVariables, substituteTemplateVariables } from "./templateVariables";
+import { userHasLibraryAccess } from "./visibility";
 
 const byVersionDesc = (a: PromptVersion, b: PromptVersion) => b.version - a.version;
 
@@ -86,6 +87,16 @@ export function PromptDetailView() {
       <Box p={2}>
         <Typography variant="body2" color="text.secondary">
           Select a prompt to preview its details.
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (!userHasLibraryAccess(prompt)) {
+    return (
+      <Box p={3}>
+        <Typography variant="body2" color="text.secondary">
+          You no longer have access to this prompt.
         </Typography>
       </Box>
     );

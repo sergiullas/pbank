@@ -29,10 +29,14 @@ import { useEffect, useMemo, useState } from "react";
 import { getLatestVersion, getNextVersionNumber, getPublishedVersion } from "../promptBank/versioning";
 import { parseTemplateVariables } from "../promptBank/templateVariables";
 import { useStore } from "../state/store";
-import type { Prompt, PromptVersion } from "../types";
+import type { Prompt, PromptVersion, VisibilityLevel, SharedWith } from "../types";
+import { CURRENT_USER } from "../data/mockUsers";
+import { isOwnPrompt } from "../promptBank/visibility";
 import { formatLastUpdated } from "./promptManagerSelectors";
 import { PromptStatusChip } from "./PromptStatusChip";
 import { PromptTestPanel } from "./PromptTestPanel";
+import { VisibilityControl } from "./VisibilityControl";
+import { SharedWithModal } from "./SharedWithModal";
 
 interface PromptEditorProps {
   prompt: Prompt;
@@ -47,6 +51,7 @@ const TEMPLATE_EXAMPLE_DISMISSED_KEY = "prompt-manager-template-example-dismisse
 export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const savePromptDraft = useStore((state) => state.savePromptDraft);
   const publishPrompt = useStore((state) => state.publishPrompt);
+  const setPromptVisibility = useStore((state) => state.setPromptVisibility);
   const savePromptAsNewVersion = useStore((state) => state.savePromptAsNewVersion);
   const discardPromptDraft = useStore((state) => state.discardPromptDraft);
   const deletePrompt = useStore((state) => state.deletePrompt);
@@ -75,6 +80,10 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const [templateExampleDismissed, setTemplateExampleDismissed] = useState<boolean>(() => localStorage.getItem(TEMPLATE_EXAMPLE_DISMISSED_KEY) === "true");
   const [showTemplateExampleForSession, setShowTemplateExampleForSession] = useState(false);
 
+  const [visibility, setVisibility] = useState<VisibilityLevel>(() => prompt.visibility ?? "private");
+  const [sharedWith, setSharedWith] = useState<SharedWith>(() => prompt.sharedWith ?? { users: [], groups: [] });
+  const [sharedWithModalOpen, setSharedWithModalOpen] = useState(false);
+
   const publishedVersion = prompt.publishedVersionId ? getPublishedVersion(prompt) : null;
   const hasVersionHistory = (prompt.versions?.length ?? 0) > 0;
   const latestVersion = getLatestVersion(prompt);
@@ -100,6 +109,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
 
   const isReadOnly = editorMode !== "draft-edit";
   const useReadOnlyControls = editorMode === "published-readonly" || editorMode === "version-readonly";
+  const canEditVisibility = isOwnPrompt(prompt) && editorMode !== "archived-readonly" && editorMode !== "version-readonly";
   const disableControls = editorMode === "archived-readonly";
   const showTemplateExample = !isReadOnly && (!templateExampleDismissed || showTemplateExampleForSession);
   const { variables: templateVariables, invalidTokens } = useMemo(
@@ -134,6 +144,17 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isDirty, isReadOnly]);
+
+  const handleVisibilityChange = (nextVisibility: VisibilityLevel) => {
+    setVisibility(nextVisibility);
+    setPromptVisibility(prompt.id, nextVisibility, sharedWith);
+  };
+
+  const handleSharedWithSave = (nextSharedWith: SharedWith) => {
+    setSharedWith(nextSharedWith);
+    setPromptVisibility(prompt.id, visibility, nextSharedWith);
+    setSharedWithModalOpen(false);
+  };
 
   const buildPayload = () => ({
     title: draftFormState.title.trim() || "Untitled Prompt",
@@ -418,6 +439,16 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   helperText="A brief summary of what this prompt does."
                 />
               </Stack>
+
+              <Divider />
+
+              <VisibilityControl
+                value={visibility}
+                sharedWith={sharedWith}
+                onChange={handleVisibilityChange}
+                onManage={() => setSharedWithModalOpen(true)}
+                readOnly={!canEditVisibility}
+              />
 
               <Divider />
 
@@ -994,6 +1025,14 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
           View all versions
         </MenuItem>
       </Menu>
+
+      <SharedWithModal
+        open={sharedWithModalOpen}
+        sharedWith={sharedWith}
+        ownerName={CURRENT_USER.name}
+        onSave={handleSharedWithSave}
+        onClose={() => setSharedWithModalOpen(false)}
+      />
 
       <Dialog open={unsavedDialogOpen} onClose={() => setUnsavedDialogOpen(false)} aria-labelledby="unsaved-dialog-title">
         <DialogTitle id="unsaved-dialog-title">Discard unsaved changes?</DialogTitle>

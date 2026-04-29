@@ -1,8 +1,11 @@
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 import StarIcon from "@mui/icons-material/Star";
-import { Box, Button, Chip, IconButton, ListItem, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
+import LockIcon from "@mui/icons-material/Lock";
+import GroupIcon from "@mui/icons-material/Group";
+import PublicIcon from "@mui/icons-material/Public";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import type { Prompt } from "../types";
+import { Box, Button, Chip, IconButton, ListItem, ListItemButton, ListItemText, Stack, Tooltip, Typography } from "@mui/material";
+import type { Prompt, VisibilityLevel } from "../types";
 
 type PromptListItemProps = {
   prompt: Prompt;
@@ -10,6 +13,7 @@ type PromptListItemProps = {
   isFavorite: boolean;
   isFavoritesView: boolean;
   isArchived?: boolean;
+  isOwnPrompt?: boolean;
   versionLabel?: string;
   insertContent?: string;
   onSelect: (id: string) => void;
@@ -29,12 +33,92 @@ const formatCreatedLabel = (createdAt: string): string => {
   return `${days} days ago`;
 };
 
+const formatShortDate = (dateStr?: string | null): string | null => {
+  if (!dateStr) return null;
+  const parsed = Date.parse(dateStr);
+  if (Number.isNaN(parsed)) return null;
+  return new Date(parsed).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+};
+
+const VISIBILITY_ICONS: Record<VisibilityLevel, { icon: React.ReactElement; label: string }> = {
+  private: { icon: <LockIcon fontSize="inherit" />, label: "Private — only you can access" },
+  shared: { icon: <GroupIcon fontSize="inherit" />, label: "Shared — selected people can access" },
+  organization: { icon: <PublicIcon fontSize="inherit" />, label: "Organization — everyone can access" },
+};
+
+function VisibilityIcon({ visibility }: { visibility?: VisibilityLevel }) {
+  if (!visibility) return null;
+  const { icon, label } = VISIBILITY_ICONS[visibility];
+  return (
+    <Tooltip title={label} placement="top">
+      <Box
+        component="span"
+        aria-label={label}
+        sx={{
+          display: "inline-flex",
+          alignItems: "center",
+          fontSize: "0.875rem",
+          color: "text.disabled",
+          verticalAlign: "middle",
+          ml: 0.5,
+        }}
+      >
+        {icon}
+      </Box>
+    </Tooltip>
+  );
+}
+
+function MetaLine({
+  versionLabel,
+  publishedAt,
+  visibility,
+  owner,
+  isOwnPrompt,
+}: {
+  versionLabel?: string;
+  publishedAt?: string | null;
+  visibility?: VisibilityLevel;
+  owner: string;
+  isOwnPrompt?: boolean;
+}) {
+  const shortDate = formatShortDate(publishedAt);
+  const ownerDisplay = isOwnPrompt ? "You" : owner;
+
+  return (
+    <Stack spacing={0.25}>
+      <Stack direction="row" alignItems="center" spacing={0} flexWrap="wrap">
+        <Typography variant="caption" color="text.secondary">
+          {versionLabel ?? "Latest"}
+          {shortDate ? ` • ${shortDate}` : ""}
+        </Typography>
+        <VisibilityIcon visibility={visibility} />
+      </Stack>
+      <Stack direction="row" alignItems="center" gap={0.75}>
+        <Typography variant="caption" color="text.secondary">
+          by {ownerDisplay}
+        </Typography>
+        {isOwnPrompt && (
+          <Chip
+            label="Mine"
+            size="small"
+            color="primary"
+            variant="outlined"
+            sx={{ height: 16, fontSize: "0.65rem", "& .MuiChip-label": { px: 0.75 } }}
+          />
+        )}
+      </Stack>
+    </Stack>
+  );
+}
+
 export function PromptListItem({
   prompt,
   selected,
   isFavorite,
   isFavoritesView,
   isArchived = false,
+  isOwnPrompt = false,
   versionLabel,
   insertContent,
   onSelect,
@@ -95,9 +179,13 @@ export function PromptListItem({
             }}
           >
             <Typography fontWeight={600} pr={4}>{prompt.title}</Typography>
-            <Typography variant="caption" color="text.secondary" mt={0.25}>
-              by {prompt.owner} · {versionLabel ?? "Latest"}
-            </Typography>
+            <MetaLine
+              versionLabel={versionLabel}
+              publishedAt={prompt.publishedAt}
+              visibility={prompt.visibility}
+              owner={prompt.owner}
+              isOwnPrompt={isOwnPrompt}
+            />
             {isArchived && <Chip label="Archived" size="small" color="warning" variant="outlined" sx={{ mt: 0.75 }} />}
             <Stack spacing={1.5} mt={1}>
               <Typography variant="body2" color="text.secondary">
@@ -144,9 +232,13 @@ export function PromptListItem({
         primary={
           <Box>
             <Typography fontWeight={600}>{prompt.title}</Typography>
-            <Typography variant="caption" color="text.secondary">
-              by {prompt.owner} · {versionLabel ?? `v${prompt.versions?.length ? Math.max(...prompt.versions.map((v) => v.version)) : 1}`}
-            </Typography>
+            <MetaLine
+              versionLabel={versionLabel ?? `v${prompt.versions?.length ? Math.max(...prompt.versions.map((v) => v.version)) : 1}`}
+              publishedAt={prompt.publishedAt}
+              visibility={prompt.visibility}
+              owner={prompt.owner}
+              isOwnPrompt={isOwnPrompt}
+            />
           </Box>
         }
         secondaryTypographyProps={{ component: "div" }}

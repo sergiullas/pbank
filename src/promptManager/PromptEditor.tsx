@@ -1015,9 +1015,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         <DialogTitle id="share-modal-title">Share "{draftFormState.title || "Untitled Prompt"}"</DialogTitle>
         <DialogContent sx={{ overflow: "hidden" }}>
           <Stack spacing={2}>
-            <Typography variant="body2" fontWeight={600}>Who can find this prompt?</Typography>
-            <Alert severity="info" variant="outlined">
-              Sharing grants read-only access to all versions of this prompt.
+                        <Alert severity="info" variant="outlined">
+              Sharing makes all published versions available in the Prompt Library to use. Drafts are never shared.
             </Alert>
             <RadioGroup
               aria-label="Who can find this prompt?"

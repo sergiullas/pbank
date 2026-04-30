@@ -230,7 +230,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   };
 
   const handleDeleteConfirm = () => {
-    if (hasVersionHistory || prompt.publishedVersionId) {
+    if (hasDraft) {
       discardPromptDraft(prompt.id);
       setPromptManagerNotice("Draft deleted");
     } else {
@@ -938,7 +938,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         {editorMode === "draft-edit" && (
           <>
             <Button variant="outlined" color="error" onClick={() => setDeleteDialogOpen(true)}>
-              {(hasVersionHistory || prompt.publishedVersionId) ? "Delete Draft" : "Delete Prompt"}
+              {hasDraft ? "Delete Draft" : "Delete Prompt"}
             </Button>
             <Stack direction="row" gap={1.5} ml="auto" flexWrap="wrap">
               <Button variant="outlined" onClick={handleSaveDraft} disabled={!isDirty}>
@@ -1183,7 +1183,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
       </Dialog>
 
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)} aria-labelledby="delete-dialog-title">
-        <DialogTitle id="delete-dialog-title">{(hasVersionHistory || prompt.publishedVersionId) ? "Delete draft?" : "Delete prompt?"}</DialogTitle>
+        <DialogTitle id="delete-dialog-title">{hasDraft ? "Delete draft?" : "Delete prompt?"}</DialogTitle>
         <DialogContent>
           {(hasVersionHistory || prompt.publishedVersionId) ? (
             <DialogContentText>

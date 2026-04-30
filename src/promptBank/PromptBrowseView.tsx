@@ -107,6 +107,7 @@ export function PromptBrowseView() {
   const incrementUsage = useStore((state) => state.incrementUsage);
   const [showFavoritesAccessLossNotice, setShowFavoritesAccessLossNotice] = useState(false);
   const previousAccessibleFavoriteCountRef = useRef<number>(0);
+  const previousTotalFavoritesCountRef = useRef<number>(0);
 
   const isSearching = query.trim().length > 0;
 
@@ -164,13 +165,24 @@ export function PromptBrowseView() {
 
   const favoritesCount = favorites.length;
   const featuredCount = 0;
-  const accessibleFavoriteCount = favoriteItems.length;
+  const totalAccessibleFavoriteCount = useMemo(() => {
+    return favorites.filter((favorite) => {
+      const prompt = prompts.find((candidate) => candidate.id === favorite.promptId);
+      return Boolean(prompt && userHasPromptAccess(prompt));
+    }).length;
+  }, [favorites, prompts]);
 
   useEffect(() => {
-    const previous = previousAccessibleFavoriteCountRef.current;
-    if (accessibleFavoriteCount < previous) setShowFavoritesAccessLossNotice(true);
-    previousAccessibleFavoriteCountRef.current = accessibleFavoriteCount;
-  }, [accessibleFavoriteCount]);
+    const previousAccessible = previousAccessibleFavoriteCountRef.current;
+    const previousTotal = previousTotalFavoritesCountRef.current;
+
+    if (totalAccessibleFavoriteCount < previousAccessible && favorites.length === previousTotal) {
+      setShowFavoritesAccessLossNotice(true);
+    }
+
+    previousAccessibleFavoriteCountRef.current = totalAccessibleFavoriteCount;
+    previousTotalFavoritesCountRef.current = favorites.length;
+  }, [totalAccessibleFavoriteCount, favorites.length]);
 
   return (
     <Box display="flex" flexDirection="column" height="100%" minHeight={0}>

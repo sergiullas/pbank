@@ -1,5 +1,5 @@
-import { Box, FormControl, InputLabel, List, MenuItem, Select, Tab, Tabs, TextField, Typography } from "@mui/material";
-import { useMemo } from "react";
+import { Alert, Box, FormControl, InputLabel, List, MenuItem, Select, Tab, Tabs, TextField, Typography } from "@mui/material";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { type SortMode, useStore } from "../state/store";
 import type { FavoriteItem, Prompt } from "../types";
 import { userHasPromptAccess } from "./access";
@@ -105,6 +105,9 @@ export function PromptBrowseView() {
   const isPromptFavorited = useStore((state) => state.isPromptFavorited);
   const insertIntoComposer = useStore((state) => state.insertIntoComposer);
   const incrementUsage = useStore((state) => state.incrementUsage);
+  const [showFavoritesAccessLossNotice, setShowFavoritesAccessLossNotice] = useState(false);
+  const previousAccessibleFavoriteCountRef = useRef<number>(0);
+  const previousTotalFavoritesCountRef = useRef<number>(0);
 
   const isSearching = query.trim().length > 0;
 
@@ -162,6 +165,24 @@ export function PromptBrowseView() {
 
   const favoritesCount = favorites.length;
   const featuredCount = 0;
+  const totalAccessibleFavoriteCount = useMemo(() => {
+    return favorites.filter((favorite) => {
+      const prompt = prompts.find((candidate) => candidate.id === favorite.promptId);
+      return Boolean(prompt && userHasPromptAccess(prompt));
+    }).length;
+  }, [favorites, prompts]);
+
+  useEffect(() => {
+    const previousAccessible = previousAccessibleFavoriteCountRef.current;
+    const previousTotal = previousTotalFavoritesCountRef.current;
+
+    if (totalAccessibleFavoriteCount < previousAccessible && favorites.length === previousTotal) {
+      setShowFavoritesAccessLossNotice(true);
+    }
+
+    previousAccessibleFavoriteCountRef.current = totalAccessibleFavoriteCount;
+    previousTotalFavoritesCountRef.current = favorites.length;
+  }, [totalAccessibleFavoriteCount, favorites.length]);
 
   return (
     <Box display="flex" flexDirection="column" height="100%" minHeight={0}>
@@ -228,14 +249,22 @@ export function PromptBrowseView() {
             </Typography>
           </Box>
         ) : filterMode === "favorites" ? (
-          favoriteItems.length === 0 ? (
-            <Box p={2}>
-              <Typography variant="body2" color="text.secondary">
-                No prompts found.
-              </Typography>
-            </Box>
-          ) : (
-            <List disablePadding>
+          <>
+            {showFavoritesAccessLossNotice && (
+              <Box p={2} pb={0}>
+                <Alert role="status" severity="info" onClose={() => setShowFavoritesAccessLossNotice(false)}>
+                  Some prompts were removed from your favorites because you no longer have access.
+                </Alert>
+              </Box>
+            )}
+            {favoriteItems.length === 0 ? (
+              <Box p={2}>
+                <Typography variant="body2" color="text.secondary">
+                  No prompts found.
+                </Typography>
+              </Box>
+            ) : (
+              <List disablePadding>
               {favoriteItems.map(({ favorite, prompt }) => {
                 const resolvedVersion = resolveFavoritePromptVersion(prompt, favorite);
                 const versionLabel = `v${resolvedVersion.version}`;
@@ -260,8 +289,9 @@ export function PromptBrowseView() {
                   />
                 );
               })}
-            </List>
-          )
+              </List>
+            )}
+          </>
         ) : visiblePrompts.length === 0 ? (
           <Box p={2}>
             <Typography variant="body2" color="text.secondary">

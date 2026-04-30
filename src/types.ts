@@ -19,7 +19,7 @@ export type PromptVersion = {
   changelog?: string[];
 };
 
-export type PromptVisibility = "private" | "shared" | "organization";
+export type PromptVisibility = "private" | "shared" | "public";
 
 export type PromptShareState = {
   users: string[];

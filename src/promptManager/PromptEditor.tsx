@@ -28,8 +28,9 @@ import {
   MenuItem,
   Stack,
   TextField,
-  ToggleButton,
-  ToggleButtonGroup,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
   Tooltip,
   Typography,
 } from "@mui/material";
@@ -310,7 +311,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     closeShareModal();
   };
   const isVisibilityReduction = (
-    (promptVisibility === "organization" && (shareDraftVisibility === "shared" || shareDraftVisibility === "private"))
+    (promptVisibility === "public" && (shareDraftVisibility === "shared" || shareDraftVisibility === "private"))
     || (promptVisibility === "shared" && shareDraftVisibility === "private")
   );
   const shareLifecycleHelperText = prompt.status === "archived"
@@ -320,13 +321,13 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
       : "Shared users will only gain access once you Publish. Sharing applies to all historical versions.";
   const shareButtonIcon = promptVisibility === "shared"
     ? <GroupOutlinedIcon fontSize="small" />
-    : promptVisibility === "organization"
+    : promptVisibility === "public"
       ? <PublicOutlinedIcon fontSize="small" />
       : <LockOutlinedIcon fontSize="small" />;
   const shareAriaLabel = promptVisibility === "shared"
     ? `Share — currently Shared with ${sharedUsers.length} people`
-    : promptVisibility === "organization"
-      ? "Share — currently Organization-wide"
+    : promptVisibility === "public"
+      ? "Share — currently Public"
       : "Share — currently Private";
 
   const inlineVersions = useMemo(() => {
@@ -1004,21 +1005,20 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
             <Alert severity="info" variant="outlined">
               Sharing grants read-only access to all versions of this prompt.
             </Alert>
-            <ToggleButtonGroup
-              exclusive
-              size="small"
+            <RadioGroup
+              row
+              aria-label="Who can find this prompt?"
+              name="prompt-visibility"
               value={shareDraftVisibility}
-              onChange={(_, next: PromptVisibility | null) => {
-                if (!next) return;
-                setShareDraftVisibility(next);
+              onChange={(event) => {
+                setShareDraftVisibility(event.target.value as PromptVisibility);
                 setShareHasUnsavedChanges(true);
               }}
-              aria-label="Who can find this prompt?"
             >
-              <ToggleButton value="private" aria-label="Private">Private</ToggleButton>
-              <ToggleButton value="shared" aria-label="Shared">Shared</ToggleButton>
-              <ToggleButton value="organization" aria-label="Organization">Organization</ToggleButton>
-            </ToggleButtonGroup>
+              <FormControlLabel value="private" control={<Radio />} label="Private" />
+              <FormControlLabel value="shared" control={<Radio />} label="Shared" />
+              <FormControlLabel value="public" control={<Radio />} label="Public" />
+            </RadioGroup>
             <Typography variant="caption" color="text.secondary">
               {shareLifecycleHelperText}
             </Typography>
@@ -1065,7 +1065,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                         ...params.inputProps,
                         "aria-label": "Search people by name or email",
                       }}
-                      helperText={shareDraftUsers.length === 0 ? "Nobody added yet. Search above to share with people." : undefined}
+                      helperText={shareDraftUsers.length === 0 ? "No one added yet. Search above to share with someone." : undefined}
                       InputProps={{
                         ...params.InputProps,
                         endAdornment: (
@@ -1108,9 +1108,9 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
               </>
             )}
 
-            {shareDraftVisibility === "organization" && (
+            {shareDraftVisibility === "public" && (
               <Typography variant="body2" color="text.secondary">
-                Everyone in your tenant can find this prompt.
+                Everyone in your organization can find this prompt.
               </Typography>
             )}
 
@@ -1168,11 +1168,11 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         <DialogContent>
           <DialogContentText>This will create a new immutable version.</DialogContentText>
           <DialogContentText>Published versions cannot be edited or deleted.</DialogContentText>
-          {(promptVisibility === "shared" || promptVisibility === "organization") && (
+          {(promptVisibility === "shared" || promptVisibility === "public") && (
             <DialogContentText>
               {promptVisibility === "shared"
                 ? `Because this prompt is Shared, this new version will immediately be available to ${sharedUsers.length} people.`
-                : "Because this prompt is Organization-wide, this new version will immediately be available to everyone in your tenant."}
+                : "Because this prompt is Public, this new version will immediately be available to everyone in your organization."}
             </DialogContentText>
           )}
         </DialogContent>

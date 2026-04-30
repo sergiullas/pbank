@@ -98,7 +98,7 @@ export function PromptDetailView() {
     return (
       <Box p={2}>
         <Typography variant="body2" color="text.secondary">
-          You no longer have access to this prompt.
+          This prompt is no longer available.
         </Typography>
       </Box>
     );

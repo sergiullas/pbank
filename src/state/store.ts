@@ -145,14 +145,20 @@ const ownerToCreatorId: Record<string, string> = {
 };
 
 const seedVisibilityOverrides: Record<string, PromptVisibility> = {
-  "structured-summary": "organization",
-  "email-draft": "organization",
-  "strategy-framework": "organization",
-  "meeting-notes": "organization",
-  "root-cause-analysis": "organization",
-  "user-research-plan": "organization",
-  "release-notes": "organization",
-  "competitive-analysis": "organization",
+  "structured-summary": "public",
+  "email-draft": "public",
+  "strategy-framework": "public",
+  "meeting-notes": "public",
+  "root-cause-analysis": "public",
+  "user-research-plan": "public",
+  "release-notes": "public",
+  "competitive-analysis": "public",
+};
+
+const normalizeVisibility = (visibility: Prompt["visibility"] | "organization" | undefined): PromptVisibility | undefined => {
+  if (visibility === "organization") return "public";
+  if (visibility === "private" || visibility === "shared" || visibility === "public") return visibility;
+  return undefined;
 };
 
 const normalizePromptModel = (prompt: Prompt): Prompt => {
@@ -165,7 +171,7 @@ const normalizePromptModel = (prompt: Prompt): Prompt => {
     ...prompt,
     creatorId: prompt.creatorId ?? ownerToCreatorId[prompt.owner] ?? CURRENT_USER_ID,
     tenantId: prompt.tenantId ?? CURRENT_TENANT_ID,
-    visibility: prompt.visibility ?? seedVisibilityOverrides[prompt.id] ?? "private",
+    visibility: normalizeVisibility(prompt.visibility) ?? seedVisibilityOverrides[prompt.id] ?? "private",
     sharedWith,
   };
 };

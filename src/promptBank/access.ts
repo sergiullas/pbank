@@ -8,7 +8,7 @@ export const userHasPromptAccess = (prompt: Prompt, userId = CURRENT_USER_ID): b
   if (prompt.status !== "published" || isPromptArchived(prompt) || archived) return false;
   if (prompt.creatorId === userId) return true;
 
-  if (prompt.visibility === "organization") {
+  if (prompt.visibility === "public") {
     return prompt.tenantId === CURRENT_TENANT_ID;
   }
 
@@ -24,5 +24,5 @@ export const isPromptMine = (prompt: Prompt, userId = CURRENT_USER_ID): boolean 
 export const getPromptVisibilityTooltip = (prompt: Prompt): string => {
   if (prompt.visibility === "private") return "Private";
   if (prompt.visibility === "shared") return "Shared";
-  return "Organization";
+  return "Public";
 };

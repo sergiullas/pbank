@@ -3,11 +3,12 @@ import StarIcon from "@mui/icons-material/Star";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
 import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
-import { Box, Button, Chip, IconButton, ListItem, ListItemButton, ListItemText, Stack, Tooltip, Typography } from "@mui/material";
+import { Box, Button, Chip, IconButton, ListItem, ListItemButton, ListItemText, Stack, Typography } from "@mui/material";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import type { Prompt } from "../types";
-import { getPromptVisibilityTooltip, isPromptMine } from "./access";
+import { getPromptVisibilityTooltip } from "./access";
 import { getPublishedVersion } from "./versioning";
+import { findDirectoryUserById } from "../data/mockDirectory";
 
 type PromptListItemProps = {
   prompt: Prompt;
@@ -54,10 +55,7 @@ export function PromptListItem({
       : <PublicOutlinedIcon fontSize="inherit" />;
   const publishedVersion = getPublishedVersion(prompt);
   const defaultVersionLabel = `v${publishedVersion.version}`;
-  const metadataDate = new Date(prompt.publishedAt ?? publishedVersion.createdAt ?? prompt.createdAt).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
+  const creatorName = findDirectoryUserById(prompt.creatorId ?? "")?.name ?? prompt.owner ?? "Unknown creator";
 
   if (isFavoritesView) {
     return (
@@ -115,15 +113,13 @@ export function PromptListItem({
             <Typography fontWeight={600} pr={4}>{prompt.title}</Typography>
             <Stack direction="row" alignItems="center" justifyContent="space-between" mt={0.25}>
               <Typography variant="caption" color="text.secondary">
-                {isPromptMine(prompt) ? "Mine • " : ""}{versionLabel ?? defaultVersionLabel} • {metadataDate}
+                {versionLabel ?? defaultVersionLabel}
               </Typography>
-              <Tooltip title={getPromptVisibilityTooltip(prompt)}>
-                <Box component="span" aria-label={getPromptVisibilityTooltip(prompt)} sx={{ display: "inline-flex", fontSize: "1rem" }}>
-                  {visibilityIcon}
-                </Box>
-              </Tooltip>
+              <Box component="span" aria-label={getPromptVisibilityTooltip(prompt)} sx={{ display: "inline-flex", fontSize: "1rem" }}>
+                {visibilityIcon}
+              </Box>
             </Stack>
-            <Typography variant="caption" color="text.secondary">by {prompt.owner}</Typography>
+            <Typography variant="caption" color="text.secondary">by {creatorName}</Typography>
             {isArchived && <Chip label="Archived" size="small" color="warning" variant="outlined" sx={{ mt: 0.75 }} />}
             <Stack spacing={1.5} mt={1}>
               <Typography variant="body2" color="text.secondary">
@@ -172,15 +168,13 @@ export function PromptListItem({
             <Typography fontWeight={600}>{prompt.title}</Typography>
             <Stack direction="row" alignItems="center" justifyContent="space-between">
               <Typography variant="caption" color="text.secondary">
-                {isPromptMine(prompt) ? "Mine • " : ""}{versionLabel ?? defaultVersionLabel} • {metadataDate}
+                {versionLabel ?? defaultVersionLabel}
               </Typography>
-              <Tooltip title={getPromptVisibilityTooltip(prompt)}>
-                <Box component="span" aria-label={getPromptVisibilityTooltip(prompt)} sx={{ display: "inline-flex", fontSize: "1rem" }}>
-                  {visibilityIcon}
-                </Box>
-              </Tooltip>
+              <Box component="span" aria-label={getPromptVisibilityTooltip(prompt)} sx={{ display: "inline-flex", fontSize: "1rem" }}>
+                {visibilityIcon}
+              </Box>
             </Stack>
-            <Typography variant="caption" color="text.secondary">by {prompt.owner}</Typography>
+            <Typography variant="caption" color="text.secondary">by {creatorName}</Typography>
           </Box>
         }
         secondaryTypographyProps={{ component: "div" }}

@@ -538,12 +538,25 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                 </Typography>
 
                 {isTitleLocked ? (
-                  <Stack spacing={0.75}>
-                    <Typography variant="body2" color="text.secondary">
-                      Title
-                    </Typography>
+                  <Stack spacing={1.25} sx={{ pb: 0.5 }}>
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      <Typography variant="body2" color="text.secondary">
+                        Title
+                      </Typography>
+                      <Tooltip title="Title cannot be changed after a prompt is published." placement="top-start" arrow>
+                        <Box tabIndex={0}>
+                          <Typography
+                            variant="body2"
+                            color="text.primary"
+                            sx={{ textDecoration: "underline", textDecorationStyle: "dotted", cursor: "help" }}
+                          >
+                            Why can&apos;t I edit the title?
+                          </Typography>
+                        </Box>
+                      </Tooltip>
+                    </Stack>
                     <Tooltip title="Title cannot be changed after a prompt is published." placement="top-start" arrow>
-                      <Box tabIndex={0}>
+                      <Box>
                         <Typography
                           variant="body1"
                           color={draftFormState.title.trim() ? "text.primary" : "text.secondary"}

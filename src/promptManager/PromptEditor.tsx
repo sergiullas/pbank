@@ -105,6 +105,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
 
   const publishedVersion = prompt.publishedVersionId ? getPublishedVersion(prompt) : null;
   const hasVersionHistory = (prompt.versions?.length ?? 0) > 0;
+  const isTitleLocked = hasVersionHistory || prompt.publishedVersionId != null;
   const latestVersion = getLatestVersion(prompt);
   const workingDraftVersionNumber = prompt.status === "draft" ? getNextVersionNumber(prompt) : null;
   const hasDraft = prompt.status === "draft";
@@ -544,21 +545,39 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   Metadata
                 </Typography>
 
-                <TextField
-                  label="Title"
-                  value={draftFormState.title}
-                  onChange={(e) => {
-                    setDraftFormState((prev) => ({ ...prev, title: e.target.value }));
-                    setFieldErrors((prev) => ({ ...prev, title: undefined }));
-                  }}
-                  disabled={disableControls}
-                  fullWidth
-                  required
-                  inputProps={{ "aria-label": "Prompt title" }}
-                  InputProps={{ readOnly: useReadOnlyControls }}
-                  error={Boolean(fieldErrors.title)}
-                  helperText={fieldErrors.title}
-                />
+                {isTitleLocked ? (
+                  <Stack spacing={0.75}>
+                    <Typography variant="body2" color="text.secondary">
+                      Title
+                    </Typography>
+                    <Tooltip title="Title cannot be changed after a prompt is published." placement="top-start" arrow>
+                      <Box tabIndex={0}>
+                        <Typography
+                          variant="body1"
+                          color={draftFormState.title.trim() ? "text.primary" : "text.secondary"}
+                          fontStyle={draftFormState.title.trim() ? "normal" : "italic"}
+                        >
+                          {draftFormState.title.trim() || "Untitled Prompt"}
+                        </Typography>
+                      </Box>
+                    </Tooltip>
+                  </Stack>
+                ) : (
+                  <TextField
+                    label="Title"
+                    value={draftFormState.title}
+                    onChange={(e) => {
+                      setDraftFormState((prev) => ({ ...prev, title: e.target.value }));
+                      setFieldErrors((prev) => ({ ...prev, title: undefined }));
+                    }}
+                    disabled={disableControls}
+                    fullWidth
+                    required
+                    inputProps={{ "aria-label": "Prompt title" }}
+                    error={Boolean(fieldErrors.title)}
+                    helperText={fieldErrors.title}
+                  />
+                )}
 
                 <TextField
                   label="Description"

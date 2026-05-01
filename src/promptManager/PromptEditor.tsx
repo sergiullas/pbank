@@ -544,28 +544,24 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                         Title
                       </Typography>
                       <Tooltip title="Title cannot be changed after a prompt is published." placement="top-start" arrow>
-                        <Box tabIndex={0}>
-                          <Typography
-                            variant="body2"
-                            color="text.primary"
-                            sx={{ textDecoration: "underline", textDecorationStyle: "dotted", cursor: "help" }}
-                          >
-                            Why can&apos;t I edit the title?
-                          </Typography>
-                        </Box>
+                        <Button
+                          variant="text"
+                          size="small"
+                          sx={{ p: 0, minWidth: 0, textTransform: "none", fontWeight: 600, verticalAlign: "baseline" }}
+                        >
+                          Why can&apos;t I edit the title?
+                        </Button>
                       </Tooltip>
                     </Stack>
-                    <Tooltip title="Title cannot be changed after a prompt is published." placement="top-start" arrow>
-                      <Box>
-                        <Typography
-                          variant="body1"
-                          color={draftFormState.title.trim() ? "text.primary" : "text.secondary"}
-                          fontStyle={draftFormState.title.trim() ? "normal" : "italic"}
-                        >
-                          {draftFormState.title.trim() || "Untitled Prompt"}
-                        </Typography>
-                      </Box>
-                    </Tooltip>
+                    <Box>
+                      <Typography
+                        variant="body1"
+                        color={draftFormState.title.trim() ? "text.primary" : "text.secondary"}
+                        fontStyle={draftFormState.title.trim() ? "normal" : "italic"}
+                      >
+                        {draftFormState.title.trim() || "Untitled Prompt"}
+                      </Typography>
+                    </Box>
                   </Stack>
                 ) : (
                   <TextField

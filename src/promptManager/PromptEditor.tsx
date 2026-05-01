@@ -34,7 +34,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { findDirectoryUserById, searchDirectoryUsers } from "../data/mockDirectory";
 import { isPromptMine } from "../promptBank/access";
 import { getLatestVersion, getNextVersionNumber, getPublishedVersion } from "../promptBank/versioning";
@@ -97,6 +97,11 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const [shareSaveError, setShareSaveError] = useState<string | null>(null);
   const [shareLiveMessage, setShareLiveMessage] = useState("");
   const shareFooterAlertRef = useRef<HTMLParagraphElement | null>(null);
+  const shareButtonRef = useRef<HTMLButtonElement | null>(null);
+  const shareSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const privateDescId = useId();
+  const sharedDescId = useId();
+  const publicDescId = useId();
 
   const publishedVersion = prompt.publishedVersionId ? getPublishedVersion(prompt) : null;
   const hasVersionHistory = (prompt.versions?.length ?? 0) > 0;
@@ -104,7 +109,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const workingDraftVersionNumber = prompt.status === "draft" ? getNextVersionNumber(prompt) : null;
   const hasDraft = prompt.status === "draft";
   const promptVisibility = prompt.visibility ?? "private";
-  const sharedUsers = prompt.sharedWith?.users ?? [];
+  const sharedUsers = (prompt.sharedWith?.users ?? []).filter((userId) => userId !== prompt.creatorId);
   const isSharedWithNoUsers = promptVisibility === "shared" && sharedUsers.length === 0;
   const canManageSettings = isPromptMine(prompt);
   const viewingWorkingDraft = viewingVersion != null && workingDraftVersionNumber != null && viewingVersion.version === workingDraftVersionNumber;
@@ -296,6 +301,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     setShareResults([]);
     setShareSaveError(null);
     setShareFooterMode("default");
+    shareButtonRef.current?.focus();
   };
   const isShareDraftDirty = useMemo(() => {
     const sameVisibility = shareDraftVisibility === promptVisibility;
@@ -312,7 +318,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const commitShareChanges = () => {
     try {
       updatePromptVisibility(prompt.id, { visibility: shareDraftVisibility });
-      updatePromptSharedUsers(prompt.id, shareDraftVisibility === "shared" ? shareDraftUsers : []);
+      updatePromptSharedUsers(prompt.id, shareDraftVisibility === "shared" ? shareDraftUsers.filter((id) => id !== prompt.creatorId) : []);
       setPromptManagerNotice("Visibility updated");
       closeShareModal();
     } catch {
@@ -326,7 +332,17 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   );
   const hasRemovedExistingSharedUsers = promptVisibility === "shared" && shareDraftVisibility === "shared" && sharedUsers.some((userId) => !shareDraftUsers.includes(userId));
   const showDowngradeWarning = isVisibilityReduction || hasRemovedExistingSharedUsers;
+  const removedSharedUsersCount = sharedUsers.filter((userId) => !shareDraftUsers.includes(userId)).length;
+  const downgradeWarningText = isVisibilityReduction
+    ? "Reduces access for existing users"
+    : `Reduces access for ${removedSharedUsersCount} ${removedSharedUsersCount === 1 ? "user" : "users"}`;
   useEffect(() => { if (shareFooterMode !== "default") shareFooterAlertRef.current?.focus(); }, [shareFooterMode]);
+  useEffect(() => {
+    if (!shareModalOpen) return;
+    if (shareDraftVisibility === "shared") {
+      setTimeout(() => shareSearchInputRef.current?.focus(), 0);
+    }
+  }, [shareDraftVisibility, shareModalOpen]);
   const shareButtonIcon = promptVisibility === "shared"
     ? <GroupOutlinedIcon fontSize="small" />
     : promptVisibility === "public"
@@ -471,6 +487,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
               startIcon={shareButtonIcon}
               onClick={openShareModal}
               aria-label={shareAriaLabel}
+              ref={shareButtonRef}
             >
               Share
               {promptVisibility === "shared" && (
@@ -1009,12 +1026,14 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         }}
         fullWidth
         maxWidth="sm"
+        role="dialog"
+        aria-modal="true"
         aria-labelledby="share-modal-title"
         PaperProps={{ sx: { overflow: "hidden" } }}
       >
         <DialogTitle id="share-modal-title" sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
           <Typography component="span" variant="h6">Share "{draftFormState.title || "Untitled Prompt"}"</Typography>
-          <IconButton aria-label="Close sharing modal" onClick={requestShareModalClose} size="small">
+          <IconButton aria-label="Close share modal" onClick={requestShareModalClose} size="small">
             <CloseIcon fontSize="small" />
           </IconButton>
         </DialogTitle>
@@ -1033,9 +1052,9 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                 setShareFooterMode("default");
               }}
             >
-              <FormControlLabel value="private" control={<Radio />} label={<><Typography variant="body2" fontWeight={600}>Private</Typography><Typography variant="caption" color="text.secondary">Only you can access this prompt.</Typography></>} />
-              <FormControlLabel value="shared" control={<Radio />} label={<><Typography variant="body2" fontWeight={600}>Shared</Typography><Typography variant="caption" color="text.secondary">Specific people can access this prompt.</Typography></>} />
-              <FormControlLabel value="public" control={<Radio />} label={<><Typography variant="body2" fontWeight={600}>Public</Typography><Typography variant="caption" color="text.secondary">Anyone in the organization can access this prompt.</Typography></>} />
+              <FormControlLabel value="private" control={<Radio inputProps={{ "aria-describedby": privateDescId }} />} label={<><Typography variant="body2" fontWeight={600}>Private</Typography><Typography id={privateDescId} variant="caption" color="text.secondary">Only you can access this prompt.</Typography></>} />
+              <FormControlLabel value="shared" control={<Radio inputProps={{ "aria-describedby": sharedDescId }} />} label={<><Typography variant="body2" fontWeight={600}>Shared</Typography><Typography id={sharedDescId} variant="caption" color="text.secondary">Specific people can access this prompt.</Typography></>} />
+              <FormControlLabel value="public" control={<Radio inputProps={{ "aria-describedby": publicDescId }} />} label={<><Typography variant="body2" fontWeight={600}>Public</Typography><Typography id={publicDescId} variant="caption" color="text.secondary">Anyone in the organization can access this prompt.</Typography></>} />
             </RadioGroup>
 
             {shareDraftVisibility === "shared" && (
@@ -1045,7 +1064,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   filterOptions={(options) => options}
                   loading={shareSearchLoading}
                   inputValue={shareQuery}
-                  onInputChange={(_, value, reason) => { if (reason === "input" || reason === "clear") setShareQuery(value); }}
+                  onInputChange={(_, value, reason) => { if (reason === "input" || reason === "clear") setShareQuery(value); if (reason === "input" || reason === "clear") setShareLiveMessage(value.trim().length >= 2 ? `${shareResults.length} results` : ""); }}
                   getOptionLabel={(option) => `${option.name} (${option.email})`}
                   isOptionEqualToValue={(option, value) => option.id === value.id}
                   noOptionsText={shareQuery.trim().length >= 2 ? `No people found matching '${shareQuery.trim()}'.` : "Type at least 2 characters"}
@@ -1067,12 +1086,12 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                       </Box>
                     );
                   }}
-                  renderInput={(params) => (<TextField {...params} label="Search people by name or email" inputProps={{ ...params.inputProps, "aria-label": "Search people by name or email" }} InputProps={{ ...params.InputProps, endAdornment: <>{shareSearchLoading ? <CircularProgress color="inherit" size={16} /> : null}{params.InputProps.endAdornment}</> }} />)}
+                  renderInput={(params) => (<TextField {...params} label="Search people by name or email" inputRef={shareSearchInputRef} inputProps={{ ...params.inputProps, "aria-label": "Search people by name or email" }} InputProps={{ ...params.InputProps, endAdornment: <>{shareSearchLoading ? <CircularProgress color="inherit" size={16} /> : null}{params.InputProps.endAdornment}</> }} />)}
                 />
                 <Typography variant="body2">Shared with {shareDraftUsers.length === 1 ? "1 person" : `${shareDraftUsers.length} people`}.</Typography>
                 {shareDraftUsers.length === 0 && <Typography variant="caption" color="text.secondary">No one added yet. Search above to share with someone.</Typography>}
                 <Box component="ul" sx={{ m: 0, p: 0, listStyle: "none", border: 1, borderColor: "divider", borderRadius: 1, maxHeight: "min(250px, 35vh)", overflowY: "auto" }}>
-                  {shareDraftUsers.map((userId) => {
+                  {shareDraftUsers.filter((userId) => userId !== prompt.creatorId).map((userId) => {
                     const user = findDirectoryUserById(userId);
                     if (!user) return null;
                     return (<Box component="li" key={userId} sx={{ px: 1.5, py: 1, borderBottom: "1px solid", borderColor: "divider", "&:last-child": { borderBottom: "none" } }}><Stack direction="row" alignItems="center" justifyContent="space-between"><Typography variant="body2">{user.name} ({user.email})</Typography><IconButton size="small" aria-label={`Remove ${user.name} from sharing`} onClick={() => { setShareDraftUsers((prev) => prev.filter((id) => id !== userId)); setShareSaveError(null); }}><CloseIcon fontSize="small" /></IconButton></Stack></Box>);
@@ -1087,7 +1106,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         <DialogActions>
           {shareFooterMode === "default" && <><Button variant="outlined" onClick={requestShareModalClose}>Cancel</Button><Button variant="contained" onClick={() => { if (showDowngradeWarning) { setShareFooterMode("downgrade-warning"); setShareLiveMessage("Warning: Reducing access for existing users. Choose Cancel or Confirm."); return; } commitShareChanges(); }}>Done</Button></>}
           {shareFooterMode === "discard-warning" && <><Typography color="error" tabIndex={-1} ref={shareFooterAlertRef}>Unsaved changes</Typography><Button variant="outlined" onClick={() => setShareFooterMode("default")}>Keep Editing</Button><Button color="error" variant="contained" onClick={closeShareModal}>Discard</Button></>}
-          {shareFooterMode === "downgrade-warning" && <><Typography color="warning.main" tabIndex={-1} ref={shareFooterAlertRef}>Reduces access for existing users</Typography><Button variant="outlined" onClick={() => setShareFooterMode("default")}>Cancel</Button><Button color="warning" variant="contained" onClick={commitShareChanges}>Confirm</Button></>}
+          {shareFooterMode === "downgrade-warning" && <><Typography color="warning.main" tabIndex={-1} ref={shareFooterAlertRef}>{downgradeWarningText}</Typography><Button variant="outlined" onClick={() => setShareFooterMode("default")}>Cancel</Button><Button color="warning" variant="contained" onClick={commitShareChanges}>Confirm</Button></>}
         </DialogActions>
       </Dialog>
 

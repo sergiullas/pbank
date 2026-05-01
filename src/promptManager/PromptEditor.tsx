@@ -1012,7 +1012,12 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         aria-labelledby="share-modal-title"
         PaperProps={{ sx: { overflow: "hidden" } }}
       >
-        <DialogTitle id="share-modal-title">Share "{draftFormState.title || "Untitled Prompt"}"</DialogTitle>
+        <DialogTitle id="share-modal-title" sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+          <Typography component="span" variant="h6">Share "{draftFormState.title || "Untitled Prompt"}"</Typography>
+          <IconButton aria-label="Close sharing modal" onClick={requestShareModalClose} size="small">
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
         <DialogContent sx={{ overflow: "hidden" }}>
           <Stack spacing={2}>
                         <Alert severity="info" variant="outlined">
@@ -1076,7 +1081,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
               </>
             )}
             {shareSaveError && <Alert severity="error">{shareSaveError}</Alert>}
-            <Box role="alert" aria-live="assertive" sx={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>{shareLiveMessage}</Box>
+            <Box role="status" aria-live="polite" sx={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)" }}>{shareLiveMessage}</Box>
           </Stack>
         </DialogContent>
         <DialogActions>

@@ -1080,9 +1080,9 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
           </Stack>
         </DialogContent>
         <DialogActions>
-          {shareFooterMode === "default" && <><Button onClick={requestShareModalClose}>Cancel</Button><Button variant="contained" onClick={() => { if (showDowngradeWarning) { setShareFooterMode("downgrade-warning"); setShareLiveMessage("Warning: Reducing access for existing users. Choose Cancel or Confirm."); return; } commitShareChanges(); }}>Done</Button></>}
-          {shareFooterMode === "discard-warning" && <><Typography color="error" tabIndex={-1} ref={shareFooterAlertRef}>Unsaved changes</Typography><Button onClick={() => setShareFooterMode("default")}>Keep Editing</Button><Button color="error" onClick={closeShareModal}>Discard</Button></>}
-          {shareFooterMode === "downgrade-warning" && <><Typography color="warning.main" tabIndex={-1} ref={shareFooterAlertRef}>Reduces access for existing users</Typography><Button onClick={() => setShareFooterMode("default")}>Cancel</Button><Button color="warning" variant="contained" onClick={commitShareChanges}>Confirm</Button></>}
+          {shareFooterMode === "default" && <><Button variant="outlined" onClick={requestShareModalClose}>Cancel</Button><Button variant="contained" onClick={() => { if (showDowngradeWarning) { setShareFooterMode("downgrade-warning"); setShareLiveMessage("Warning: Reducing access for existing users. Choose Cancel or Confirm."); return; } commitShareChanges(); }}>Done</Button></>}
+          {shareFooterMode === "discard-warning" && <><Typography color="error" tabIndex={-1} ref={shareFooterAlertRef}>Unsaved changes</Typography><Button variant="outlined" onClick={() => setShareFooterMode("default")}>Keep Editing</Button><Button color="error" variant="contained" onClick={closeShareModal}>Discard</Button></>}
+          {shareFooterMode === "downgrade-warning" && <><Typography color="warning.main" tabIndex={-1} ref={shareFooterAlertRef}>Reduces access for existing users</Typography><Button variant="outlined" onClick={() => setShareFooterMode("default")}>Cancel</Button><Button color="warning" variant="contained" onClick={commitShareChanges}>Confirm</Button></>}
         </DialogActions>
       </Dialog>
 

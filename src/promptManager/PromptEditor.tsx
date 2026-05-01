@@ -637,7 +637,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                 >
                   <InfoOutlinedIcon fontSize="small" color="primary" aria-hidden="true" />
                   <Typography component="div" variant="body2" color="text.primary">
-                    <strong>Template</strong> is the prompt sent to the AI. <strong>Prompt Instructions</strong> tells the AI how to respond.{" "}
+                    Wrap words in brackets to create fill-in-the-blank placeholders. These become input fields when the prompt is used.{" "}
                     {!isReadOnly && (
                       <Button
                         variant="text"

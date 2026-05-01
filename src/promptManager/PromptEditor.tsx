@@ -53,7 +53,6 @@ interface PromptEditorProps {
 type EditorMode = "draft-edit" | "published-readonly" | "version-readonly" | "archived-readonly";
 
 const INLINE_VERSION_COUNT = 4;
-const TEMPLATE_EXAMPLE_DISMISSED_KEY = "prompt-manager-template-example-dismissed";
 
 export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const savePromptDraft = useStore((state) => state.savePromptDraft);
@@ -85,8 +84,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const [headerVersionMenuAnchor, setHeaderVersionMenuAnchor] = useState<null | HTMLElement>(null);
   const [versionMenuAnchorPosition, setVersionMenuAnchorPosition] = useState<{ top: number; left: number } | null>(null);
   const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(null);
-  const [templateExampleDismissed, setTemplateExampleDismissed] = useState<boolean>(() => localStorage.getItem(TEMPLATE_EXAMPLE_DISMISSED_KEY) === "true");
-  const [showTemplateExampleForSession, setShowTemplateExampleForSession] = useState(false);
+  const [isTemplateExampleOpen, setIsTemplateExampleOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareDraftVisibility, setShareDraftVisibility] = useState<PromptVisibility>("private");
   const [shareDraftUsers, setShareDraftUsers] = useState<string[]>([]);
@@ -134,7 +132,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const isReadOnly = editorMode !== "draft-edit";
   const useReadOnlyControls = editorMode === "published-readonly" || editorMode === "version-readonly";
   const disableControls = editorMode === "archived-readonly";
-  const showTemplateExample = !isReadOnly && (!templateExampleDismissed || showTemplateExampleForSession);
+  const showTemplateExample = !isReadOnly && isTemplateExampleOpen;
   const { variables: templateVariables, invalidTokens } = useMemo(
     () => parseTemplateVariables(activeSource.content),
     [activeSource.content],
@@ -277,14 +275,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     onBack();
   };
 
-  const handleDismissTemplateExample = () => {
-    setTemplateExampleDismissed(true);
-    setShowTemplateExampleForSession(false);
-    localStorage.setItem(TEMPLATE_EXAMPLE_DISMISSED_KEY, "true");
-  };
-
-  const handleShowTemplateExample = () => {
-    setShowTemplateExampleForSession(true);
+  const handleToggleTemplateExample = () => {
+    setIsTemplateExampleOpen((prev) => !prev);
   };
 
   const openShareModal = () => {
@@ -637,10 +629,10 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                       <Button
                         variant="text"
                         size="small"
-                        onClick={handleShowTemplateExample}
+                        onClick={handleToggleTemplateExample}
                         sx={{ p: 0, minWidth: 0, textTransform: "none", fontWeight: 600, verticalAlign: "baseline" }}
                       >
-                        See example
+                        {showTemplateExample ? "Hide example" : "See example"}
                       </Button>
                     )}
                   </Typography>
@@ -661,15 +653,9 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                         <Typography variant="overline" color="text.secondary" letterSpacing={1}>
                           Example
                         </Typography>
-                        <Button
-                          variant="text"
-                          size="small"
-                          onClick={handleDismissTemplateExample}
-                          sx={{ p: 0, minWidth: 0, textTransform: "none" }}
-                          aria-label="Dismiss template example"
-                        >
-                          Dismiss
-                        </Button>
+                        <IconButton size="small" onClick={handleToggleTemplateExample} aria-label="Close template example">
+                          <CloseIcon fontSize="small" />
+                        </IconButton>
                       </Stack>
                       <Typography variant="caption" color="text.secondary">
                         Template

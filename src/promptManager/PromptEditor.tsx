@@ -53,7 +53,6 @@ interface PromptEditorProps {
 type EditorMode = "draft-edit" | "published-readonly" | "version-readonly" | "archived-readonly";
 
 const INLINE_VERSION_COUNT = 4;
-const TEMPLATE_EXAMPLE_DISMISSED_KEY = "prompt-manager-template-example-dismissed";
 
 export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const savePromptDraft = useStore((state) => state.savePromptDraft);
@@ -85,8 +84,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const [headerVersionMenuAnchor, setHeaderVersionMenuAnchor] = useState<null | HTMLElement>(null);
   const [versionMenuAnchorPosition, setVersionMenuAnchorPosition] = useState<{ top: number; left: number } | null>(null);
   const [selectedVersion, setSelectedVersion] = useState<PromptVersion | null>(null);
-  const [templateExampleDismissed, setTemplateExampleDismissed] = useState<boolean>(() => localStorage.getItem(TEMPLATE_EXAMPLE_DISMISSED_KEY) === "true");
-  const [showTemplateExampleForSession, setShowTemplateExampleForSession] = useState(false);
+  const [isTemplateExampleOpen, setIsTemplateExampleOpen] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [shareDraftVisibility, setShareDraftVisibility] = useState<PromptVisibility>("private");
   const [shareDraftUsers, setShareDraftUsers] = useState<string[]>([]);
@@ -105,6 +103,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
 
   const publishedVersion = prompt.publishedVersionId ? getPublishedVersion(prompt) : null;
   const hasVersionHistory = (prompt.versions?.length ?? 0) > 0;
+  const isTitleLocked = hasVersionHistory || prompt.publishedVersionId != null;
   const latestVersion = getLatestVersion(prompt);
   const workingDraftVersionNumber = prompt.status === "draft" ? getNextVersionNumber(prompt) : null;
   const hasDraft = prompt.status === "draft";
@@ -133,7 +132,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const isReadOnly = editorMode !== "draft-edit";
   const useReadOnlyControls = editorMode === "published-readonly" || editorMode === "version-readonly";
   const disableControls = editorMode === "archived-readonly";
-  const showTemplateExample = !isReadOnly && (!templateExampleDismissed || showTemplateExampleForSession);
+  const showTemplateExample = !isReadOnly && isTemplateExampleOpen;
   const { variables: templateVariables, invalidTokens } = useMemo(
     () => parseTemplateVariables(activeSource.content),
     [activeSource.content],
@@ -276,14 +275,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     onBack();
   };
 
-  const handleDismissTemplateExample = () => {
-    setTemplateExampleDismissed(true);
-    setShowTemplateExampleForSession(false);
-    localStorage.setItem(TEMPLATE_EXAMPLE_DISMISSED_KEY, "true");
-  };
-
-  const handleShowTemplateExample = () => {
-    setShowTemplateExampleForSession(true);
+  const handleToggleTemplateExample = () => {
+    setIsTemplateExampleOpen((prev) => !prev);
   };
 
   const openShareModal = () => {
@@ -544,21 +537,48 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   Metadata
                 </Typography>
 
-                <TextField
-                  label="Title"
-                  value={draftFormState.title}
-                  onChange={(e) => {
-                    setDraftFormState((prev) => ({ ...prev, title: e.target.value }));
-                    setFieldErrors((prev) => ({ ...prev, title: undefined }));
-                  }}
-                  disabled={disableControls}
-                  fullWidth
-                  required
-                  inputProps={{ "aria-label": "Prompt title" }}
-                  InputProps={{ readOnly: useReadOnlyControls }}
-                  error={Boolean(fieldErrors.title)}
-                  helperText={fieldErrors.title}
-                />
+                {isTitleLocked ? (
+                  <Stack spacing={1.25} sx={{ pb: 0.5 }}>
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      <Typography variant="body2" color="text.secondary">
+                        Title
+                      </Typography>
+                      <Tooltip title="Title cannot be changed after a prompt is published." placement="top-start" arrow>
+                        <Button
+                          variant="text"
+                          size="small"
+                          sx={{ p: 0, minWidth: 0, textTransform: "none", fontWeight: 600, verticalAlign: "baseline" }}
+                        >
+                          Why can&apos;t I edit the title?
+                        </Button>
+                      </Tooltip>
+                    </Stack>
+                    <Box>
+                      <Typography
+                        variant="body1"
+                        color={draftFormState.title.trim() ? "text.primary" : "text.secondary"}
+                        fontStyle={draftFormState.title.trim() ? "normal" : "italic"}
+                      >
+                        {draftFormState.title.trim() || "Untitled Prompt"}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                ) : (
+                  <TextField
+                    label="Title"
+                    value={draftFormState.title}
+                    onChange={(e) => {
+                      setDraftFormState((prev) => ({ ...prev, title: e.target.value }));
+                      setFieldErrors((prev) => ({ ...prev, title: undefined }));
+                    }}
+                    disabled={disableControls}
+                    fullWidth
+                    required
+                    inputProps={{ "aria-label": "Prompt title" }}
+                    error={Boolean(fieldErrors.title)}
+                    helperText={fieldErrors.title}
+                  />
+                )}
 
                 <TextField
                   label="Description"
@@ -613,15 +633,15 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                 >
                   <InfoOutlinedIcon fontSize="small" color="primary" aria-hidden="true" />
                   <Typography component="div" variant="body2" color="text.primary">
-                    <strong>Template</strong> is the prompt sent to the AI. <strong>Prompt Instructions</strong> tells the AI how to respond.{" "}
+                    Wrap words in brackets to create fill-in-the-blank placeholders. These become input fields when the prompt is used.{" "}
                     {!isReadOnly && (
                       <Button
                         variant="text"
                         size="small"
-                        onClick={handleShowTemplateExample}
+                        onClick={handleToggleTemplateExample}
                         sx={{ p: 0, minWidth: 0, textTransform: "none", fontWeight: 600, verticalAlign: "baseline" }}
                       >
-                        See example
+                        {showTemplateExample ? "Hide example" : "See example"}
                       </Button>
                     )}
                   </Typography>
@@ -642,15 +662,9 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                         <Typography variant="overline" color="text.secondary" letterSpacing={1}>
                           Example
                         </Typography>
-                        <Button
-                          variant="text"
-                          size="small"
-                          onClick={handleDismissTemplateExample}
-                          sx={{ p: 0, minWidth: 0, textTransform: "none" }}
-                          aria-label="Dismiss template example"
-                        >
-                          Dismiss
-                        </Button>
+                        <IconButton size="small" onClick={handleToggleTemplateExample} aria-label="Close template example">
+                          <CloseIcon fontSize="small" />
+                        </IconButton>
                       </Stack>
                       <Typography variant="caption" color="text.secondary">
                         Template

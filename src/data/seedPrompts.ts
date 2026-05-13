@@ -95,7 +95,7 @@ Content:
     category: "Planning",
     tags: ["strategy", "decision", "planning"],
     content:
-      "Use this framework:\n- Goal\n- Constraints\n- Options (with trade-offs)\n- Recommendation\n- Next 3 actions\n\nContext:\n[CONTEXT]",
+      "Use this framework:\n- Goal\n- Constraints\n- Options (with trade-offs)\n- Recommendation\n- Next 3 actions",
     createdAt: "2026-02-25T12:00:00.000Z",
     lastUpdatedAt: "2026-02-25T12:00:00.000Z",
     owner: "Steve Rogers (Captain America)",
@@ -187,7 +187,7 @@ Content:
     category: "Planning",
     tags: ["product", "requirements", "prd"],
     content:
-      "Draft a PRD with sections:\n- Problem\n- Users\n- Scope\n- Non-goals\n- Success metrics\n- Risks\n\nContext:\n[CONTEXT]",
+      "Draft a PRD with sections:\n- Problem\n- Users\n- Scope\n- Non-goals\n- Success metrics\n- Risks",
     createdAt: "2025-11-01T12:00:00.000Z",
     lastUpdatedAt: "2025-11-01T12:00:00.000Z",
     owner: "Sam Wilson (Falcon)",

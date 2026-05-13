@@ -3,12 +3,10 @@ import {
   Alert,
   Box,
   Button,
-  Checkbox,
   CircularProgress,
   Dialog,
   DialogContent,
   DialogTitle,
-  FormControlLabel,
   IconButton,
   Stack,
   TextField,
@@ -27,11 +25,9 @@ type RunStatus = "idle" | "loading" | "success" | "error";
 
 export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
   const { variables, invalidTokens } = useMemo(() => parseTemplateVariables(template), [template]);
-  const hasContextVariable = variables.some((variable) => variable.isContext);
   const nonContextVariables = variables.filter((variable) => !variable.isContext);
 
   const [values, setValues] = useState<Record<string, string>>({});
-  const [useContext, setUseContext] = useState(hasContextVariable);
   const [file, setFile] = useState<File | null>(null);
   const [result, setResult] = useState<string | null>(null);
   const [renderedPrompt, setRenderedPrompt] = useState<string | null>(null);
@@ -64,7 +60,7 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
       const input = {
         template,
         variables: values,
-        attachment: useContext ? file ?? undefined : undefined,
+        attachment: file ?? undefined,
       };
       const [nextRenderedPrompt, nextResult] = await Promise.all([
         renderPromptTestTemplate(input),
@@ -155,40 +151,29 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
               />
             ))}
 
-            {hasContextVariable && (
-              <Stack spacing={1}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={useContext}
-                      disabled={runStatus === "loading"}
-                      onChange={(event) => {
-                        setUseContext(event.target.checked);
-                        if (!event.target.checked) setFile(null);
-                      }}
-                    />
-                  }
-                  label="Use attached file as context"
-                />
-
-                {useContext && (
-                  <Stack spacing={0.75}>
-                    <Button variant="outlined" component="label" disabled={runStatus === "loading"}>
-                      {file ? "Replace file" : "Attach file"}
-                      <input
-                        type="file"
-                        hidden
-                        disabled={runStatus === "loading"}
-                        onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-                      />
-                    </Button>
-                    <Typography variant="caption" color="text.secondary" aria-live="polite">
-                      {file ? `Attached file: ${file.name}` : "No file attached"}
-                    </Typography>
-                  </Stack>
+            <Stack spacing={0.75}>
+              <Typography variant="body2">Upload a file to use as context</Typography>
+              <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                <Button variant="outlined" component="label" disabled={runStatus === "loading"}>
+                  {file ? "Replace file" : "Attach file"}
+                  <input
+                    type="file"
+                    hidden
+                    aria-label="Upload file to use as test context"
+                    disabled={runStatus === "loading"}
+                    onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                  />
+                </Button>
+                {file && (
+                  <Button variant="text" color="inherit" disabled={runStatus === "loading"} onClick={() => setFile(null)}>
+                    Clear file
+                  </Button>
                 )}
               </Stack>
-            )}
+              <Typography variant="caption" color="text.secondary" aria-live="polite">
+                {file ? `Attached file: ${file.name}` : "No file attached"}
+              </Typography>
+            </Stack>
           </Stack>
         </Box>
 
@@ -312,18 +297,22 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
           </IconButton>
         </DialogTitle>
         <DialogContent dividers>
-          <Box
-            component="pre"
-            sx={{
-              m: 0,
-              whiteSpace: "pre-wrap",
-              fontFamily: "inherit",
-              fontSize: "0.95rem",
-              lineHeight: 1.6,
-              minHeight: 300,
-            }}
-          >
-            {result}
+          <Box sx={{ display: "flex", justifyContent: "center" }}>
+            <Box
+              component="pre"
+              sx={{
+                m: 0,
+                width: "100%",
+                maxWidth: "80ch",
+                whiteSpace: "pre-wrap",
+                fontFamily: "inherit",
+                fontSize: "0.95rem",
+                lineHeight: 1.6,
+                minHeight: 300,
+              }}
+            >
+              {result}
+            </Box>
           </Box>
         </DialogContent>
       </Dialog>

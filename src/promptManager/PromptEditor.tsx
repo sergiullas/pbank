@@ -418,8 +418,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         flexShrink={0}
         flexWrap="wrap"
       >
-        <Tooltip title="Back to Prompt Manager">
-          <IconButton size="small" onClick={handleBack} aria-label="Back to Prompt Manager">
+        <Tooltip title="Back to Prompt Builder">
+          <IconButton size="small" onClick={handleBack} aria-label="Back to Prompt Builder">
             <ArrowBackIcon />
           </IconButton>
         </Tooltip>

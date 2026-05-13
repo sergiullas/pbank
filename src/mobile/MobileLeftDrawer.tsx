@@ -120,7 +120,7 @@ export function MobileLeftDrawer({ open, onClose }: MobileLeftDrawerProps) {
           />
           <NavRow
             icon={<AutoStoriesOutlinedIcon sx={{ fontSize: 22 }} />}
-            label="Prompt Manager"
+            label="Prompt Builder"
             active={appMode === "promptManager"}
             onClick={() => handleNavClick("promptManager")}
           />

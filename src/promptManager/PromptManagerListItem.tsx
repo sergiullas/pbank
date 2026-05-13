@@ -1,4 +1,7 @@
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
+import GroupOutlinedIcon from "@mui/icons-material/GroupOutlined";
+import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
 import {
   Box,
   Button,
@@ -71,6 +74,19 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
   const rowLabel = `Open prompt ${prompt.title}`;
   const menuButtonLabel = `More actions for ${prompt.title}`;
   const publishBlocked = (prompt.visibility ?? "private") === "shared" && (prompt.sharedWith?.users.length ?? 0) === 0;
+  const visibility = prompt.visibility ?? "private";
+  const uniqueSharedUsers = new Set(prompt.sharedWith?.users ?? []);
+  const sharedCount = uniqueSharedUsers.size;
+  const visibilityLabel = visibility === "private"
+    ? "Private"
+    : visibility === "shared"
+      ? `Shared with ${sharedCount} ${sharedCount === 1 ? "person" : "people"}`
+      : "Public";
+  const visibilityIcon = visibility === "private"
+    ? <LockOutlinedIcon fontSize="inherit" />
+    : visibility === "shared"
+      ? <GroupOutlinedIcon fontSize="inherit" />
+      : <PublicOutlinedIcon fontSize="inherit" />;
 
   return (
     <>
@@ -109,6 +125,13 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
               {prompt.title}
             </Typography>
             <PromptStatusChip status={prompt.status} hasUnpublishedChanges={prompt.hasUnpublishedChanges} />
+            <Box
+              component="span"
+              aria-label={visibilityLabel}
+              sx={{ display: "inline-flex", alignItems: "center", color: "text.secondary", fontSize: "1rem" }}
+            >
+              {visibilityIcon}
+            </Box>
           </Stack>
 
           {prompt.description && (
@@ -188,7 +211,7 @@ export function PromptManagerListItem({ prompt, onEdit, showTopBorder = false }:
 
             {prompt.status === "draft" && [
               <MenuItem key="edit" onClick={() => handleMenuAction(onEdit)}>
-                View
+                Edit
               </MenuItem>,
               <MenuItem
                 key="publish"

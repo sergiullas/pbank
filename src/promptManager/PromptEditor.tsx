@@ -835,7 +835,6 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                     {[
                       { token: "[VARIABLE]", description: "short input" },
                       { token: "[[VARIABLE]]", description: "multi-line" },
-                      { token: "[CONTEXT]", description: "file attachment" },
                     ].map((tokenItem) => (
                       <Stack key={tokenItem.token} direction="row" spacing={0.5} alignItems="center">
                         <Box

@@ -13,6 +13,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CHAT_READABLE_CONTENT_MAX_WIDTH_PX } from "../layout/contentWidths";
 import { parseTemplateVariables } from "../promptBank/templateVariables";
 import { renderPromptTestTemplate, runPromptTest } from "./runPromptTest";
 
@@ -303,7 +304,7 @@ export function PromptTestPanel({ template, onClose }: PromptTestPanelProps) {
               sx={{
                 m: 0,
                 width: "100%",
-                maxWidth: "80ch",
+                maxWidth: CHAT_READABLE_CONTENT_MAX_WIDTH_PX,
                 whiteSpace: "pre-wrap",
                 fontFamily: "inherit",
                 fontSize: "0.95rem",

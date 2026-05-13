@@ -1,4 +1,5 @@
 import { Box, Typography } from "@mui/material";
+import { CHAT_READABLE_CONTENT_MAX_WIDTH_PX } from "../layout/contentWidths";
 import { useStore } from "../state/store";
 import { Composer } from "./Composer";
 import { MessageList } from "./MessageList";
@@ -29,7 +30,7 @@ export function ChatPane({ onPromptLibraryToggle }: ChatPaneProps) {
           flex={1}
           display="flex"
           flexDirection="column"
-          maxWidth={700}
+          maxWidth={CHAT_READABLE_CONTENT_MAX_WIDTH_PX}
           width="100%"
           mx="auto"
           overflow="hidden"

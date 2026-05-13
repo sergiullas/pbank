@@ -157,7 +157,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     draftFormState.description !== (prompt.description ?? "") ||
     draftFormState.promptInstructions !== (prompt.desiredOutcome ?? "") ||
     JSON.stringify(draftFormState.tags) !== JSON.stringify(prompt.tags) ||
-    draftFormState.content !== prompt.content;
+    draftFormState.content !== prompt.content ||
+    versionComments.trim().length > 0;
 
   useEffect(() => {
     setPromptEditorUnsavedChanges(isDirty);
@@ -201,7 +202,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     changelog: versionComments.trim() ? [versionComments.trim()] : undefined,
   });
 
-  const validateRequiredFields = () => {
+  const validateRequiredFields = ({ includeVersionComments }: { includeVersionComments: boolean }) => {
     const nextErrors: { title?: string; template?: string; versionComments?: string } = {};
     if (!draftFormState.title.trim()) {
       nextErrors.title = "Title is required.";
@@ -209,7 +210,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     if (!draftFormState.content.trim()) {
       nextErrors.template = "Template is required.";
     }
-    if (requireVersionComments && !versionComments.trim()) {
+    if (includeVersionComments && requireVersionComments && !versionComments.trim()) {
       nextErrors.versionComments = "Version Comments are required for v2 and above.";
     }
     setFieldErrors(nextErrors);
@@ -217,7 +218,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   };
 
   const handleSaveDraft = () => {
-    if (!validateRequiredFields()) {
+    if (!validateRequiredFields({ includeVersionComments: false })) {
       return;
     }
     savePromptDraft(prompt.id, buildPayload());
@@ -225,7 +226,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   };
 
   const handlePublishConfirm = () => {
-    if (!validateRequiredFields()) {
+    if (!validateRequiredFields({ includeVersionComments: true })) {
       setPublishDialogOpen(false);
       return;
     }
@@ -1066,7 +1067,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                 color="primary"
                 disabled={isSharedWithNoUsers}
                 onClick={() => {
-                  if (!validateRequiredFields()) {
+                  if (!validateRequiredFields({ includeVersionComments: true })) {
                     return;
                   }
                   setPublishDialogOpen(true);

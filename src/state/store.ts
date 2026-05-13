@@ -29,6 +29,7 @@ export type PromptDraftPayload = {
   desiredOutcome?: string;
   tags?: string[];
   content: string;
+  changelog?: string[];
 };
 
 export type NewVersionPayload = {
@@ -401,7 +402,7 @@ export const useStore = create<StoreState>((set, get) => ({
     const now = new Date().toISOString();
       const newPrompt: Prompt = {
       id,
-      title: "Untitled Prompt",
+      title: "",
       description: "",
       desiredOutcome: "",
       category: "General",
@@ -464,6 +465,7 @@ export const useStore = create<StoreState>((set, get) => ({
         description: payload.description,
         desiredOutcome: payload.desiredOutcome,
         content: payload.content,
+        changelog: payload.changelog,
       };
 
       const existingVersions = prompt.versions ?? [];

@@ -15,6 +15,7 @@ import {
   Autocomplete,
   Box,
   Button,
+  Checkbox,
   CircularProgress,
   Chip,
   Dialog,
@@ -53,6 +54,7 @@ interface PromptEditorProps {
 type EditorMode = "draft-edit" | "published-readonly" | "version-readonly" | "archived-readonly";
 
 const INLINE_VERSION_COUNT = 4;
+const TEMPLATE_HELPER_PREFERENCE_KEY = "promptManager.hideTemplateHelper";
 
 export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const savePromptDraft = useStore((state) => state.savePromptDraft);
@@ -70,6 +72,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     title: prompt.title,
     description: prompt.description ?? "",
     promptInstructions: prompt.desiredOutcome ?? "",
+    tags: [...prompt.tags],
     content: prompt.content,
   }));
   const [viewingVersion, setViewingVersion] = useState<PromptVersion | null>(null);
@@ -79,7 +82,10 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
   const [unsavedDialogAction, setUnsavedDialogAction] = useState<"back" | "switch-version">("back");
   const [pendingVersionSelection, setPendingVersionSelection] = useState<PromptVersion | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<{ title?: string; template?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{ title?: string; template?: string; versionComments?: string }>({});
+  const [versionComments, setVersionComments] = useState("");
+  const [tagInput, setTagInput] = useState("");
+  const [hideTemplateHelper, setHideTemplateHelper] = useState(() => window.localStorage.getItem(TEMPLATE_HELPER_PREFERENCE_KEY) === "true");
   const [viewAllVersionsOpen, setViewAllVersionsOpen] = useState(false);
   const [headerVersionMenuAnchor, setHeaderVersionMenuAnchor] = useState<null | HTMLElement>(null);
   const [versionMenuAnchorPosition, setVersionMenuAnchorPosition] = useState<{ top: number; left: number } | null>(null);
@@ -133,6 +139,8 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   const useReadOnlyControls = editorMode === "published-readonly" || editorMode === "version-readonly";
   const disableControls = editorMode === "archived-readonly";
   const showTemplateExample = !isReadOnly && isTemplateExampleOpen;
+  const nextVersionNumber = getNextVersionNumber(prompt);
+  const requireVersionComments = editorMode === "draft-edit" && nextVersionNumber >= 2;
   const { variables: templateVariables, invalidTokens } = useMemo(
     () => parseTemplateVariables(activeSource.content),
     [activeSource.content],
@@ -148,7 +156,9 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     draftFormState.title !== prompt.title ||
     draftFormState.description !== (prompt.description ?? "") ||
     draftFormState.promptInstructions !== (prompt.desiredOutcome ?? "") ||
-    draftFormState.content !== prompt.content;
+    JSON.stringify(draftFormState.tags) !== JSON.stringify(prompt.tags) ||
+    draftFormState.content !== prompt.content ||
+    versionComments.trim().length > 0;
 
   useEffect(() => {
     setPromptEditorUnsavedChanges(isDirty);
@@ -187,24 +197,28 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
     title: draftFormState.title.trim() || "Untitled Prompt",
     description: draftFormState.description.trim() || undefined,
     desiredOutcome: draftFormState.promptInstructions.trim() || undefined,
-    tags: prompt.tags,
+    tags: draftFormState.tags,
     content: draftFormState.content,
+    changelog: versionComments.trim() ? [versionComments.trim()] : undefined,
   });
 
-  const validateRequiredFields = () => {
-    const nextErrors: { title?: string; template?: string } = {};
+  const validateRequiredFields = ({ includeVersionComments }: { includeVersionComments: boolean }) => {
+    const nextErrors: { title?: string; template?: string; versionComments?: string } = {};
     if (!draftFormState.title.trim()) {
       nextErrors.title = "Title is required.";
     }
     if (!draftFormState.content.trim()) {
       nextErrors.template = "Template is required.";
     }
+    if (includeVersionComments && requireVersionComments && !versionComments.trim()) {
+      nextErrors.versionComments = "Version Comments are required for v2 and above.";
+    }
     setFieldErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
 
   const handleSaveDraft = () => {
-    if (!validateRequiredFields()) {
+    if (!validateRequiredFields({ includeVersionComments: false })) {
       return;
     }
     savePromptDraft(prompt.id, buildPayload());
@@ -212,7 +226,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
   };
 
   const handlePublishConfirm = () => {
-    if (!validateRequiredFields()) {
+    if (!validateRequiredFields({ includeVersionComments: true })) {
       setPublishDialogOpen(false);
       return;
     }
@@ -277,6 +291,12 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
 
   const handleToggleTemplateExample = () => {
     setIsTemplateExampleOpen((prev) => !prev);
+  };
+  const addTag = () => {
+    const value = tagInput.trim();
+    if (!value) return;
+    setDraftFormState((prev) => (prev.tags.includes(value) ? prev : { ...prev, tags: [...prev.tags, value] }));
+    setTagInput("");
   };
 
   const openShareModal = () => {
@@ -384,6 +404,11 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
               {version.description}
             </Typography>
           )}
+          {version.changelog?.length ? (
+            <Typography variant="caption" color="text.secondary" display="block" mt={0.25}>
+              {version.changelog.join(" ")}
+            </Typography>
+          ) : null}
           {version.createdAt && (
             <Typography variant="caption" color="text.secondary">
               {new Date(version.createdAt).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })}
@@ -426,7 +451,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
 
         <Stack direction="row" alignItems="center" gap={1} sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="subtitle1" fontWeight={600} noWrap>
-            {draftFormState.title || "Untitled Prompt"}
+            {draftFormState.title.trim() || "Untitled Prompt"}
           </Typography>
           {showHeaderVersionDropdown ? (
             <Button
@@ -592,6 +617,24 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   maxRows={4}
                   helperText="A brief summary of what this prompt does."
                 />
+                {requireVersionComments && (
+                  <TextField
+                    label="Version Comments"
+                    value={versionComments}
+                    onChange={(e) => {
+                      setVersionComments(e.target.value);
+                      setFieldErrors((prev) => ({ ...prev, versionComments: undefined }));
+                    }}
+                    disabled={disableControls}
+                    fullWidth
+                    required
+                    multiline
+                    minRows={2}
+                    maxRows={4}
+                    error={Boolean(fieldErrors.versionComments)}
+                    helperText={fieldErrors.versionComments ?? "Describe what changed in this version."}
+                  />
+                )}
               </Stack>
 
               <Divider />
@@ -600,10 +643,33 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                 <Typography variant="overline" color="text.secondary" letterSpacing={1}>
                   Tags
                 </Typography>
-                {prompt.tags.length > 0 ? (
+                {!isReadOnly && (
+                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                    <TextField
+                      label="Add tag"
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          addTag();
+                        }
+                      }}
+                      disabled={disableControls}
+                      size="small"
+                    />
+                    <Button variant="outlined" onClick={addTag} disabled={disableControls}>Add</Button>
+                  </Stack>
+                )}
+                {draftFormState.tags.length > 0 ? (
                   <Stack direction="row" gap={0.75} flexWrap="wrap">
-                    {prompt.tags.map((tag) => (
-                      <Chip key={tag} label={tag} size="small" />
+                    {draftFormState.tags.map((tag) => (
+                      <Chip
+                        key={tag}
+                        label={tag}
+                        size="small"
+                        onDelete={isReadOnly ? undefined : () => setDraftFormState((prev) => ({ ...prev, tags: prev.tags.filter((value) => value !== tag) }))}
+                      />
                     ))}
                   </Stack>
                 ) : (
@@ -620,7 +686,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   Prompt Template
                 </Typography>
 
-                <Box
+                {!hideTemplateHelper && <Box
                   sx={{
                     display: "flex",
                     alignItems: "center",
@@ -632,20 +698,33 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                   }}
                 >
                   <InfoOutlinedIcon fontSize="small" color="primary" aria-hidden="true" />
-                  <Typography component="div" variant="body2" color="text.primary">
-                    Wrap words in brackets to create fill-in-the-blank placeholders. These become input fields when the prompt is used.{" "}
-                    {!isReadOnly && (
-                      <Button
-                        variant="text"
-                        size="small"
-                        onClick={handleToggleTemplateExample}
-                        sx={{ p: 0, minWidth: 0, textTransform: "none", fontWeight: 600, verticalAlign: "baseline" }}
-                      >
-                        {showTemplateExample ? "Hide example" : "See example"}
-                      </Button>
-                    )}
-                  </Typography>
-                </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <Typography component="div" variant="body2" color="text.primary">
+                      Wrap words in brackets to create fill-in-the-blank placeholders. These become input fields when the prompt is used.{" "}
+                      {!isReadOnly && (
+                        <Button
+                          variant="text"
+                          size="small"
+                          onClick={handleToggleTemplateExample}
+                          sx={{ p: 0, minWidth: 0, textTransform: "none", fontWeight: 600, verticalAlign: "baseline" }}
+                        >
+                          {showTemplateExample ? "Hide example" : "See example"}
+                        </Button>
+                      )}
+                    </Typography>
+                    <FormControlLabel
+                      control={<Checkbox checked={hideTemplateHelper} />}
+                      label="Do not show this again"
+                      onChange={() => {
+                        window.localStorage.setItem(TEMPLATE_HELPER_PREFERENCE_KEY, "true");
+                        setHideTemplateHelper(true);
+                      }}
+                    />
+                  </Box>
+                  <IconButton size="small" aria-label="Dismiss template helper" onClick={() => setHideTemplateHelper(true)}>
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </Box>}
 
                 {showTemplateExample && (
                   <Box
@@ -988,7 +1067,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
                 color="primary"
                 disabled={isSharedWithNoUsers}
                 onClick={() => {
-                  if (!validateRequiredFields()) {
+                  if (!validateRequiredFields({ includeVersionComments: true })) {
                     return;
                   }
                   setPublishDialogOpen(true);
@@ -1046,7 +1125,7 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
         PaperProps={{ sx: { overflow: "hidden" } }}
       >
         <DialogTitle id="share-modal-title" sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
-          <Typography component="span" variant="h6">Share "{draftFormState.title || "Untitled Prompt"}"</Typography>
+          <Typography component="span" variant="h6">Share "{draftFormState.title.trim() || "Untitled Prompt"}"</Typography>
           <IconButton aria-label="Close share modal" onClick={requestShareModalClose} size="small">
             <CloseIcon fontSize="small" />
           </IconButton>

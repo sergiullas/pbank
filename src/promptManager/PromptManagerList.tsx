@@ -128,7 +128,7 @@ export function PromptManagerList() {
         flexShrink={0}
       >
         <Typography variant="h5" fontWeight={700}>
-          Prompt Manager
+          Prompt Builder
         </Typography>
         <Button variant="contained" startIcon={<AddIcon />} onClick={startNewPromptDraft}>
           New Prompt

@@ -222,7 +222,7 @@ export function LeftShell() {
         />
         <NavItem
           icon={<AutoStoriesOutlinedIcon sx={{ fontSize: 22, flexShrink: 0 }} />}
-          label="Prompt Manager"
+          label="Prompt Builder"
           active={appMode === "promptManager"}
           isRail={isRail}
           onClick={() => setAppMode("promptManager")}

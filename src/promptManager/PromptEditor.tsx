@@ -356,16 +356,21 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
       setTimeout(() => shareSearchInputRef.current?.focus(), 0);
     }
   }, [shareDraftVisibility, shareModalOpen]);
-  const shareButtonIcon = promptVisibility === "shared"
+  const visibilityPillIcon = promptVisibility === "shared"
     ? <GroupOutlinedIcon fontSize="small" />
     : promptVisibility === "public"
       ? <PublicOutlinedIcon fontSize="small" />
       : <LockOutlinedIcon fontSize="small" />;
-  const shareAriaLabel = promptVisibility === "shared"
-    ? `Share — currently Shared with ${sharedUsers.length} people`
+  const visibilityPillLabel = promptVisibility === "shared"
+    ? `Shared · ${sharedUsers.length}`
     : promptVisibility === "public"
-      ? "Share — currently Public"
-      : "Share — currently Private";
+      ? "Public"
+      : "Private";
+  const visibilityPillAriaLabel = promptVisibility === "shared"
+    ? `Shared with ${sharedUsers.length} ${sharedUsers.length === 1 ? "person" : "people"}`
+    : promptVisibility === "public"
+      ? "Public"
+      : "Private";
 
   const inlineVersions = useMemo(() => {
     return sortedVersions.slice(0, INLINE_VERSION_COUNT);
@@ -495,6 +500,13 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
             <PromptStatusChip status={prompt.status} hasUnpublishedChanges={prompt.hasUnpublishedChanges} />
           )}
           {editorMode === "version-readonly" && <Chip label="Read-only" size="small" variant="outlined" />}
+          <Chip
+            icon={visibilityPillIcon}
+            label={visibilityPillLabel}
+            size="small"
+            variant="outlined"
+            aria-label={visibilityPillAriaLabel}
+          />
         </Stack>
 
         <Stack direction="row" alignItems="center" spacing={1}>
@@ -502,32 +514,11 @@ export function PromptEditor({ prompt, onBack }: PromptEditorProps) {
             <Button
               variant="outlined"
               size="small"
-              startIcon={shareButtonIcon}
               onClick={openShareModal}
-              aria-label={shareAriaLabel}
+              aria-label="Share prompt"
               ref={shareButtonRef}
             >
               Share
-              {promptVisibility === "shared" && (
-                <Box
-                  component="span"
-                  sx={{
-                    ml: 0.75,
-                    minWidth: 18,
-                    height: 18,
-                    px: 0.5,
-                    borderRadius: 999,
-                    bgcolor: "action.selected",
-                    color: "text.secondary",
-                    fontSize: "0.7rem",
-                    lineHeight: "18px",
-                    fontWeight: 700,
-                    textAlign: "center",
-                  }}
-                >
-                  {sharedUsers.length}
-                </Box>
-              )}
             </Button>
           )}
           <Button variant="outlined" size="small" onClick={() => setShowTestPanel((prev) => !prev)}>
